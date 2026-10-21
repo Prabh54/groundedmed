@@ -19,7 +19,7 @@ Prefer one obvious way to do each thing over configurable flexibility.
 | Vector store | Supabase Postgres + pgvector, exact search | One database holds text, metadata and vectors; at 2,500 rows an exact scan needs no index tuning. |
 | Embeddings | Voyage `voyage-4` (1,024 dims) | Hosted, inside the 200M-token free allocation; no model in our server's memory. |
 | Reranker | Voyage `rerank-3` | Same vendor and key as embeddings; one account instead of two. |
-| Runtime LLM | Claude Opus 5.5 (`claude-opus-5-5`) for all runtime nodes (ADR-013) | One model = one config, one price row, one failure mode. |
+| Runtime LLM | Claude Sonnet 5.5 (`claude-sonnet-5-5`) for all runtime nodes (ADR-022) | One model = one config, one price row, one failure mode. |
 | LLM output | Anthropic structured outputs (`output_config.format`, JSON schema) | The API guarantees parseable JSON, so no retry-on-bad-JSON code. |
 | Independent judge | Google Gemini, paid tier, offline only (ADR-014) | Different provider from the runtime critic by construction; never deployed. |
 | Frontend | Next.js App Router + Tailwind, Vercel Hobby | Vercel is Next.js's native host: push to deploy, no server config. |
@@ -138,9 +138,15 @@ HF dataset @ pinned revision
 
 Baseline: `retrieve(question)` → evidence gate → one synthesis call → citation validator.
 
-Agent: planner gives 1–3 sub-queries → dense top 20 for each, union, dedupe by PMID →
-rerank the union against the original question → top 5. Baseline and agent therefore get the
-same evidence budget (5 passages), which keeps the A/B comparison fair (ADR-015).
+Agent (ADR-023): queries = the original question + the planner's 1–3 sub-queries → dense top 20 for each
+(query embeddings batched in one Voyage call) → union, dedupe by PMID (up to ~80) → rerank the pool against
+the original question → top 5.
+Baseline and agent get the same number of passages (5), not necessarily the same passages: the planner
+widens the candidate pool, and because the original question is always one of the queries, the pool always
+contains the baseline's 20 candidates. Fixing the count keeps the A/B comparison about better evidence,
+not more evidence (ADR-015).
+`planner_added_evidence` = how many of the agent's final 5 were not in the baseline's top-20 candidates;
+it is logged per answer and summarized in every eval run.
 
 Hit@k is measured on the final top-5 list. Dense-only Hit@k (before rerank) is logged as a diagnostic.
 
@@ -155,6 +161,7 @@ class ResearchState(TypedDict):
     retrieved_candidates: list[Candidate]    # all dense hits before rerank
     selected_evidence: list[Evidence]        # final top 5 after rerank
     retrieval_scores: dict[str, float]       # pmid -> rerank score
+    planner_added_evidence: int              # final-5 papers not in the question-only top 20 (ADR-023)
     gate_passed: bool
     draft_answer: DraftAnswer | None         # synthesizer output
     claims: list[Claim]
@@ -173,7 +180,7 @@ All types are Pydantic models in `backend/app/models/`.
 | Node | Input | Output | Must not |
 |---|---|---|---|
 | Planner (LLM) | question | 1–3 sub-queries (JSON) | answer the question; make biomedical claims |
-| Retriever (code) | question + sub-queries | top-5 evidence, scores, timings | call an LLM; generate text |
+| Retriever (code) | question + sub-queries (question always included) | top-5 evidence, scores, `planner_added_evidence`, timings | call an LLM; generate text |
 | Evidence gate (code) | rerank scores | pass / abstain(weak_evidence) | use test labels for its threshold |
 | Synthesizer (LLM) | question + 5 evidence passages | verdict, summary, claims with citation IDs, uncertainty | use evidence outside the 5; invent IDs |
 | Critic (LLM) | each claim + only its cited passages | per-claim supported / citation_valid / action | add claims; rewrite the answer |
@@ -272,6 +279,7 @@ Guards (also tested):
 - A run directory that already exists is never overwritten.
 - Baseline, agent and closed-book runs on the same split must share an identical question-ID list.
 - Majority-class reference ("always yes") is computed and shown with the results.
+- Agent summaries include `planner_added_evidence` (mean, and share of questions > 0) — ADR-023.
 - The runtime model cannot fix its random seed or temperature, so reruns are reproducible in procedure, not
   bit-for-bit; raw outputs are stored so every number can be recomputed from files.
 
