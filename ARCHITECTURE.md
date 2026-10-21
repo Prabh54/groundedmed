@@ -19,7 +19,7 @@ Prefer one obvious way to do each thing over configurable flexibility.
 | Vector store | Supabase Postgres + pgvector, exact search | One database holds text, metadata and vectors; at 2,500 rows an exact scan needs no index tuning. |
 | Embeddings | Voyage `voyage-4` (1,024 dims) | Hosted, inside the 200M-token free allocation; no model in our server's memory. |
 | Reranker | Voyage `rerank-3` | Same vendor and key as embeddings; one account instead of two. |
-| Runtime LLM | Claude, one model for all runtime nodes (ADR-013, owner decision) | One model = one config, one price row, one failure mode. |
+| Runtime LLM | Claude Opus 5.5 (`claude-opus-5-5`) for all runtime nodes (ADR-013) | One model = one config, one price row, one failure mode. |
 | LLM output | Anthropic structured outputs (`output_config.format`, JSON schema) | The API guarantees parseable JSON, so no retry-on-bad-JSON code. |
 | Independent judge | Google Gemini, paid tier, offline only (ADR-014) | Different provider from the runtime critic by construction; never deployed. |
 | Frontend | Next.js App Router + Tailwind, Vercel Hobby | Vercel is Next.js's native host: push to deploy, no server config. |
