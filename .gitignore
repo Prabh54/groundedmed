@@ -1,0 +1,29 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+docs/reference/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+.next/
+
+# Local data caches (manifests in data/manifests/ ARE committed)
+data/raw/
+data/cache/
+.cache/
