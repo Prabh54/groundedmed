@@ -120,3 +120,58 @@ def test_write_frozen_refuses_to_change_existing_file(tmp_path):
         pd.write_frozen({other: "new\n", path: "changed\n"})
     assert path.read_text() == "original\n"
     assert not other.exists()  # nothing is written when any file would change
+
+
+def doc(pmid, meshes, source="pqa_u", text=None):
+    sections = (pd.Section("RESULTS", text or f"Text {pmid}."),)
+    return pd.Document(str(pmid), source, sections, tuple(meshes))
+
+
+def test_generic_mesh_terms_by_share():
+    docs = [doc(i, ["Humans", f"Topic{i}"]) for i in range(100)]
+    docs += [doc(1000 + i, ["Humans", "Rare"]) for i in range(3)]
+    # Humans tags all 103 papers; Rare tags 3/103 (2.9%, not generic); Topic<i> 1 each.
+    assert pd.generic_mesh_terms(docs) == {"Humans"}
+
+
+def test_select_distractors_ranks_by_shared_specific_terms_round_robin():
+    labeled = [doc(2, ["A", "B", "C"], "pqa_l"), doc(1, ["X", "Y"], "pqa_l")]
+    candidates = [
+        doc(10, ["A", "B", "C", "G"]),  # 3 shared with paper 2
+        doc(11, ["A", "B", "G"]),  # 2 shared with paper 2
+        doc(12, ["A", "B"]),  # 2 shared with paper 2; loses PMID tie-break to 11
+        doc(13, ["X", "G"]),  # 1 shared with paper 1
+        doc(14, ["G"]),  # generic overlap only: never chosen
+    ]
+    # Round 1: paper 1 (lower PMID) takes 13, paper 2 takes 10. Round 2: paper 2 takes 11.
+    assert pd.select_distractors(labeled, candidates, {"G"}, 3) == ["10", "11", "13"]
+    with pytest.raises(ValueError, match="only 4 distractor candidates"):
+        pd.select_distractors(labeled, candidates, {"G"}, 5)
+
+
+def test_labeled_duplicates_by_question_or_opening_text():
+    def row(pmid, question, text):
+        return pd.SourceRow(doc(pmid, ["A"], text=text), question, None)
+
+    labeled = [row(1, "Does X help?", "Original abstract text " * 20)]
+    unlabeled = [
+        row(2, "does x help", "Different text " * 20),  # same question after normalizing
+        row(3, "Other question?", "Original abstract text " * 20 + "extra"),  # same opening
+        row(4, "Other question?", "Unrelated " * 20),
+    ]
+    assert pd.labeled_duplicates(labeled, unlabeled) == {"2", "3"}
+
+
+def test_corpus_record_contains_only_allowed_fields():
+    record = pd.corpus_record(doc(5, ["A"], "pqa_l", text="Body."))
+    assert set(record) == {
+        "pmid",
+        "source",
+        "sections",
+        "passage",
+        "meshes",
+        "content_sha256",
+        "corpus_version",
+    }
+    assert record["passage"] == "Body."
+    assert record["content_sha256"] == pd.sha256_text("Body.")

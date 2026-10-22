@@ -11,7 +11,8 @@ import argparse
 import hashlib
 import json
 import random
-from collections import Counter
+import re
+from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -33,6 +34,18 @@ LABEL_ORDER = ("yes", "no", "maybe")
 SPLIT_SEED = 20261021
 TEST_FRACTION, DEV_FRACTION = 0.2, 0.1
 SPLITS = ("test", "dev", "reserve")
+
+# Corpus (ADR-008, ADR-025): all labeled contexts + MeSH-similar unlabeled distractors.
+CORPUS_VERSION = "v1-seed20261021"
+N_DISTRACTORS = 1500
+# A MeSH term tagging more than this share of unlabeled papers is generic (Humans, Female,
+# Retrospective Studies, ...) and does not count as topic overlap.
+GENERIC_MESH_MAX_SHARE = 0.03
+# Unlabeled papers whose normalized question, or first 200 normalized passage characters,
+# equal a labeled paper's are copies of it (e.g. 18270496, 17491578 copy 18019905).
+DUPLICATE_PREFIX_CHARS = 200
+# Each labeled paper keeps this many best candidates; far more than the ~2 rounds needed.
+CANDIDATES_PER_PAPER = 50
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = REPO_ROOT / "data"
@@ -147,6 +160,113 @@ def split_manifest(name: str, items: list[BenchmarkItem]) -> dict:
     }
 
 
+def normalize(text: str) -> str:
+    """Lowercase, punctuation and whitespace collapsed to single spaces (for matching only)."""
+    return re.sub(r"\W+", " ", text.lower()).strip()
+
+
+def passage_text(document: Document) -> str:
+    """Exactly what gets embedded: section texts in order, no labels, no question."""
+    return "\n\n".join(section.text for section in document.sections)
+
+
+def generic_mesh_terms(unlabeled: list[Document]) -> set[str]:
+    counts = Counter(term for doc in unlabeled for term in set(doc.meshes))
+    return {term for term, n in counts.items() if n / len(unlabeled) > GENERIC_MESH_MAX_SHARE}
+
+
+def labeled_duplicates(labeled: list[SourceRow], unlabeled: list[SourceRow]) -> set[str]:
+    """PMIDs of unlabeled rows that copy a labeled paper (same question or same opening text)."""
+
+    def prefix(row: SourceRow) -> str:
+        return normalize(passage_text(row.document))[:DUPLICATE_PREFIX_CHARS]
+
+    questions = {normalize(row.question) for row in labeled}
+    prefixes = {prefix(row) for row in labeled}
+    return {
+        row.document.pmid
+        for row in unlabeled
+        if normalize(row.question) in questions or prefix(row) in prefixes
+    }
+
+
+def select_distractors(
+    labeled: list[Document], candidates: list[Document], generic: set[str], n: int
+) -> list[str]:
+    """Round-robin over labeled papers (PMID order): each takes its best not-yet-chosen candidate,
+    ranked by number of shared non-generic MeSH terms, ties by PMID. Returns PMIDs sorted."""
+    by_term = defaultdict(list)
+    for doc in candidates:
+        for term in set(doc.meshes) - generic:
+            by_term[term].append(doc.pmid)
+
+    ranked = []
+    for doc in sorted(labeled, key=pmid_key):
+        shared = Counter(pmid for term in set(doc.meshes) - generic for pmid in by_term[term])
+        best = sorted(shared.items(), key=lambda kv: (-kv[1], int(kv[0])))
+        ranked.append([pmid for pmid, _ in best[:CANDIDATES_PER_PAPER]])
+
+    chosen: set[str] = set()
+    positions = [0] * len(ranked)
+    while len(chosen) < n:
+        progressed = False
+        for i, options in enumerate(ranked):
+            while positions[i] < len(options) and options[positions[i]] in chosen:
+                positions[i] += 1
+            if positions[i] < len(options):
+                chosen.add(options[positions[i]])
+                progressed = True
+                if len(chosen) == n:
+                    break
+        if not progressed:
+            raise ValueError(f"only {len(chosen)} distractor candidates available, need {n}")
+    return sorted(chosen, key=int)
+
+
+def corpus_record(document: Document) -> dict:
+    passage = passage_text(document)
+    return {
+        "pmid": document.pmid,
+        "source": document.source,
+        "sections": [asdict(section) for section in document.sections],
+        "passage": passage,
+        "meshes": list(document.meshes),
+        "content_sha256": sha256_text(passage),
+        "corpus_version": CORPUS_VERSION,
+    }
+
+
+def build_corpus(labeled: list[SourceRow], unlabeled: list[SourceRow]) -> tuple[list[dict], dict]:
+    """Returns (corpus records sorted by PMID, corpus manifest)."""
+    duplicates = labeled_duplicates(labeled, unlabeled)
+    unlabeled_docs = [row.document for row in unlabeled]
+    generic = generic_mesh_terms(unlabeled_docs)
+    candidates = [doc for doc in unlabeled_docs if doc.pmid not in duplicates]
+    labeled_docs = [row.document for row in labeled]
+    chosen = set(select_distractors(labeled_docs, candidates, generic, N_DISTRACTORS))
+
+    documents = labeled_docs + [doc for doc in candidates if doc.pmid in chosen]
+    records = [corpus_record(doc) for doc in sorted(documents, key=pmid_key)]
+    manifest = {
+        "corpus_version": CORPUS_VERSION,
+        "dataset": DATASET_REPO,
+        "revision": DATASET_REVISION,
+        "count": len(records),
+        "source_counts": dict(sorted(Counter(r["source"] for r in records).items())),
+        "distractor_rule": {
+            "n_distractors": N_DISTRACTORS,
+            "generic_mesh_max_share": GENERIC_MESH_MAX_SHARE,
+            "generic_mesh_terms": sorted(generic),
+            "excluded_duplicates": sorted(duplicates, key=int),
+        },
+        "documents": [
+            {"pmid": r["pmid"], "source": r["source"], "content_sha256": r["content_sha256"]}
+            for r in records
+        ],
+    }
+    return records, manifest
+
+
 def to_json(obj) -> str:
     return json.dumps(obj, indent=2, ensure_ascii=False) + "\n"
 
@@ -187,12 +307,25 @@ def main() -> None:
     }
     test_json = files[manifest_dir / "test.json"]
     files[manifest_dir / "test.sha256"] = f"{sha256_text(test_json)}  test.json\n"
+
+    records, corpus_manifest = build_corpus(labeled, unlabeled)
+    files[manifest_dir / "corpus.json"] = to_json(corpus_manifest)
     write_frozen(files)
+    corpus_path = args.out_dir / "corpus.jsonl"  # regenerated every run; not committed
+    corpus_path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records))
 
     for name in SPLITS:
         print(f"{name}: {len(splits[name])} questions {label_counts(splits[name])}")
     print(f"test.json sha256: {sha256_text(test_json)}")
-    print(f"Manifests written to {manifest_dir} (unchanged if they already existed)")
+    rule = corpus_manifest["distractor_rule"]
+    print(
+        f"corpus: {corpus_manifest['count']} documents {corpus_manifest['source_counts']}; "
+        f"{len(rule['generic_mesh_terms'])} generic MeSH terms; "
+        f"excluded duplicates {rule['excluded_duplicates']}"
+    )
+    print(
+        f"Manifests in {manifest_dir} (unchanged if they already existed); corpus at {corpus_path}"
+    )
 
 
 if __name__ == "__main__":
