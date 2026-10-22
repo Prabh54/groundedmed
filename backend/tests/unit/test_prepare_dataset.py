@@ -118,7 +118,7 @@ def test_write_frozen_refuses_to_change_existing_file(tmp_path):
     other = tmp_path / "dev.json"
     with pytest.raises(pd.FrozenManifestError):
         pd.write_frozen({other: "new\n", path: "changed\n"})
-    assert path.read_text() == "original\n"
+    assert path.read_text(encoding="utf-8") == "original\n"
     assert not other.exists()  # nothing is written when any file would change
 
 

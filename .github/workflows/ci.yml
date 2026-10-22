@@ -33,7 +33,10 @@ jobs:
 
       # Fails if the committed (frozen) manifests would change; also builds data/corpus.jsonl.
       - name: Rebuild dataset and check frozen manifests
-        run: uv run python -m scripts.prepare_dataset
+        run: |
+          uv run python -m scripts.prepare_dataset
+          git status --porcelain --untracked-files=all -- data
+          test -z "$(git status --porcelain --untracked-files=all -- data)"
 
       - name: Tests (unit + leakage)
         run: uv run pytest -v

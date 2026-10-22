@@ -32,7 +32,7 @@ if not CORPUS.exists():
 
 @pytest.fixture(scope="module")
 def corpus():
-    return [json.loads(line) for line in CORPUS.read_text().splitlines()]
+    return [json.loads(line) for line in CORPUS.read_text(encoding="utf-8").splitlines()]
 
 
 @pytest.fixture(scope="module")
@@ -53,7 +53,7 @@ def sentences(text):
 
 
 def test_corpus_matches_frozen_manifest(corpus):
-    manifest = json.loads((DATA / "manifests" / "corpus.json").read_text())
+    manifest = json.loads((DATA / "manifests" / "corpus.json").read_text(encoding="utf-8"))
     assert manifest["count"] == len(corpus) == 2500
     assert manifest["source_counts"] == {"pqa_l": 1000, "pqa_u": 1500}
     expected = [(d["pmid"], d["source"], d["content_sha256"]) for d in manifest["documents"]]
@@ -125,7 +125,7 @@ def test_all_labeled_papers_present_and_unique(corpus):
     assert len(passages) == len(set(passages))
     labeled = {r["pmid"] for r in corpus if r["source"] == "pqa_l"}
     for name in pd.SPLITS:
-        manifest = json.loads((DATA / "manifests" / f"{name}.json").read_text())
+        manifest = json.loads((DATA / "manifests" / f"{name}.json").read_text(encoding="utf-8"))
         assert {item["pmid"] for item in manifest["items"]} <= labeled
 
 

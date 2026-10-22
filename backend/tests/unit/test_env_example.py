@@ -6,7 +6,7 @@ ENV_EXAMPLE = Path(__file__).resolve().parents[3] / ".env.example"
 
 
 def test_env_example_has_names_only():
-    lines = ENV_EXAMPLE.read_text().splitlines()
+    lines = ENV_EXAMPLE.read_text(encoding="utf-8").splitlines()
     assignments = [line for line in lines if line.strip() and not line.lstrip().startswith("#")]
     assert assignments, ".env.example lists no variables"
     for line in assignments:

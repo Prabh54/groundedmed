@@ -277,13 +277,17 @@ def sha256_text(text: str) -> str:
 
 def write_frozen(files: dict[Path, str]) -> None:
     """Write manifests, refusing to change any that already exist. Checks all before writing any."""
-    changed = [path for path, text in files.items() if path.exists() and path.read_text() != text]
+    changed = [
+        path
+        for path, text in files.items()
+        if path.exists() and path.read_text(encoding="utf-8") != text
+    ]
     if changed:
         names = ", ".join(str(path) for path in changed)
         raise FrozenManifestError(f"refusing to overwrite frozen manifest(s): {names}")
     for path, text in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text)
+        path.write_text(text, encoding="utf-8")
 
 
 def main() -> None:
@@ -312,7 +316,9 @@ def main() -> None:
     files[manifest_dir / "corpus.json"] = to_json(corpus_manifest)
     write_frozen(files)
     corpus_path = args.out_dir / "corpus.jsonl"  # regenerated every run; not committed
-    corpus_path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records))
+    corpus_path.write_text(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records), encoding="utf-8"
+    )
 
     for name in SPLITS:
         print(f"{name}: {len(splits[name])} questions {label_counts(splits[name])}")

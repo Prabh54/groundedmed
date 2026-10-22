@@ -15,12 +15,12 @@ FROZEN_TEST_SHA256 = "41f10a29ddc5126c62dcfe8e6d1141979e35022be246dca8c51eaa51ae
 
 
 def load(name):
-    return json.loads((MANIFESTS / f"{name}.json").read_text())
+    return json.loads((MANIFESTS / f"{name}.json").read_text(encoding="utf-8"))
 
 
 def test_frozen_test_ids_match_manifest_hash():
     digest = hashlib.sha256((MANIFESTS / "test.json").read_bytes()).hexdigest()
-    recorded = (MANIFESTS / "test.sha256").read_text().split()
+    recorded = (MANIFESTS / "test.sha256").read_text(encoding="utf-8").split()
     assert recorded == [digest, "test.json"]
     assert digest == FROZEN_TEST_SHA256
 

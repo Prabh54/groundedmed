@@ -101,7 +101,6 @@ and gives one citation per paper. Citation ID format: `PMID:<pubid>`.
 create extension if not exists vector;
 create table documents (
   pmid            text primary key,          -- citation ID is 'PMID:' || pmid
-  source          text not null,             -- 'pqa_l' | 'pqa_u'
   sections        jsonb not null,            -- [{"label":"BACKGROUND","text":"..."}, ...]
   passage         text not null,             -- exactly what was embedded
   meshes          text[] not null,
@@ -112,6 +111,9 @@ create table documents (
 );
 ```
 No label, question, conclusion or split column exists, so retrieval cannot see them.
+No `source` column either (ADR-026): only labeled papers can be gold, so knowing which papers are labeled
+would be a retrieval shortcut. `source` stays in `corpus.jsonl`/`corpus.json` for auditing only, and a test
+fails if runtime code under `backend/app/` mentions it.
 The runtime connects with a read-only database role; only `scripts/ingest.py` uses a write role.
 No runtime writes: queries are logged to stdout, not the database.
 
