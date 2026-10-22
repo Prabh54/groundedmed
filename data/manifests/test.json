@@ -1,0 +1,1014 @@
+{
+  "split": "test",
+  "dataset": "qiaojin/PubMedQA",
+  "revision": "9001f2853fb87cab8d220904e0de81ac6973b318",
+  "seed": 20261021,
+  "count": 200,
+  "label_counts": {
+    "yes": 110,
+    "no": 68,
+    "maybe": 22
+  },
+  "items": [
+    {
+      "pmid": "8245806",
+      "question": "Does family practice at residency teaching sites reflect community practice?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "8566975",
+      "question": "Serovar specific immunity to Neisseria gonorrhoeae: does it exist?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "9003088",
+      "question": "Immunohistochemical assessment of steroid hormone receptors in tissues of the anal canal. Implications for anal incontinence?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "9100537",
+      "question": "Can nonproliferative breast disease and proliferative breast disease without atypia be distinguished by fine-needle aspiration cytology?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "9427037",
+      "question": "Are endothelial cell patterns of astrocytomas indicative of grade?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "9645785",
+      "question": "Is a mandatory general surgery rotation necessary in the surgical clerkship?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "9745063",
+      "question": "Is laparoscopic sonography a reliable and sensitive procedure for staging colorectal cancer?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "10340286",
+      "question": "Is there a role for leukocyte and CRP measurements in the diagnosis of acute appendicitis in the elderly?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "10354335",
+      "question": "Can medical students contribute to quality assurance programmes in day surgery?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "10375486",
+      "question": "Are variations in the use of carotid endarterectomy explained by population Need?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "10381996",
+      "question": "Clinician assessment for acute chest syndrome in febrile patients with sickle cell disease: is it accurate enough?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "10473855",
+      "question": "Is delayed gastric emptying following pancreaticoduodenectomy related to pylorus preservation?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "10548670",
+      "question": "Does the National Institutes of Health Stroke Scale favor left hemisphere strokes?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "10783841",
+      "question": "Is there a relationship between rheumatoid arthritis and periodontal disease?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "10808977",
+      "question": "Can tailored interventions increase mammography use among HMO women?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "10877371",
+      "question": "Does head positioning influence anterior chamber depth in pseudoexfoliation syndrome?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "11146778",
+      "question": "Risk stratification in emergency surgical patients: is the APACHE II score a reliable marker of physiological impairment?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "11438275",
+      "question": "Does patient position during liver surgery influence the risk of venous air embolism?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "11458136",
+      "question": "Does managed care enable more low income persons to identify a usual source of care?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "11500608",
+      "question": "Does short-term treatment with proton pump inhibitors cause rebound aggravation of symptoms?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "11833948",
+      "question": "Does a delay in transfer to a rehabilitation unit for older people affect outcome after fracture of the proximal femur?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "11862129",
+      "question": "Do clinical variables predict pathologic radiographs in the first episode of wheezing?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "11955750",
+      "question": "Does escalation of the apical dose change treatment outcome in beta-radiation of posterior choroidal melanomas with 106Ru plaques?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "11977907",
+      "question": "Subclavian steal syndrome: can the blood pressure difference between arms predict the severity of steal?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "11978239",
+      "question": "Do primary care physicians underprescribe antibiotics for peptic ulcer disease?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "12068831",
+      "question": "Do nontriploid partial hydatidiform moles exist?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "12094116",
+      "question": "Is muscle power related to running speed with changes of direction?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "12238307",
+      "question": "Vaccine protection in the elderly: are Austrian seniors adequately protected by vaccinations?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "12407608",
+      "question": "Does ultrasound imaging before puncture facilitate internal jugular vein cannulation?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "12419743",
+      "question": "Is first-line single-agent mitoxantrone in the treatment of high-risk metastatic breast cancer patients as effective as combination chemotherapy?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "12442934",
+      "question": "Does ibuprofen increase perioperative blood loss during hip arthroplasty?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "12769830",
+      "question": "Should tumor depth be included in prognostication of soft tissue sarcoma?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "12846929",
+      "question": "Quality of life in lung cancer patients: does socioeconomic status matter?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "12913347",
+      "question": "Do microbiological factors account for poor pregnancy outcome among unmarried pregnant women in Poland?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "14551704",
+      "question": "Can communication with terminally ill patients be taught?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "14976655",
+      "question": "Delayed peripheral facial palsy in the stapes surgery: can it be prevented?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "15041506",
+      "question": "Is fear of anaphylactic shock discouraging surgeons from more widely adopting percutaneous and laparoscopic techniques in the treatment of liver hydatid cyst?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "15137012",
+      "question": "Ovarian torsion in children: is oophorectomy necessary?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "15141797",
+      "question": "Can we rely on arterial line sampling in performing activated plasma thromboplastin time after cardiac surgery?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "15223725",
+      "question": "Does blood pressure change in treated hypertensive patients depending on whether it is measured by a physician or a nurse?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "15528969",
+      "question": "Is expert breast pathology assessment necessary for the management of ductal carcinoma in situ ?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "15530261",
+      "question": "Does screening or surveillance for primary hepatocellular carcinoma with ultrasonography improve the prognosis of patients?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "15879722",
+      "question": "Is cytokeratin immunoreactivity useful in the diagnosis of short-segment Barrett's oesophagus in Korea?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "16241924",
+      "question": "Does parity increase insulin resistance during pregnancy?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "16392897",
+      "question": "BCRABL transcript detection by quantitative real-time PCR : are correlated results possible from homebrew assays?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "16428354",
+      "question": "Does rural or urban residence make a difference to neonatal outcome in premature birth?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "16564683",
+      "question": "Is there any interest to perform ultrasonography in boys with undescended testis?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "16678696",
+      "question": "Continuity of care experience of residents in an academic vascular department: are trainees learning complete surgical care?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "16713745",
+      "question": "Do cytokine concentrations in pancreatic juice predict the presence of pancreatic diseases?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "16778275",
+      "question": "Is routine chest radiography after transbronchial biopsy necessary?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "16971978",
+      "question": "Are complex coronary lesions more frequent in patients with diabetes mellitus?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17032327",
+      "question": "Do supervised colorectal trainees differ from consultants in terms of quality of TME surgery?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "17062225",
+      "question": "Thoracic and thoracoabdominal aneurysm repair: is reimplantation of spinal cord arteries a waste of time?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17096624",
+      "question": "Do patterns of knowledge and attitudes exist among unvaccinated seniors?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17105833",
+      "question": "Empiric treatment of uncomplicated urinary tract infection with fluoroquinolones in older women in Israel: another lost treatment option?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "17179167",
+      "question": "Human papillomavirus and pterygium. Is the virus a risk factor?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "17208539",
+      "question": "Are the long-term results of the transanal pull-through equal to those of the transabdominal pull-through?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "17244100",
+      "question": "Can patient coaching reduce racial/ethnic disparities in cancer pain control?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17312514",
+      "question": "Does quilting suture prevent seroma in abdominoplasty?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17335331",
+      "question": "Diagnostic characteristics of child bipolar I disorder: does the \"Treatment of Early Age Mania (team)\" sample generalize?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17453263",
+      "question": "Are physician estimates of asthma severity less accurate in black than in white patients?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17483607",
+      "question": "Does topical N-acetylcysteine application after myringotomy cause severe otorrhea?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17502203",
+      "question": "Cholestasis associated with small bowel atresia: do we always need to investigate?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "17562682",
+      "question": "Is Panton-Valentine leucocidin associated with the pathogenesis of Staphylococcus aureus bacteraemia in the UK?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "17593459",
+      "question": "Is double-balloon enteroscopy an accurate method to diagnose small-bowel disorders?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17682349",
+      "question": "Are there gender differences in the reasons why African Americans delay in seeking medical help for symptoms of an acute myocardial infarction?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17691856",
+      "question": "Midwives' competence: is it affected by working in a rural location?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "17916877",
+      "question": "Intravenous administration of metoclopramide by 2 min bolus vs 15 min infusion: does it affect the improvement of headache while reducing the side effects?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17919952",
+      "question": "Are reports of mechanical dysfunction in chronic oro-facial pain related to somatisation?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "17971187",
+      "question": "Cholesterol screening in school children: is family history reliable to choose the ones to screen?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "18019905",
+      "question": "The use of audit to identify maternal mortality in different settings: is it just a difference between the rich and the poor?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "18096128",
+      "question": "Cervical spine fractures in geriatric blunt trauma patients with low-energy mechanism: are clinical predictors adequate?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "18251357",
+      "question": "Does histologic chorioamnionitis correspond to clinical chorioamnionitis?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18322741",
+      "question": "Does laparoscopic surgery decrease the risk of atrial fibrillation after foregut surgery?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18399830",
+      "question": "Is robotically assisted laparoscopic radical prostatectomy less invasive than retropubic radical prostatectomy?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18403945",
+      "question": "Does laparoscopic antireflux surgery improve quality of life in patients whose gastro-oesophageal reflux disease is well controlled with medical therapy?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18439500",
+      "question": "Laparoscopic myomectomy: do size, number, and location of the myomas form limiting factors for laparoscopic myomectomy?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "18540901",
+      "question": "Transient tachypnea of the newborn (TTN): a role for polymorphisms in the beta-adrenergic receptor (ADRB) encoding genes?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18565233",
+      "question": "Does the lipid-lowering peroxisome proliferator-activated receptors ligand bezafibrate prevent colon cancer in patients with coronary artery disease?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18568239",
+      "question": "Is the ability to perform transurethral resection of the prostate influenced by the surgeon's previous experience?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18616781",
+      "question": "Is there a relationship between homocysteine and vitiligo?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18693227",
+      "question": "Does a geriatric oncology consultation modify the cancer treatment plan for elderly patients?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18714572",
+      "question": "Does vaginal intraepithelial neoplasia have the same evolution as cervical intraepithelial neoplasia?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "18784527",
+      "question": "Can mandibular depiction be improved by changing the thickness of double-oblique computed tomography images?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "18832500",
+      "question": "Systematic use of patient-rated depression severity monitoring: is it helpful and feasible in clinical psychiatry?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "18926458",
+      "question": "Are octogenarians at high risk for carotid endarterectomy?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "19103915",
+      "question": "Are home sampling kits for sexually transmitted infections acceptable among men who have sex with men?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "19108857",
+      "question": "Cerebromediastinal tuberculosis in a child with a probable Say-Barber-Miller syndrome: a causative link?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "19131405",
+      "question": "Diffusion-weighted echo-planar MR imaging of primary parotid gland tumors: is a prediction of different histologic subtypes possible?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "19156007",
+      "question": "Can clinicians use the PHQ-9 to assess depression in people with vision loss?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "19268855",
+      "question": "Application of computer-aided diagnosis (CAD) in MR-mammography (MRM): do we really need whole lesion time curve distribution analysis?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "19299238",
+      "question": "Aromatase inhibitor-related musculoskeletal symptoms: is preventing osteoporosis the key to eliminating these symptoms?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "19309468",
+      "question": "Does a febrile reaction to platelets predispose recipients to red blood cell alloimmunization?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "19351635",
+      "question": "Do older patients receive adequate stroke care?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "19398929",
+      "question": "Can the growth rate of a gallbladder polyp predict a neoplastic polyp?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "19409117",
+      "question": "Can infundibular height predict the clearance of lower pole calyceal stone after extracorporeal shockwave lithotripsy?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "19481382",
+      "question": "Is the Androgen Deficiency of Aging Men (ADAM) questionnaire useful for the screening of partial androgenic deficiency of aging men?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "19593710",
+      "question": "Could ESC (Electronic Stability Control) change the way we drive?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "20338971",
+      "question": "Does peritoneal dialysis affect halitosis in patients with end-stage renal disease?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "20354380",
+      "question": "Do women residents delay childbearing due to perceived career threats?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "20401819",
+      "question": "Is ultrasound equal to X-ray in pediatric fracture diagnosis?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "20538207",
+      "question": "Should temperature be monitorized during kidney allograft preservation?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "20602784",
+      "question": "Identification of racial disparities in breast cancer mortality: does scale matter?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "20605051",
+      "question": "Does case-mix based reimbursement stimulate the development of process-oriented care delivery?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "20736887",
+      "question": "Is decompressive surgery effective for spinal cord sarcoidosis accompanied with compressive cervical myelopathy?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "21228436",
+      "question": "Can teaching medical students to investigate medication errors change their attitudes towards patient safety?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "21394762",
+      "question": "Is pelvic pain associated with defecatory symptoms in women with pelvic organ prolapse?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "21481154",
+      "question": "Improvements in survival of gynaecological cancer in the Anglia region of England: are these an effect of centralisation of care and use of multidisciplinary management?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "21823940",
+      "question": "Department of Transportation vs self-reported data on motor vehicle collisions and driving convictions for stroke survivors: do they agree?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "21900017",
+      "question": "Does lung ischemia and reperfusion have an impact on coronary flow?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "21914194",
+      "question": "Health care for immigrants in Europe: is there still consensus among country experts about principles of good practice?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "21951591",
+      "question": "Motor performance in chronic low back pain: is there an influence of pain-related cognitions?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "21952349",
+      "question": "Remote ischemic postconditioning: does it protect against ischemic damage in percutaneous coronary revascularization?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "22023714",
+      "question": "Does delivery mode affect women's postpartum quality of life in rural China?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "22205377",
+      "question": "Some aspects of social exclusion: do they influence suicide mortality?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "22302761",
+      "question": "Can fractional lasers enhance transdermal absorption of topical lidocaine in an in vivo animal model?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "22303473",
+      "question": "Does a family meetings intervention prevent depression and anxiety in family caregivers of dementia patients?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "22365295",
+      "question": "Totally implantable venous access device placement by interventional radiologists: are prophylactic antibiotics necessary?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "22428608",
+      "question": "Would corrected QT dispersion predict left ventricular hypertrophy in hypertensive patients?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "22440363",
+      "question": "Mitral replacement or repair for functional mitral regurgitation in dilated and ischemic cardiomyopathy: is it really the same?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "22564465",
+      "question": "Mammographic screening in Sami speaking municipalities and a control group. Are early outcome measures influenced by ethnicity?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "22668712",
+      "question": "Internal derangement of the temporomandibular joint: is there still a place for ultrasound?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "22668852",
+      "question": "Do African American women require fewer calories to maintain weight?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "22768311",
+      "question": "Is human cytomegalovirus infection associated with hypertension?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "22813804",
+      "question": "Does obesity impact the pattern and outcome of trauma in children?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "22825590",
+      "question": "Are behavioural risk factors to be blamed for the conversion from optimal blood pressure to hypertensive status in Black South Africans?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "22849512",
+      "question": "Are neighbourhood social capital and availability of sports facilities related to sports participation among Dutch adolescents?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "22900881",
+      "question": "Should pulp chamber pulpotomy be seen as a permanent treatment?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "23025584",
+      "question": "Does stress increase imitation of drinking behavior?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "23147106",
+      "question": "Is peak concentration needed in therapeutic drug monitoring of vancomycin?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "23177368",
+      "question": "Does immediate breast reconstruction compromise the delivery of adjuvant chemotherapy?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "23224030",
+      "question": "Do European people with type 1 diabetes consume a high atherogenic diet?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "23264436",
+      "question": "Follow-up of patients with new cardiovascular implantable electronic devices: are experts' recommendations implemented in routine clinical practice?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "23375036",
+      "question": "An HIV1/2 point of care test on sputum for screening TB/HIV co-infection in Central India - Will it work?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "23386371",
+      "question": "CPAP therapy in patients with idiopathic pulmonary fibrosis and obstructive sleep apnea: does it offer a better quality of life and sleep?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "23412195",
+      "question": "Should displaced midshaft clavicular fractures be treated surgically?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "23568387",
+      "question": "Is bicompartmental knee arthroplasty more favourable to knee muscle strength and physical performance compared to total knee arthroplasty?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "23690198",
+      "question": "Implementation of epidural analgesia for labor: is the standard of effective analgesia reachable in all women?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "23736032",
+      "question": "Multidisciplinary decisions in breast cancer: does the patient receive what the team has recommended?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "23761381",
+      "question": "Is calibration the cause of variation in liquid chromatography tandem mass spectrometry testosterone measurement?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "23794696",
+      "question": "Does the bracket-ligature combination affect the amount of orthodontic space closure over three months?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "23806388",
+      "question": "Do nomograms designed to predict biochemical recurrence (BCR) do a better job of predicting more clinically relevant prostate cancer outcomes than BCR?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "23899611",
+      "question": "Attenuation of ischemia/reperfusion-induced ovarian damage in rats: does edaravone offer protection?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "23949294",
+      "question": "Treatment as prevention in resource-limited settings: is it feasible to maintain HIV viral load suppression over time?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "24153338",
+      "question": "Is aneurysm repair justified for the patients aged 80 or older after aneurysmal subarachnoid hemorrhage?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "24245816",
+      "question": "Is trabecular bone related to primary stability of miniscrews?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "24481006",
+      "question": "Should cavitation in proximal surfaces be reported in cone beam computed tomography examination?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "24606627",
+      "question": "The objective structured clinical examination: can physician-examiners participate from a distance?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "24630333",
+      "question": "Comparing femoral version after intramedullary nailing performed by trauma-trained and non-trauma trained surgeons: is there a difference?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "24684514",
+      "question": "Should all patients be optimized to the same preoperative hemoglobin level to avoid transfusion in primary knee arthroplasty?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "24739448",
+      "question": "Have antiepileptic drug prescription claims changed following the FDA suicidality warning?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "24747511",
+      "question": "Updating emotional content in working memory: a depression-specific deficit?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "24799031",
+      "question": "Is diffusion-weighted imaging a significant indicator of the development of vascularization in hypovascular hepatocellular lesions?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "24809662",
+      "question": "Does concomitant anterior/apical repair during midurethral sling improve the overactive bladder component of mixed incontinence?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "24827404",
+      "question": "Is resected stomach volume related to weight loss after laparoscopic sleeve gastrectomy?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "24939676",
+      "question": "Does ultrasound-scored synovitis depend on the pharmacokinetics of subcutaneous anti-TNF agents in patients with rheumatoid arthritis?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "24958650",
+      "question": "May mean platelet volume levels be a predictor in the diagnosis of pelvic inflammatory disease?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "24977765",
+      "question": "Are pediatric concussion patients compliant with discharge instructions?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25007420",
+      "question": "Are there mental health differences between francophone and non-francophone populations in manitoba?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "25070942",
+      "question": "Can mass drug administration lead to the sustainable control of schistosomiasis?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "25079920",
+      "question": "Do parents recall and understand children's weight status information after BMI screening?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "25156467",
+      "question": "Should early extubation be the goal for children after congenital cardiac surgery?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25228241",
+      "question": "Elephant trunk in a small-calibre true lumen for chronic aortic dissection: cause of haemolytic anaemia?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25304452",
+      "question": "Nutritional assessment of gluten-free diet. Is gluten-free diet deficient in some nutrient?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25336163",
+      "question": "Are interstitial fluid concentrations of meropenem equivalent to plasma concentrations in critically ill patients receiving continuous renal replacement therapy?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "25394614",
+      "question": "Does timing of initial surfactant treatment make a difference in rates of chronic lung disease or mortality in premature infants?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "25446909",
+      "question": "Oral mucocele/ranula: Another human immunodeficiency virus-related salivary gland disease?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25480629",
+      "question": "Residual fundus or neofundus after laparoscopic sleeve gastrectomy: is fundectomy safe and effective as revision surgery?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "25499207",
+      "question": "Is neck pain associated with worse health-related quality of life 6 months later?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25501465",
+      "question": "Evaluation of pediatric VCUG at an academic children's hospital: is the radiographic scout image necessary?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "25521278",
+      "question": "Is plate clearing a risk factor for obesity?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25604390",
+      "question": "Aberrant loss of dickkopf-3 in gastric cancer: can it predict lymph node metastasis preoperatively?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25752725",
+      "question": "Schizophrenia patients with high intelligence: A clinically distinct sub-type of schizophrenia?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25779009",
+      "question": "Bactericidal activity of 3 cutaneous/mucosal antiseptic solutions in the presence of interfering substances: Improvement of the NF EN 13727 European Standard?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "25859857",
+      "question": "Could the extent of lymphadenectomy be modified by neoadjuvant chemotherapy in cervical cancer?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "25885219",
+      "question": "Maternal creatine homeostasis is altered during gestation in the spiny mouse: is this a metabolic adaptation to pregnancy?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "25982163",
+      "question": "Appendectomy timing: Will delayed surgery increase the complications?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "25985014",
+      "question": "Is ganglionated plexi ablation during Maze IV procedure beneficial for postoperative long-term stable sinus rhythm?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "26044262",
+      "question": "Are income-related differences in active travel associated with physical environmental characteristics?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "26104852",
+      "question": "Can echocardiography and ECG discriminate hereditary transthyretin V30M amyloidosis from hypertrophic cardiomyopathy?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "26134053",
+      "question": "Outcome Feedback within Emergency Medicine Training Programs: An Opportunity to Apply the Theory of Deliberate Practice?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "26418441",
+      "question": "Can we ease the financial burden of colonoscopy?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "26419377",
+      "question": "Are pelvic anatomical structures in danger during arthroscopic acetabular labral repair?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "26460153",
+      "question": "Cardiac reoperations in octogenarians: Do they really benefit?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "26471488",
+      "question": "Does Mammographic Density have an Impact on the Margin Re-excision Rate After Breast-Conserving Surgery?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "26518378",
+      "question": "Are Reviewers' Scores Influenced by Citations to Their Own Work?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "26867834",
+      "question": "Is Alveolar Macrophage Phagocytic Dysfunction in Children With Protracted Bacterial Bronchitis a Forerunner to Bronchiectasis?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "27040842",
+      "question": "Does septoplasty change the dimensions of compensatory hypertrophy of the middle turbinate?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "27044366",
+      "question": "Detailed analysis of sputum and systemic inflammation in asthma phenotypes: are paucigranulocytic asthmatics really non-inflammatory?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "27078715",
+      "question": "Digital Tomosynthesis: A Viable Alternative to Noncontrast Computed Tomography for the Follow-Up of Nephrolithiasis?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "27216167",
+      "question": "Gynecological cancer alarm symptoms: is contact with specialist care associated with lifestyle and socioeconomic status?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "27287237",
+      "question": "Assessment of appropriate antimicrobial prescribing: do experts agree?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "27394685",
+      "question": "Bony defects in chronic anterior posttraumatic dislocation of the shoulder: Is there a correlation between humeral and glenoidal lesions?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "27554179",
+      "question": "Is routine dissection of the station 9 lymph nodes really necessary for primary lung cancer?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "27884344",
+      "question": "Do resident's leadership skills relate to ratings of technical skill?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "28011794",
+      "question": "Can Ambu self-inflating bag and Neopuff infant resuscitator provide adequate and safe manual inflations for infants up to 10 kg weight?",
+      "final_decision": "maybe"
+    },
+    {
+      "pmid": "28143468",
+      "question": "Are performance measurement systems useful?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "28247485",
+      "question": "Is the first urinary albumin/creatinine ratio (ACR) in women with suspected preeclampsia a prognostic factor for maternal and neonatal adverse outcome?",
+      "final_decision": "yes"
+    },
+    {
+      "pmid": "28407529",
+      "question": "Resection of colorectal liver metastases after second-line chemotherapy: is it worthwhile?",
+      "final_decision": "no"
+    },
+    {
+      "pmid": "28707539",
+      "question": "Visceral adipose tissue area measurement at a single level: can it represent visceral adipose tissue volume?",
+      "final_decision": "yes"
+    }
+  ]
+}

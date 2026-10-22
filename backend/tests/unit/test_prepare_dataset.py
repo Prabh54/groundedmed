@@ -80,3 +80,43 @@ def test_unexpected_label_rejected(tmp_path):
     (row,) = pd.read_rows(path, pd.LABELED)
     with pytest.raises(ValueError, match="unexpected label"):
         pd.benchmark_item(row)
+
+
+def synthetic_items():
+    counts = {"yes": 552, "no": 338, "maybe": 110}
+    items, pmid = [], 1000
+    for label, n in counts.items():
+        for _ in range(n):
+            pmid += 7
+            items.append(pd.BenchmarkItem(str(pmid), f"Q{pmid}?", label))
+    return items
+
+
+def test_split_is_stratified_and_disjoint():
+    splits = pd.split_labeled(synthetic_items())
+    assert {name: pd.label_counts(splits[name]) for name in pd.SPLITS} == {
+        "test": {"yes": 110, "no": 68, "maybe": 22},
+        "dev": {"yes": 55, "no": 34, "maybe": 11},
+        "reserve": {"yes": 387, "no": 236, "maybe": 77},
+    }
+    ids = [{item.pmid for item in splits[name]} for name in pd.SPLITS]
+    assert not (ids[0] & ids[1]) and not (ids[0] & ids[2]) and not (ids[1] & ids[2])
+    assert sum(len(s) for s in ids) == 1000
+
+
+def test_split_is_deterministic_and_order_independent():
+    items = synthetic_items()
+    first = pd.split_labeled(items)
+    assert pd.split_labeled(list(reversed(items))) == first
+    assert pd.split_labeled(items, seed=1) != first
+
+
+def test_write_frozen_refuses_to_change_existing_file(tmp_path):
+    path = tmp_path / "test.json"
+    pd.write_frozen({path: "original\n"})
+    pd.write_frozen({path: "original\n"})  # identical content is a no-op
+    other = tmp_path / "dev.json"
+    with pytest.raises(pd.FrozenManifestError):
+        pd.write_frozen({other: "new\n", path: "changed\n"})
+    assert path.read_text() == "original\n"
+    assert not other.exists()  # nothing is written when any file would change

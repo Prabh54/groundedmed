@@ -8,8 +8,11 @@ memory, and `final_decision` only lives on a `BenchmarkItem` (eval manifests), n
 """
 
 import argparse
+import hashlib
+import json
+import random
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -26,7 +29,17 @@ ANSWER_FIELDS = ("long_answer", "final_decision", "reasoning_required_pred", "re
 CONTEXT_KEYS = ("contexts", "labels", "meshes")
 LABEL_ORDER = ("yes", "no", "maybe")
 
+# Split (ADR-008): per label, 20% test, next 10% dev, rest reserve.
+SPLIT_SEED = 20261021
+TEST_FRACTION, DEV_FRACTION = 0.2, 0.1
+SPLITS = ("test", "dev", "reserve")
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = REPO_ROOT / "data"
+
+
+class FrozenManifestError(RuntimeError):
+    """A committed manifest would change. Frozen files are never overwritten (ADR-008)."""
 
 
 @dataclass(frozen=True)
@@ -98,19 +111,92 @@ def benchmark_item(row: SourceRow) -> BenchmarkItem:
     return BenchmarkItem(row.document.pmid, row.question, row.final_decision)
 
 
+def pmid_key(obj) -> int:
+    return int(obj.pmid)
+
+
+def split_labeled(items: list[BenchmarkItem], seed: int = SPLIT_SEED) -> dict[str, list]:
+    """Stratified split. Each label group is sorted by PMID, then shuffled by a fresh
+    `random.Random(seed)`, in LABEL_ORDER; each split is returned sorted by PMID."""
+    splits = {name: [] for name in SPLITS}
+    for label in LABEL_ORDER:
+        group = sorted((item for item in items if item.final_decision == label), key=pmid_key)
+        random.Random(seed).shuffle(group)
+        n_test = round(len(group) * TEST_FRACTION)
+        n_dev = round(len(group) * DEV_FRACTION)
+        splits["test"] += group[:n_test]
+        splits["dev"] += group[n_test : n_test + n_dev]
+        splits["reserve"] += group[n_test + n_dev :]
+    return {name: sorted(members, key=pmid_key) for name, members in splits.items()}
+
+
+def label_counts(items: list[BenchmarkItem]) -> dict[str, int]:
+    counts = Counter(item.final_decision for item in items)
+    return {label: counts[label] for label in LABEL_ORDER}
+
+
+def split_manifest(name: str, items: list[BenchmarkItem]) -> dict:
+    return {
+        "split": name,
+        "dataset": DATASET_REPO,
+        "revision": DATASET_REVISION,
+        "seed": SPLIT_SEED,
+        "count": len(items),
+        "label_counts": label_counts(items),
+        "items": [asdict(item) for item in items],
+    }
+
+
+def to_json(obj) -> str:
+    return json.dumps(obj, indent=2, ensure_ascii=False) + "\n"
+
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def write_frozen(files: dict[Path, str]) -> None:
+    """Write manifests, refusing to change any that already exist. Checks all before writing any."""
+    changed = [path for path, text in files.items() if path.exists() and path.read_text() != text]
+    if changed:
+        names = ", ".join(str(path) for path in changed)
+        raise FrozenManifestError(f"refusing to overwrite frozen manifest(s): {names}")
+    for path, text in files.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.parse_args()
+    parser.add_argument("--out-dir", type=Path, default=DATA_DIR, help="default: data/")
+    args = parser.parse_args()
+    manifest_dir = args.out_dir / "manifests"
 
     labeled = read_rows(dataset_path(LABELED), LABELED)
     unlabeled = read_rows(dataset_path(UNLABELED), UNLABELED)
     items = [benchmark_item(row) for row in labeled]
-    labels = Counter(item.final_decision for item in items)
 
     print(f"Dataset {DATASET_REPO} @ {DATASET_REVISION}")
     print(f"{LABELED}: {len(labeled):,} rows; {UNLABELED}: {len(unlabeled):,} rows")
-    print("Label distribution: " + ", ".join(f"{lab} {labels[lab]}" for lab in LABEL_ORDER))
+    print(f"Label distribution: {label_counts(items)}")
+
+    splits = split_labeled(items)
+    files = {
+        manifest_dir / f"{name}.json": to_json(split_manifest(name, splits[name]))
+        for name in SPLITS
+    }
+    test_json = files[manifest_dir / "test.json"]
+    files[manifest_dir / "test.sha256"] = f"{sha256_text(test_json)}  test.json\n"
+    write_frozen(files)
+
+    for name in SPLITS:
+        print(f"{name}: {len(splits[name])} questions {label_counts(splits[name])}")
+    print(f"test.json sha256: {sha256_text(test_json)}")
+    print(f"Manifests written to {manifest_dir} (unchanged if they already existed)")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except FrozenManifestError as error:
+        raise SystemExit(f"ERROR: {error}") from None
