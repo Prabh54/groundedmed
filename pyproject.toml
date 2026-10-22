@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Grounded biomedical research analyst over PubMedQA (portfolio demo, not medical advice)"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "psycopg[binary]>=3.3.6",
+    "pydantic>=2.14.1",
+    "python-dotenv>=1.2.4",
+    "voyageai>=0.5.0",
+]
 
 [dependency-groups]
 dev = [

@@ -1,0 +1,25 @@
+{
+  "run_id": "dev-retrieval-20261022-154156-303f652",
+  "split": "dev",
+  "n_questions": 100,
+  "dense": {
+    "hit_at_1": 0.95,
+    "hit_at_5": 1.0,
+    "hit_at_20": 1.0
+  },
+  "reranked": {
+    "hit_at_1": 0.97,
+    "hit_at_5": 1.0
+  },
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 455.25,
+    "p95": 641.845,
+    "measured_from": "developer machine"
+  },
+  "tokens": {
+    "voyage-4": 1826,
+    "rerank-3": 659326
+  },
+  "list_price_usd": 0.033076
+}

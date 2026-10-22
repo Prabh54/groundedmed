@@ -50,7 +50,7 @@ groundedmed/
 │   ├── manifests/                     # test.json, dev.json, reserve.json, corpus.json, hashes (committed)
 │   └── README.md                      # how manifests were built; dataset revision pin
 ├── eval/
-│   ├── runners/                       # run_system.py, judge.py
+│   ├── runners/                       # retrieval.py (dev Hit@k, M1), run_system.py, judge.py
 │   ├── metrics/                       # hit_at_k, accuracy, wilson, bootstrap, paired_bootstrap
 │   ├── rubric/                        # judge_v1.md (frozen before test scoring)
 │   ├── audits/                        # <run-id>-manual-sample.csv
@@ -58,6 +58,9 @@ groundedmed/
 ├── scripts/
 │   ├── prepare_dataset.py             # HF → manifests + corpus.jsonl (allowed fields only)
 │   ├── ingest.py                      # corpus.jsonl → embeddings → pgvector
+│   ├── check_services.py              # M1-T0 connectivity check (prints OK/FAIL, never secrets)
+│   ├── set_env.py                     # set one .env value via hidden prompt (ADR-027)
+│   ├── retrieve_debug.py              # print PMIDs, scores, ranks, text for a question
 │   └── run_eval.py                    # CLI entry for eval runners
 ├── frontend/                          # Next.js app: app/, components/, tests/ (Playwright)
 └── .github/workflows/ci.yml
@@ -114,7 +117,8 @@ No label, question, conclusion or split column exists, so retrieval cannot see t
 No `source` column either (ADR-026): only labeled papers can be gold, so knowing which papers are labeled
 would be a retrieval shortcut. `source` stays in `corpus.jsonl`/`corpus.json` for auditing only, and a test
 fails if runtime code under `backend/app/` mentions it.
-The runtime connects with a read-only database role; only `scripts/ingest.py` uses a write role.
+The runtime connects with a read-only database role (`groundedmed_reader`: SELECT only, read-only
+transactions, RLS select policy; Supabase API roles revoked — ADR-027); only `scripts/ingest.py` uses a write role.
 No runtime writes: queries are logged to stdout, not the database.
 
 ## 3. Data ingestion flow
