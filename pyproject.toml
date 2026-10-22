@@ -1,0 +1,35 @@
+[project]
+name = "groundedmed"
+version = "0.1.0"
+description = "Grounded biomedical research analyst over PubMedQA (portfolio demo, not medical advice)"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]
+
+[tool.uv]
+# Not installed as a package (ADR-024): code runs from the repo root, so `backend.app`, `eval`
+# and `scripts` import the same way under pytest, `python -m scripts.x` and uvicorn.
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["docs/reference"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.format]
+# Code blocks in the docs are illustrative, not source.
+exclude = ["*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["."]
+addopts = ["--import-mode=importlib", "--strict-markers"]
