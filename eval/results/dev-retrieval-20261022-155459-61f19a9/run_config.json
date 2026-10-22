@@ -1,0 +1,15 @@
+{
+  "run_id": "dev-retrieval-20261022-155459-61f19a9",
+  "created_utc": "2026-10-22T15:55:48+00:00",
+  "git_commit": "61f19a9a04412ec097273da298539d1ebb0d4d2e",
+  "git_dirty": false,
+  "git_diff_sha256": null,
+  "split": "dev",
+  "dev_manifest_sha256": "03d36e6f53fb6e4b5b3c41fc446a66bd904ce4d57536b4f92ef32edce33a1384",
+  "corpus_manifest_sha256": "8be5b376538b34c3730336b393bbcfcd2357ee6ea3518a6d3b449b208ea21f84",
+  "embedding_model": "voyage-4",
+  "rerank_model": "rerank-3",
+  "k_candidates": 20,
+  "k_final": 5,
+  "gold_definition": "the paper the dev question was written from (its PMID)"
+}
