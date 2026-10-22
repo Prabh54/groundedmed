@@ -1,0 +1,39 @@
+# M0-T5: lint + unit/leakage tests on every push. No secrets needed.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Cache PubMedQA download (pinned revision)
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/.cache/huggingface/hub
+          key: pubmedqa-9001f2853fb87cab8d220904e0de81ac6973b318
+
+      - name: Install (locked)
+        run: uv sync --locked
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      # Fails if the committed (frozen) manifests would change; also builds data/corpus.jsonl.
+      - name: Rebuild dataset and check frozen manifests
+        run: uv run python -m scripts.prepare_dataset
+
+      - name: Tests (unit + leakage)
+        run: uv run pytest -v
