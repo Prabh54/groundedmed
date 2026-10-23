@@ -192,7 +192,7 @@ All types are Pydantic models in `backend/app/models/`.
 | Planner (LLM) | question | 1–3 sub-queries (JSON) | answer the question; make biomedical claims |
 | Retriever (code) | question + sub-queries (question always included) | top-5 evidence, scores, `planner_added_evidence`, timings | call an LLM; generate text |
 | Evidence gate (code) | rerank scores | pass / abstain(weak_evidence) | use test labels for its threshold |
-| Synthesizer (LLM) | question + 5 evidence passages | verdict, summary, claims with citation IDs, uncertainty | use evidence outside the 5; invent IDs |
+| Synthesizer (LLM) | question + 5 evidence passages | verdict, claims and limitations, each with citation IDs (no free-text summary, ADR-030) | use evidence outside the 5; invent IDs |
 | Critic (LLM) | each claim + only its cited passages | per-claim supported / citation_valid / action | add claims; rewrite the answer |
 | Final validator (code) | draft + critic results + evidence IDs | final answer or abstention | call an LLM |
 
@@ -224,6 +224,9 @@ Citation validator (pure Python, runs on every answer, baseline and agent):
 3. Every citation ID matches `PMID:<digits>` and is one of the 5 selected evidence IDs for this request.
 4. Claims failing 2–3 are removed and counted (`removed_uncited`, `removed_invalid_citation`).
 5. If the verdict is yes/no/maybe and zero valid claims remain → `insufficient_evidence`.
+6. Limitations pass the same checks (failures removed, `removed_limitations`) but never change the verdict.
+   There is no free-text summary: the displayed answer is the surviving claims' text in order, or a fixed
+   abstention message (ADR-030), so every factual sentence shown carries a validated citation.
 
 ## 8. API endpoints
 
@@ -249,12 +252,12 @@ Response:
   "request_id": "uuid",
   "mode": "agent",
   "verdict": "yes | no | maybe | insufficient_evidence",
-  "answer": "summary text",
+  "answer": "the validated claims' text, in order (ADR-030)",
   "claims": [{ "id": "c1", "text": "...", "citation_ids": ["PMID:21645374"] }],
   "citations": [{ "id": "PMID:21645374", "pmid": "21645374", "passage": "...",
                   "sections": [{"label": "RESULTS", "text": "..."}],
                   "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/21645374/", "rerank_score": 0.81 }],
-  "uncertainty": "...",
+  "limitations": [{ "id": "l1", "text": "...", "citation_ids": ["PMID:21645374"] }],
   "abstained": false,
   "abstain_reason": null,
   "stages": [{ "name": "retriever", "status": "done", "message": "Retrieved 20 candidate passages", "ms": 412 }],

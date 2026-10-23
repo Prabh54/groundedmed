@@ -3,15 +3,14 @@
 Runs on every answer, baseline and agent:
 1. Output already parsed into DraftAnswer (verdict in the allowed set) by the structured call.
 2. Every claim needs >= 1 citation ID.
-3. Every citation ID must match `PMID:<digits>` and be one of this request's selected evidence IDs.
-   A claim with any bad citation is removed whole: an invented ID means the claim is not traceable.
+3. Every citation ID must match `PMID:<digits>` and be one of this request's selected evidence IDs,
+   and the claim's text may not mention any other paper ("PMID 123", "PubMed ID: 123").
+   A claim failing any check is removed whole: an invented ID means the claim is not traceable.
 4. Removed claims are counted (`removed_uncited`, `removed_invalid_citation`).
-5. A yes/no/maybe verdict with zero valid claims left becomes `insufficient_evidence`; the model's
-   summary and uncertainty are then dropped too (they may carry uncited or hijacked text).
-Any paper a text field mentions ("PMID 123", "PubMed ID: 123") must be in the evidence set: a claim
-mentioning another paper is removed as an invalid citation, a summary doing so is replaced by the
-surviving claims' text, and such an uncertainty note is dropped. The free-text summary is not
-claim-checked beyond that (ARCHITECTURE §7; the M3 critic covers semantics).
+5. A yes/no/maybe verdict with zero valid claims left becomes `insufficient_evidence`, and its
+   limitations are dropped too.
+Limitations go through the same checks (`removed_limitations`) but never change the verdict.
+There is no free-text summary: the displayed answer is built from the surviving claims (ADR-030).
 """
 
 import re
@@ -20,9 +19,6 @@ from backend.app.models.answer import Claim, DraftAnswer, ValidationReport
 
 CITATION_ID = re.compile(r"^PMID:\d+$")
 _PMID_MENTION = re.compile(r"\b(?:PMID|PubMed(?:\s*ID)?)\s*[:#]?\s*(\d+)", re.IGNORECASE)
-NO_SUPPORTED_CLAIMS_SUMMARY = (
-    "The retrieved evidence did not yield any citable claim for this question."
-)
 
 
 def mentions_unknown_paper(text: str, allowed: set[str]) -> bool:
@@ -41,7 +37,7 @@ def _claim_problem(claim: Claim, allowed: set[str]) -> str | None:
 
 
 def validate(draft: DraftAnswer, evidence_ids: list[str]) -> tuple[DraftAnswer, ValidationReport]:
-    """Return the cleaned answer and what was removed. Never adds content."""
+    """Return the cleaned answer and what was removed. Never adds or edits content."""
     allowed = set(evidence_ids)
     report = ValidationReport()
     kept: list[Claim] = []
@@ -53,18 +49,15 @@ def validate(draft: DraftAnswer, evidence_ids: list[str]) -> tuple[DraftAnswer, 
             report.removed_invalid_citation.append(claim.id)
         else:
             kept.append(claim)
+    limitations = []
+    for item in draft.limitations:
+        if _claim_problem(item, allowed):
+            report.removed_limitations.append(item.id)
+        else:
+            limitations.append(item)
 
-    verdict, summary, uncertainty = draft.verdict, draft.summary, draft.uncertainty
+    verdict = draft.verdict
     if verdict != "insufficient_evidence" and not kept:
-        verdict, summary, uncertainty = "insufficient_evidence", NO_SUPPORTED_CLAIMS_SUMMARY, ""
+        verdict, limitations = "insufficient_evidence", []
         report.downgraded_to_insufficient = True
-    else:
-        if mentions_unknown_paper(summary, allowed):
-            summary = " ".join(c.text for c in kept) or NO_SUPPORTED_CLAIMS_SUMMARY
-            report.summary_replaced = True
-        if mentions_unknown_paper(uncertainty, allowed):
-            uncertainty = ""
-            report.uncertainty_removed = True
-
-    cleaned = DraftAnswer(verdict=verdict, summary=summary, claims=kept, uncertainty=uncertainty)
-    return cleaned, report
+    return DraftAnswer(verdict=verdict, claims=kept, limitations=limitations), report

@@ -18,12 +18,14 @@ class Claim(BaseModel):
 
 
 class DraftAnswer(BaseModel):
-    """Exactly the JSON the synthesizer must return (sent to the API as the output schema)."""
+    """Exactly the JSON the synthesizer must return (sent to the API as the output schema).
+
+    No free-text summary (ADR-030): the displayed answer is built from validated claims only, and
+    limitations are cited items checked the same way."""
 
     verdict: Verdict
-    summary: str
     claims: list[Claim]
-    uncertainty: str
+    limitations: list[Claim]
 
 
 class LLMUsage(BaseModel):
@@ -38,9 +40,8 @@ class ValidationReport(BaseModel):
 
     removed_uncited: list[str] = []  # claim IDs
     removed_invalid_citation: list[str] = []  # claim IDs with a malformed or unknown citation ID
+    removed_limitations: list[str] = []  # limitation IDs failing the same checks
     downgraded_to_insufficient: bool = False
-    summary_replaced: bool = False  # summary mentioned a paper outside the evidence
-    uncertainty_removed: bool = False  # uncertainty mentioned a paper outside the evidence
 
 
 class FinalAnswer(BaseModel):
@@ -48,9 +49,9 @@ class FinalAnswer(BaseModel):
 
     question: str
     verdict: Verdict
-    answer: str
+    answer: str  # validated claim texts in order, or a fixed abstention message
     claims: list[Claim]
-    uncertainty: str
+    limitations: list[Claim]
     abstained: bool
     abstain_reason: AbstainReason | None
     evidence: list[Candidate]  # the 5 passages the model saw (citations resolve to these)

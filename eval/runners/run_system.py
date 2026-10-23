@@ -84,9 +84,9 @@ def error_row(item: dict, error: str, elapsed_ms: float) -> dict:
     return {
         "pmid": item["pmid"], "question": item["question"], "gold_label": item["final_decision"],
         "verdict": "insufficient_evidence", "correct": False, "abstained": True,
-        "abstain_reason": "error", "answer": "", "claims": [], "uncertainty": "",
+        "abstain_reason": "error", "answer": "", "claims": [], "limitations": [],
         "validation": {"removed_uncited": [], "removed_invalid_citation": [],
-                       "downgraded_to_insufficient": False},
+                       "removed_limitations": [], "downgraded_to_insufficient": False},
         "evidence_pmids": [], "rerank_scores": [], "top_rerank_score": None,
         "gate_passed": False, "gold_final_rank": None, "rerank_skipped": False,
         "rerank_error": None, "error": error, "timings_ms": {"total": round(elapsed_ms, 1)},
@@ -106,7 +106,7 @@ def run_row(item: dict, answer) -> dict:
         "abstain_reason": answer.abstain_reason,
         "answer": answer.answer,
         "claims": [c.model_dump() for c in answer.claims],
-        "uncertainty": answer.uncertainty,
+        "limitations": [c.model_dump() for c in answer.limitations],
         "validation": answer.validation.model_dump(),
         "evidence_pmids": final_pmids,
         "rerank_scores": [c.rerank_score for c in answer.evidence],
@@ -159,6 +159,7 @@ def summarize(rows: list[dict]) -> dict:
         "citations_removed": {
             "uncited": sum(len(r["validation"]["removed_uncited"]) for r in rows),
             "invalid": sum(len(r["validation"]["removed_invalid_citation"]) for r in rows),
+            "limitations": sum(len(r["validation"].get("removed_limitations", [])) for r in rows),
             "answers_downgraded": sum(r["validation"]["downgraded_to_insufficient"] for r in rows),
         },
         "errors": sum(r["error"] is not None for r in rows),

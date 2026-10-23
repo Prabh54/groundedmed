@@ -20,10 +20,11 @@ def show(question: str, answer) -> None:
     print("=" * 100)
     print(f"QUESTION: {question}")
     print(f"VERDICT:  {answer.verdict}   abstained={answer.abstained} ({answer.abstain_reason})")
-    print(f"SUMMARY:  {textwrap.fill(answer.answer, 100, subsequent_indent='          ')}")
+    print(f"ANSWER:   {textwrap.fill(answer.answer, 100, subsequent_indent='          ')}")
     for claim in answer.claims:
         print(f"  [{claim.id}] {claim.text}  <- {', '.join(claim.citation_ids)}")
-    print(f"UNCERTAINTY: {answer.uncertainty}")
+    for item in answer.limitations:
+        print(f"  limitation [{item.id}] {item.text}  <- {', '.join(item.citation_ids)}")
     print(f"validation: {answer.validation.model_dump()}")
     print(f"timing_ms: {json.dumps({k: round(v) for k, v in answer.timing_ms.items()})}")
     print(f"cost_usd: {answer.estimated_cost_usd:.4f}")

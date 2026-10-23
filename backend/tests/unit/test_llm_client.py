@@ -9,7 +9,7 @@ import pytest
 from backend.app.llm.client import LLMError, strict_schema, structured_call
 from backend.app.models.answer import DraftAnswer
 
-VALID = '{"verdict": "yes", "summary": "S.", "claims": [], "uncertainty": "U."}'
+VALID = '{"verdict": "yes", "claims": [], "limitations": []}'
 
 
 class FakeClient:
@@ -51,8 +51,10 @@ def test_valid_output_is_parsed_with_usage_and_no_tools():
          "declined"),
         (FakeClient(text='{"verdict": "yes", "summ', stop_reason="max_tokens"), "truncated"),
         (FakeClient(text="not json"), "schema validation"),
-        (FakeClient(text='{"verdict": "probably", "summary": "", "claims": [], "uncertainty": ""}'),
+        (FakeClient(text='{"verdict": "probably", "claims": [], "limitations": []}'),
          "schema validation"),
+        (FakeClient(text='{"verdict": "yes", "summary": "S.", "claims": [], "uncertainty": "U."}'),
+         "schema validation"),  # the old v1/v2 shape is rejected
         (FakeClient(text=None), "no text"),
     ],
 )  # fmt: skip
@@ -75,5 +77,5 @@ def test_strict_schema_closes_every_object_and_inlines_refs():
     claim = schema["properties"]["claims"]["items"]
     assert "$defs" not in str(schema) and "$ref" not in str(schema)
     assert schema["additionalProperties"] is False and claim["additionalProperties"] is False
-    assert set(schema["required"]) == {"verdict", "summary", "claims", "uncertainty"}
+    assert set(schema["required"]) == {"verdict", "claims", "limitations"}
     assert set(claim["required"]) == {"id", "text", "citation_ids"}

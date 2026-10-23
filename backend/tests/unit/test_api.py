@@ -22,7 +22,8 @@ def final_answer(**overrides) -> FinalAnswer:
     fields = dict(
         question="Does X help?", verdict="yes", answer="X helped.",
         claims=[Claim(id="c1", text="X helped.", citation_ids=["PMID:101"])],
-        uncertainty="Small study.", abstained=False, abstain_reason=None, evidence=evidence(),
+        limitations=[Claim(id="l1", text="Small study.", citation_ids=["PMID:101"])],
+        abstained=False, abstain_reason=None, evidence=evidence(),
         rerank_skipped=False, gate_passed=True, top_rerank_score=0.8,
         validation=ValidationReport(), timing_ms={"retrieval": 400, "synthesis": 7000,
                                                   "total": 7400},
@@ -82,6 +83,10 @@ def test_query_returns_cited_answer_schema(client):
     assert [s["name"] for s in body["stages"]] == ["retriever", "synthesizer"]
     assert set(body["timing_ms"]) == {"planner", "retrieval", "synthesis", "critic", "total"}
     assert body["prompt_versions"] == {"synthesizer": "v1"}
+    assert body["limitations"] == [
+        {"id": "l1", "text": "Small study.", "citation_ids": ["PMID:101"]}
+    ]
+    assert "uncertainty" not in body and "summary" not in body
 
 
 def test_weak_evidence_abstention_is_200_not_error(client, monkeypatch):

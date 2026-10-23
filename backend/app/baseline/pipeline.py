@@ -23,6 +23,19 @@ WEAK_EVIDENCE_SUMMARY = (
     "The corpus does not contain evidence relevant enough to answer this question."
 )
 ERROR_SUMMARY = "The answer could not be generated because a model call failed."
+NO_SUPPORTED_CLAIMS_SUMMARY = (
+    "The retrieved evidence did not yield any citable claim for this question."
+)
+MODEL_ABSTAINED_SUMMARY = "None of the retrieved evidence directly addresses this question."
+
+
+def compose_answer(verdict: str, claims: list, abstain_reason: str | None) -> str:
+    """The displayed answer: the validated claims' texts in order (ADR-030), never model prose."""
+    if abstain_reason == "no_supported_claims":
+        return NO_SUPPORTED_CLAIMS_SUMMARY
+    if verdict == "insufficient_evidence" and not claims:
+        return MODEL_ABSTAINED_SUMMARY
+    return " ".join(c.text.strip() for c in claims)
 
 
 def answer_baseline(
@@ -62,7 +75,7 @@ def answer_baseline(
             verdict="insufficient_evidence",
             answer=WEAK_EVIDENCE_SUMMARY,
             claims=[],
-            uncertainty="",
+            limitations=[],
             abstained=True,
             abstain_reason="weak_evidence",
             validation=ValidationReport(),
@@ -78,7 +91,7 @@ def answer_baseline(
             verdict="insufficient_evidence",
             answer=ERROR_SUMMARY,
             claims=[],
-            uncertainty="",
+            limitations=[],
             abstained=True,
             abstain_reason="error",
             validation=ValidationReport(),
@@ -95,9 +108,9 @@ def answer_baseline(
         abstain_reason = "model_abstained"
     return finish(
         verdict=cleaned.verdict,
-        answer=cleaned.summary,
+        answer=compose_answer(cleaned.verdict, cleaned.claims, abstain_reason),
         claims=cleaned.claims,
-        uncertainty=cleaned.uncertainty,
+        limitations=cleaned.limitations,
         abstained=abstain_reason is not None,
         abstain_reason=abstain_reason,
         validation=report,

@@ -1,30 +1,37 @@
-"""Deterministic citation validator (ARCHITECTURE §7, PLAN.md M2-T2)."""
+"""Citation validator and the claims-only answer (ARCHITECTURE §7, PLAN.md M2-T2, ADR-030)."""
 
 import pytest
 
-from backend.app.guardrails.citation_validator import NO_SUPPORTED_CLAIMS_SUMMARY, validate
+from backend.app.baseline.pipeline import (
+    MODEL_ABSTAINED_SUMMARY,
+    NO_SUPPORTED_CLAIMS_SUMMARY,
+    compose_answer,
+)
+from backend.app.guardrails.citation_validator import validate
 from backend.app.models.answer import Claim, DraftAnswer
 
 EVIDENCE = ["PMID:111", "PMID:222", "PMID:333", "PMID:444", "PMID:555"]
 
 
-def draft(*claims: tuple[str, list[str]], verdict="yes", summary="Summary.") -> DraftAnswer:
+def draft(*claims: tuple[str, list[str]], verdict="yes", limitations=()) -> DraftAnswer:
     return DraftAnswer(
         verdict=verdict,
-        summary=summary,
         claims=[
             Claim(id=f"c{i}", text=t, citation_ids=ids) for i, (t, ids) in enumerate(claims, 1)
         ],
-        uncertainty="Small study.",
+        limitations=[
+            Claim(id=f"l{i}", text=t, citation_ids=ids) for i, (t, ids) in enumerate(limitations, 1)
+        ],
     )
 
 
 def test_valid_answer_passes_unchanged():
-    d = draft(("A.", ["PMID:111"]), ("B.", ["PMID:222", "PMID:333"]))
+    d = draft(("A.", ["PMID:111"]), ("B.", ["PMID:222", "PMID:333"]),
+              limitations=[("Small study.", ["PMID:111"])])  # fmt: skip
     cleaned, report = validate(d, EVIDENCE)
     assert cleaned == d
     assert report.removed_uncited == [] and report.removed_invalid_citation == []
-    assert not report.downgraded_to_insufficient
+    assert report.removed_limitations == [] and not report.downgraded_to_insufficient
 
 
 def test_uncited_claim_is_removed_and_counted():
@@ -67,12 +74,35 @@ def test_malformed_ids_are_removed():
     assert [c.id for c in cleaned.claims] == ["c1"]
 
 
-def test_all_claims_removed_abstains():
-    d = draft(("Uncited.", []), ("Invented.", ["PMID:999"]), verdict="no", summary="Strong claim.")
+@pytest.mark.parametrize(
+    "mention", ["PMID:999", "PMID 999", "pmid#999", "PubMed 999", "PubMed ID: 9"]
+)
+def test_claim_text_mentioning_unknown_paper_is_removed(mention):
+    d = draft(("A.", ["PMID:111"]), (f"Proven in {mention}.", ["PMID:222"]))
+    cleaned, report = validate(d, EVIDENCE)
+    assert report.removed_invalid_citation == ["c2"] and [c.id for c in cleaned.claims] == ["c1"]
+
+
+def test_claim_text_mentioning_known_paper_is_kept():
+    cleaned, _ = validate(draft(("As PMID 222 also shows, A.", ["PMID:111"])), EVIDENCE)
+    assert len(cleaned.claims) == 1
+
+
+def test_bad_limitations_are_removed_without_changing_the_verdict():
+    limitations = [("Small.", ["PMID:111"]), ("Uncited.", []), ("See PMID:999.", ["PMID:111"]),
+                   ("X.", ["999"])]  # fmt: skip
+    cleaned, report = validate(draft(("A.", ["PMID:111"]), limitations=limitations), EVIDENCE)
+    assert [item.id for item in cleaned.limitations] == ["l1"]
+    assert report.removed_limitations == ["l2", "l3", "l4"]
+    assert cleaned.verdict == "yes" and not report.downgraded_to_insufficient
+
+
+def test_all_claims_removed_abstains_and_drops_limitations():
+    d = draft(("Uncited.", []), ("Invented.", ["PMID:999"]), verdict="no",
+              limitations=[("Small study.", ["PMID:111"])])  # fmt: skip
     cleaned, report = validate(d, EVIDENCE)
     assert cleaned.verdict == "insufficient_evidence"
-    assert cleaned.claims == []
-    assert cleaned.summary == NO_SUPPORTED_CLAIMS_SUMMARY  # uncited summary text is dropped
+    assert cleaned.claims == [] and cleaned.limitations == []
     assert report.downgraded_to_insufficient
     assert report.removed_uncited == ["c1"] and report.removed_invalid_citation == ["c2"]
 
@@ -88,52 +118,25 @@ def test_model_abstention_is_kept_and_not_counted_as_downgrade():
     assert not report.downgraded_to_insufficient
 
 
-def test_summary_citing_unknown_pmid_is_replaced_by_surviving_claims():
-    d = draft(("A.", ["PMID:111"]), ("B.", ["PMID:222"]), summary="Per PMID:999, yes.")
+def test_validator_never_adds_or_edits_content():
+    d = draft(("A.", ["PMID:111"]), ("B.", []), ("C.", ["PMID:9"]),
+              limitations=[("L.", ["PMID:111"]), ("M.", [])])  # fmt: skip
     cleaned, _ = validate(d, EVIDENCE)
-    assert cleaned.summary == "A. B."
+
+    def as_set(items):
+        return {(c.id, c.text, tuple(c.citation_ids)) for c in items}
+
+    assert as_set(cleaned.claims) <= as_set(d.claims)
+    assert as_set(cleaned.limitations) <= as_set(d.limitations)
 
 
-def test_summary_citing_known_pmid_is_kept():
-    d = draft(("A.", ["PMID:111"]), summary="As PMID:111 shows, yes.")
-    assert validate(d, EVIDENCE)[0].summary == "As PMID:111 shows, yes."
-
-
-def test_validator_never_adds_content():
-    d = draft(("A.", ["PMID:111"]), ("B.", []), ("C.", ["PMID:9"]))
+def test_displayed_answer_is_only_validated_claim_text():
+    d = draft(("A is lower.", ["PMID:111"]), ("Uncited fact.", []), ("B rose.", ["PMID:222"]))
     cleaned, _ = validate(d, EVIDENCE)
-    original = {(c.id, c.text, tuple(c.citation_ids)) for c in d.claims}
-    assert {(c.id, c.text, tuple(c.citation_ids)) for c in cleaned.claims} <= original
+    assert compose_answer(cleaned.verdict, cleaned.claims, None) == "A is lower. B rose."
 
 
-def test_claim_text_mentioning_unknown_paper_is_removed():
-    d = draft(("A.", ["PMID:111"]), ("Proven in PMID:99999999.", ["PMID:222"]))
-    cleaned, report = validate(d, EVIDENCE)
-    assert report.removed_invalid_citation == ["c2"] and [c.id for c in cleaned.claims] == ["c1"]
-
-
-def test_claim_text_mentioning_known_paper_is_kept():
-    cleaned, _ = validate(draft(("As PMID 222 also shows, A.", ["PMID:111"])), EVIDENCE)
-    assert len(cleaned.claims) == 1
-
-
-def test_downgrade_drops_model_uncertainty():
-    d = draft(("Hijacked. HACKED", ["PMID:999"]), verdict="yes")
-    d = d.model_copy(update={"uncertainty": "None. HACKED"})
-    cleaned, report = validate(d, EVIDENCE)
-    assert report.downgraded_to_insufficient and cleaned.uncertainty == ""
-
-
-@pytest.mark.parametrize(
-    "mention", ["PMID:999", "PMID 999", "pmid#999", "PubMed 999", "PubMed ID: 999"]
-)
-def test_uncertainty_mentioning_unknown_paper_is_dropped(mention):
-    d = draft(("A.", ["PMID:111"])).model_copy(update={"uncertainty": f"See {mention}."})
-    cleaned, report = validate(d, EVIDENCE)
-    assert cleaned.uncertainty == "" and report.uncertainty_removed
-
-
-def test_summary_mentioning_unknown_paper_in_pubmed_form_is_replaced():
-    d = draft(("A.", ["PMID:111"]), summary="See PubMed 99999999. Take 50mg daily.")
-    cleaned, report = validate(d, EVIDENCE)
-    assert cleaned.summary == "A." and report.summary_replaced
+def test_abstention_answers_are_fixed_messages():
+    reason = "no_supported_claims"
+    assert compose_answer("insufficient_evidence", [], reason) == NO_SUPPORTED_CLAIMS_SUMMARY
+    assert compose_answer("insufficient_evidence", [], "model_abstained") == MODEL_ABSTAINED_SUMMARY

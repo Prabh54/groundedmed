@@ -41,7 +41,7 @@ class QueryResponse(BaseModel):
     answer: str
     claims: list[Claim]
     citations: list[Citation]  # the evidence passages the answer was generated from
-    uncertainty: str
+    limitations: list[Claim]  # cited, validated like claims (ADR-030)
     abstained: bool
     abstain_reason: AbstainReason | None
     rerank_skipped: bool

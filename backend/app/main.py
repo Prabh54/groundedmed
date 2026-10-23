@@ -125,7 +125,7 @@ def to_response(request_id: str, a: FinalAnswer) -> QueryResponse:
             )
             for c in a.evidence
         ],  # fmt: skip
-        uncertainty=a.uncertainty,
+        limitations=a.limitations,
         abstained=a.abstained,
         abstain_reason=a.abstain_reason,
         rerank_skipped=a.rerank_skipped,
