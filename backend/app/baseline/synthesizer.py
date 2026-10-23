@@ -13,7 +13,7 @@ from backend.app.llm.client import Effort, structured_call
 from backend.app.models.answer import DraftAnswer, LLMUsage
 from backend.app.models.retrieval import Candidate
 
-SYNTHESIZER_VERSION = "v1"
+SYNTHESIZER_VERSION = "v2"  # v1 kept on disk for earlier runs (ADR-029)
 SYNTHESIZER_EFFORT: Effort = "medium"  # ADR-022 starting point
 SYSTEM_PROMPT = (
     REPO_ROOT / "backend" / "app" / "prompts" / f"synthesizer_{SYNTHESIZER_VERSION}.txt"
