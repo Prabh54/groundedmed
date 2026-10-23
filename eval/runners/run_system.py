@@ -1,6 +1,11 @@
 """Run a system over a frozen split; store raw + summary results (ARCHITECTURE §9, PLAN M2-T5).
 
-Run: uv run python -m eval.runners.run_system --system baseline --split dev [--limit N]
+Run: uv run python -m eval.runners.run_system --system baseline|agent --split dev [--limit N]
+     [--max-cost USD]
+
+--max-cost is a hard spending stop: before each question the runner checks that the money spent so
+far plus the most expensive question seen (at least PER_QUESTION_ALLOWANCE) stays within the cap;
+otherwise it stops, and the summary says `stopped_at_cost_cap` with the number of questions run.
 
 Calls the same Python function the API uses (not HTTP), sequentially. The gold label is read here
 only, after the answer is produced; the pipeline never sees it. The test split additionally needs
@@ -21,6 +26,9 @@ import sys
 import time
 from datetime import UTC, datetime
 
+from backend.app.agents import critic as agent_critic
+from backend.app.agents import planner as agent_planner
+from backend.app.agents.pipeline import answer_agent
 from backend.app.baseline.pipeline import answer_baseline
 from backend.app.baseline.synthesizer import (
     SYNTHESIZER_EFFORT,
@@ -53,6 +61,7 @@ MANIFESTS = REPO_ROOT / "data" / "manifests"
 FINAL_TEST_FLAG = "--i-understand-this-is-the-final-test"
 RERUN_FLAG = "--rerun-final-test"
 MIN_REASON_CHARS = 20
+PER_QUESTION_ALLOWANCE = 0.05  # USD; agent questions measured $0.024-0.034 (M3-T7)
 
 
 def load_manifest(split: str) -> dict:
@@ -166,6 +175,69 @@ def run_row(item: dict, answer) -> dict:
     }
 
 
+def agent_fields(state) -> dict:
+    """Agent-only diagnostics stored with each row (ADR-023 planner effect, critic decisions)."""
+    question_top20 = {c.pmid for c in state["retrieved_candidates"][:20]}
+    return {
+        "subqueries": [s.query for s in state["subquestions"]],
+        "n_candidates": len(state["retrieved_candidates"]),
+        "planner_added_evidence": state["planner_added_evidence"],
+        "gold_in_question_top20": None,  # filled by the caller (needs the gold PMID)
+        "critic_results": [r.model_dump() for r in state["critic_results"]],
+        "critic_removed": state["critic_removed"],
+        "answer_supported": state["answer_supported"],
+        "_question_top20": sorted(question_top20),
+    }
+
+
+def agent_row(item: dict, answer, state) -> dict:
+    row = run_row(item, answer) | agent_fields(state)
+    top20 = row.pop("_question_top20")
+    pool = {c.pmid for c in state["retrieved_candidates"]}
+    row["gold_in_question_top20"] = item["pmid"] in top20
+    row["gold_in_pool"] = item["pmid"] in pool
+    return row
+
+
+def summarize_agent(rows: list[dict]) -> dict:
+    ok = [r for r in rows if r["error"] is None and "planner_added_evidence" in r]
+    added = [r["planner_added_evidence"] for r in ok]
+    critic_checked = [r for r in ok if r["critic_results"]]
+    removed = [len(r["critic_removed"]) for r in ok]
+    critic_abstained = [
+        r for r in ok
+        if r["abstain_reason"] == "no_supported_claims"
+        and not r["validation"]["downgraded_to_insufficient"]
+    ]  # fmt: skip
+
+    def stage_p50(name):
+        values = [r["timings_ms"][name] for r in ok if r["timings_ms"].get(name)]
+        return statistics.median(values) if values else None
+
+    return {
+        "planner_added_evidence": {
+            "mean": sum(added) / len(added) if added else None,
+            "share_questions_gt0": sum(a > 0 for a in added) / len(added) if added else None,
+            "questions_gt0": sum(a > 0 for a in added),
+            "gold_found_only_via_subqueries": sum(
+                (not r["gold_in_question_top20"]) and r["gold_in_pool"] for r in ok
+            ),
+        },
+        "mean_candidates": sum(r["n_candidates"] for r in ok) / len(ok) if ok else None,
+        "critic": {
+            "answers_checked": len(critic_checked),
+            "items_checked": sum(len(r["critic_results"]) for r in ok),
+            "items_removed": sum(removed),
+            "answers_with_removals": sum(n > 0 for n in removed),
+            "answer_supported_false": sum(r["answer_supported"] is False for r in ok),
+            "answers_abstained_by_critic": len(critic_abstained),
+        },
+        "stage_latency_p50_ms": {
+            n: stage_p50(n) for n in ("planner", "retriever", "synthesizer", "critic")
+        },
+    }
+
+
 def summarize(rows: list[dict]) -> dict:
     verdicts = [r["verdict"] for r in rows]
     gold = [r["gold_label"] for r in rows]
@@ -220,7 +292,7 @@ def summarize(rows: list[dict]) -> dict:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--system", choices=["baseline"], required=True)
+    parser.add_argument("--system", choices=["baseline", "agent"], required=True)
     parser.add_argument("--split", choices=["dev", "test"], required=True)
     parser.add_argument("--limit", type=int, help="first N dev questions only (smoke runs)")
     parser.add_argument(FINAL_TEST_FLAG, dest="final_test_ok", action="store_true")
@@ -233,7 +305,10 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--reason", help="why the test split is being run again (saved with the run)"
     )
+    parser.add_argument("--max-cost", type=float, help="hard spending stop for this run (USD)")
     args = parser.parse_args(argv)
+    if args.max_cost is not None and args.max_cost <= 0:
+        raise SystemExit("--max-cost must be positive.")
 
     git = git_state()
     check_allowed(args.split, args.final_test_ok, git, args.limit)
@@ -267,20 +342,51 @@ def main(argv: list[str] | None = None) -> None:
         "evidence_gate_dev_run": EVIDENCE_GATE_DEV_RUN,
         "embedding_model": EMBEDDING_MODEL,
         "rerank_model": RERANK_MODEL,
+        "max_cost_usd": args.max_cost,
         "test_rerun_override": override,
     }
+    if args.system == "agent":
+        config |= {
+            "planner_prompt": agent_planner.PLANNER_VERSION,
+            "planner_prompt_sha256": hashlib.sha256(
+                agent_planner.SYSTEM_PROMPT.encode()
+            ).hexdigest(),
+            "planner_user_template_sha256": hashlib.sha256(
+                agent_planner.USER_TEMPLATE.encode()
+            ).hexdigest(),
+            "planner_effort": agent_planner.PLANNER_EFFORT,
+            "critic_prompt": agent_critic.CRITIC_VERSION,
+            "critic_prompt_sha256": hashlib.sha256(agent_critic.SYSTEM_PROMPT.encode()).hexdigest(),
+            "critic_user_template_sha256": hashlib.sha256(
+                agent_critic.USER_TEMPLATE.encode()
+            ).hexdigest(),
+            "critic_effort": agent_critic.CRITIC_EFFORT,
+        }
     (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
     rows = []
+    stopped_at_cap = False
     voyage, llm = voyage_client(max_retries=3, timeout=60), anthropic_client()
     conn = None
     with (out / "raw.jsonl").open("w", encoding="utf-8") as raw:
         for i, item in enumerate(items, start=1):
+            if args.max_cost is not None:
+                spent = sum(r["cost_usd"] for r in rows)
+                worst = max([PER_QUESTION_ALLOWANCE] + [r["cost_usd"] for r in rows])
+                if spent + worst > args.max_cost:
+                    stopped_at_cap = True
+                    print(f"  COST CAP: stopping before question {i} (spent ${spent:.3f})")
+                    break
             start = time.perf_counter()
             try:
                 conn = conn or connect()
-                answer = answer_baseline(item["question"], conn=conn, voyage=voyage, llm=llm)
-                row = run_row(item, answer)
+                if args.system == "agent":
+                    answer, state = answer_agent(item["question"], conn=conn, voyage=voyage,
+                                                 llm=llm)  # fmt: skip
+                    row = agent_row(item, answer, state)
+                else:
+                    answer = answer_baseline(item["question"], conn=conn, voyage=voyage, llm=llm)
+                    row = run_row(item, answer)
             except Exception as exc:  # outage: record it, reconnect, keep going
                 error = redact(f"{type(exc).__name__}: {exc}")[:300]
                 row = error_row(item, error, (time.perf_counter() - start) * 1000)
@@ -298,6 +404,10 @@ def main(argv: list[str] | None = None) -> None:
     if conn is not None:
         conn.close()
     summary = {"run_id": run_id, "system": args.system, "split": args.split, **summarize(rows)}
+    if args.system == "agent":
+        summary["agent"] = summarize_agent(rows)
+    if args.max_cost is not None:
+        summary["stopped_at_cost_cap"] = stopped_at_cap
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
     print(f"Saved to {out.relative_to(REPO_ROOT)}")
