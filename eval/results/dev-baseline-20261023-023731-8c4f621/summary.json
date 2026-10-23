@@ -1,0 +1,48 @@
+{
+  "run_id": "dev-baseline-20261023-023731-8c4f621",
+  "system": "baseline",
+  "split": "dev",
+  "n_questions": 100,
+  "accuracy": 0.72,
+  "coverage": 0.94,
+  "answered_only_accuracy": 0.7659574468085106,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "insufficient_evidence": 6,
+    "maybe": 14,
+    "no": 32,
+    "yes": 48
+  },
+  "gold_counts": {
+    "maybe": 11,
+    "no": 34,
+    "yes": 55
+  },
+  "abstain_reasons": {
+    "weak_evidence": 3,
+    "model_abstained": 3
+  },
+  "hit_at_1": 0.97,
+  "hit_at_5": 1.0,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 5423.35,
+    "p95": 7165.405,
+    "p50_when_llm_called": 5428.0,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 387918,
+    "output_incl_thinking": 60572
+  },
+  "cost_usd": {
+    "total": 1.4146,
+    "per_query": 0.01415
+  }
+}
