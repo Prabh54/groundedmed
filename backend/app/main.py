@@ -206,8 +206,11 @@ def answer(body: QueryRequest, request_id: str, emit: Emit | None = None) -> Que
             else:
                 result = answer_baseline(body.question, conn=conn, voyage=voyage, llm=llm)
     except (RetrievalError, psycopg.Error) as exc:  # embedding or database failure
+        spent = getattr(exc, "usage", [])  # calls made before the failure (agent planner)
         log({"request_id": request_id, "mode": body.mode, "event": "error", "stage": "retrieval",
-             "error": redact(f"{type(exc).__name__}: {exc}")[:300]})  # fmt: skip
+             "error": redact(f"{type(exc).__name__}: {exc}")[:300],
+             "usage": [u.model_dump() for u in spent],
+             "cost_usd": sum(u.cost_usd for u in spent)})  # fmt: skip
         raise HTTPException(status_code=503, detail=UNAVAILABLE_MESSAGE) from None
 
     record_line = {

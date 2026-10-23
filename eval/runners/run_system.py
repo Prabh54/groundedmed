@@ -3,9 +3,10 @@
 Run: uv run python -m eval.runners.run_system --system baseline|agent --split dev [--limit N]
      [--max-cost USD]
 
---max-cost is a hard spending stop: before each question the runner checks that the money spent so
-far plus the most expensive question seen (at least PER_QUESTION_ALLOWANCE) stays within the cap;
-otherwise it stops, and the summary says `stopped_at_cost_cap` with the number of questions run.
+--max-cost is a soft spending stop: before each question the runner checks that the money spent so
+far plus a margin (twice the most expensive question so far, at least PER_QUESTION_ALLOWANCE) stays
+within the cap; otherwise it stops, and the summary says `stopped_at_cost_cap`. It can only be
+exceeded if one question costs more than that margin. Failed questions count the calls they made.
 
 Calls the same Python function the API uses (not HTTP), sequentially. The gold label is read here
 only, after the answer is produced; the pipeline never sees it. The test split additionally needs
@@ -131,8 +132,10 @@ def create_run_dir(run_id: str):
     return out
 
 
-def error_row(item: dict, error: str, elapsed_ms: float) -> dict:
-    """A question the system could not answer because a provider or the database failed."""
+def error_row(item: dict, error: str, elapsed_ms: float, usage: list | None = None) -> dict:
+    """A question the system could not answer because a provider or the database failed. `usage`
+    holds the calls made before the failure (e.g. the agent's planner), so their cost counts."""
+    usage = usage or []
     return {
         "pmid": item["pmid"], "question": item["question"], "gold_label": item["final_decision"],
         "verdict": "insufficient_evidence", "correct": False, "abstained": True,
@@ -142,7 +145,8 @@ def error_row(item: dict, error: str, elapsed_ms: float) -> dict:
         "evidence_pmids": [], "rerank_scores": [], "top_rerank_score": None,
         "gate_passed": False, "gold_final_rank": None, "rerank_skipped": False,
         "rerank_error": None, "error": error, "timings_ms": {"total": round(elapsed_ms, 1)},
-        "usage": [], "cost_usd": 0.0, "prompt_versions": {},
+        "usage": [u.model_dump() for u in usage], "cost_usd": sum(u.cost_usd for u in usage),
+        "prompt_versions": {},
     }  # fmt: skip
 
 
@@ -372,8 +376,8 @@ def main(argv: list[str] | None = None) -> None:
         for i, item in enumerate(items, start=1):
             if args.max_cost is not None:
                 spent = sum(r["cost_usd"] for r in rows)
-                worst = max([PER_QUESTION_ALLOWANCE] + [r["cost_usd"] for r in rows])
-                if spent + worst > args.max_cost:
+                margin = max([PER_QUESTION_ALLOWANCE] + [2 * r["cost_usd"] for r in rows])
+                if spent + margin > args.max_cost:
                     stopped_at_cap = True
                     print(f"  COST CAP: stopping before question {i} (spent ${spent:.3f})")
                     break
@@ -389,7 +393,8 @@ def main(argv: list[str] | None = None) -> None:
                     row = run_row(item, answer)
             except Exception as exc:  # outage: record it, reconnect, keep going
                 error = redact(f"{type(exc).__name__}: {exc}")[:300]
-                row = error_row(item, error, (time.perf_counter() - start) * 1000)
+                row = error_row(item, error, (time.perf_counter() - start) * 1000,
+                                getattr(exc, "usage", None))  # fmt: skip
                 print(f"  ERROR on {item['pmid']}: {error}", flush=True)
                 if conn is not None:
                     conn.close()

@@ -168,12 +168,15 @@ def test_agent_provider_failure_is_a_controlled_503(setup, stage):
     assert "claims" not in r.json()  # never a partial answer
 
 
-def test_agent_retrieval_failure_is_503(setup, monkeypatch):
+def test_agent_retrieval_failure_is_503_and_logs_the_planner_cost(setup, monkeypatch, capsys):
     def broken(conn, vector, k):
         raise RetrievalError("db down")
 
     monkeypatch.setattr(retriever_module, "dense_search", broken)
     assert post(setup).status_code == 503
+    (line,) = [json.loads(x) for x in capsys.readouterr().out.splitlines() if '"error"' in x]
+    assert line["stage"] == "retrieval" and line["cost_usd"] > 0  # the planner call was paid
+    assert [u["model"] for u in line["usage"]] == ["claude-sonnet-5-5"]
 
 
 def test_baseline_mode_is_still_the_default_and_unchanged(setup):

@@ -129,10 +129,19 @@ def answer_agent(
     emit: Emit | None = None,
 ) -> tuple[FinalAnswer, ResearchState]:
     """Run the graph; return the final answer (timing_ms completed with every stage and the total)
-    and the final state (sub-queries, candidates, critic results for logs and eval)."""
+    and the final state (sub-queries, candidates, critic results for logs and eval).
+
+    An exception that escapes the graph (retrieval/database failure, bug) gets `usage`: the calls
+    already made, e.g. the planner's, so a failed question still counts its cost (M3 review S3)."""
     start = time.perf_counter()
     graph = build_agent_graph(llm, voyage, conn, emit)
-    state = graph.invoke(initial_state(request_id or str(uuid.uuid4()), question))
+    state = initial_state(request_id or str(uuid.uuid4()), question)
+    try:
+        for step_state in graph.stream(state, stream_mode="values"):  # state after each step
+            state = step_state
+    except Exception as exc:
+        exc.usage = list(state["usage"])
+        raise
     total = (time.perf_counter() - start) * 1000
     timing = {name: 0.0 for name in NODE_ORDER} | state["timings"] | {"total": total}
     final = state["final_answer"].model_copy(update={"timing_ms": timing})

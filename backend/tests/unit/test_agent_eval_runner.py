@@ -138,3 +138,31 @@ def test_no_cap_hit_is_reported_as_such(runner):
 def test_non_positive_cap_is_refused(runner):
     with pytest.raises(SystemExit):
         runner("--limit", "1", "--max-cost", "0")
+
+
+def test_failed_question_still_counts_the_planner_cost(runner, monkeypatch):
+    """M3 review S3: retrieval fails after the paid planner call -> the error row keeps its cost."""
+    calls = []
+
+    def flaky(conn, vector, k):
+        calls.append(1)
+        if len(calls) <= 2:  # question 1: both of its searches fail
+            raise OSError("connection reset")
+        return dense_search(conn, vector, k)
+
+    monkeypatch.setattr(retriever_module, "dense_search", flaky)
+    rows, summary, _ = runner("--limit", "2")
+    assert rows[0]["abstain_reason"] == "error" and rows[0]["error"]
+    assert [u["model"] for u in rows[0]["usage"]] == ["claude-sonnet-5-5"]  # the planner call
+    assert rows[0]["cost_usd"] == pytest.approx((1000 * 2 + 100 * 10) / 1e6)
+    assert summary["cost_usd"]["total"] == pytest.approx(rows[0]["cost_usd"] + rows[1]["cost_usd"],
+                                                         abs=1e-4)  # fmt: skip
+
+
+def test_cost_stop_margin_grows_with_the_most_expensive_question(runner, monkeypatch):
+    """Margin = max($0.05, 2 x the most expensive question so far)."""
+    monkeypatch.setattr(run_system, "PER_QUESTION_ALLOWANCE", 0.001)
+    # each fake question costs ~$0.009, so the margin is ~$0.018: q3 would need 0.018 + 0.018
+    rows, summary, _ = runner("--limit", "10", "--max-cost", "0.03")
+    assert len(rows) == 2 and summary["stopped_at_cost_cap"] is True
+    assert sum(r["cost_usd"] for r in rows) <= 0.03
