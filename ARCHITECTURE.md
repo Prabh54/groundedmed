@@ -211,6 +211,11 @@ M3-T3 added `rerank_skipped` / `rerank_error` to the state (the gate and the ans
 retriever (`backend/app/agents/retriever.py`) reuses the M1 pieces (`embed_texts`, `dense_search`,
 `rerank_candidates`), not `retrieve()` itself, which stays the baseline's unchanged path. On rerank failure
 the agent's evidence is the question's own dense top 5 — exactly the baseline's fallback evidence.
+M3-T5/T6 added `answer_supported` and `critic_removed` to the state. Final validator order
+(`backend/app/agents/validator.py`): error / weak-evidence abstention first; then the M2 citation validator
+on the draft (same report as the baseline); then the critic's removals on what survived; abstain
+`no_supported_claims` if no claim is left or `answer_supported` is false. `FinalAnswer.timing_ms` holds the
+stages before the validator; the validator's own time is in the state, and the total is measured by the caller.
 
 Closed-book control (ADR-010): same runtime model, question only, verdict-only schema, no retrieval.
 It is an evaluation runner, not an API mode.

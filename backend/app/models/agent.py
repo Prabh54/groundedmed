@@ -73,6 +73,7 @@ class ResearchState(TypedDict):
     claims: list[Claim]
     critic_results: list[CriticResult]
     answer_supported: bool | None  # critic's view of the verdict; None if the critic made no call
+    critic_removed: list[str]  # item IDs the validator removed on the critic's results
     final_answer: FinalAnswer | None
     abstained: bool
     abstain_reason: AbstainReason | None
@@ -98,6 +99,7 @@ def initial_state(request_id: str, question: str) -> ResearchState:
         claims=[],
         critic_results=[],
         answer_supported=None,
+        critic_removed=[],
         final_answer=None,
         abstained=False,
         abstain_reason=None,
