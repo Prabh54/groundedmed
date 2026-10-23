@@ -1,0 +1,69 @@
+{
+  "judgments_file": "eval/audits/grounding/dev-baseline-20261023-033422-9396a90-judgments-m3-rejudge.jsonl",
+  "note": "blind re-judge of the baseline sample by the M3-T8 judge (same session as the agent packet); the official baseline score stays the M2 reviewer's",
+  "method": "grounding_spotcheck_v1",
+  "run_id": "dev-baseline-20261023-033422-9396a90",
+  "questions": 18,
+  "items": 89,
+  "judged_items": 89,
+  "not_judged": 0,
+  "counts": {
+    "supported": 81,
+    "partly": 8,
+    "unsupported": 0,
+    "not_judged": 0
+  },
+  "flagged_items": 8,
+  "unsupported_detail_rate": 0.0898876404494382,
+  "rows_with_flagged_items": 8,
+  "flagged": [
+    {
+      "pmid": "7664228",
+      "id": "c4",
+      "label": "partly",
+      "note": "'after coronary bypass surgery in Canada': 14566241 says only 'a national study'; no country is named. Rest is supported."
+    },
+    {
+      "pmid": "11053064",
+      "id": "c1",
+      "label": "partly",
+      "note": "'suggesting an association between fatigue in pSS and fibromyalgia': passage gives only group prevalences (12% vs 5%, no test), not FM by fatigue status."
+    },
+    {
+      "pmid": "12595848",
+      "id": "l2",
+      "label": "partly",
+      "note": "'benefit appears tied to combined... rather than specialty care alone': CARD-only did not differ significantly from MIXED (RR 1.12), so the data do not separate them."
+    },
+    {
+      "pmid": "12970636",
+      "id": "l2",
+      "label": "partly",
+      "note": "'in older adults': 18489451 gives no patient age; only 26059872 (65+) and 10151166 (mean 83) are older adults. Main point supported."
+    },
+    {
+      "pmid": "19925761",
+      "id": "l1",
+      "label": "partly",
+      "note": "'retrospective and single-center': passage gives no number of centres; single-center is not stated."
+    },
+    {
+      "pmid": "21123461",
+      "id": "c3",
+      "label": "partly",
+      "note": "'consistent with a link between height and waist size': Manchester passage relates height and waist separately to glucose, not to each other."
+    },
+    {
+      "pmid": "24139705",
+      "id": "c1",
+      "label": "partly",
+      "note": "'Technology alone does not appear sufficient': cited high-user result (-0.49 vs -0.52, P=0.879) shows no added telemedicine benefit, which does not show this."
+    },
+    {
+      "pmid": "24172579",
+      "id": "c1",
+      "label": "partly",
+      "note": "'little influence on ... recanalization': cited passage 24172579 has no recanalization data. OR 1.03 finding supported."
+    }
+  ]
+}

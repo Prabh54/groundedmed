@@ -1,0 +1,74 @@
+{
+  "run_id": "dev-agent-20261023-222333-871b22d",
+  "system": "agent",
+  "split": "dev",
+  "n_questions": 100,
+  "accuracy": 0.75,
+  "coverage": 0.91,
+  "answered_only_accuracy": 0.8241758241758241,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "insufficient_evidence": 9,
+    "maybe": 11,
+    "no": 33,
+    "yes": 47
+  },
+  "gold_counts": {
+    "maybe": 11,
+    "no": 34,
+    "yes": 55
+  },
+  "abstain_reasons": {
+    "weak_evidence": 3,
+    "no_supported_claims": 4,
+    "model_abstained": 2
+  },
+  "hit_at_1": 0.97,
+  "hit_at_5": 1.0,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "limitations": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 12184.75,
+    "p95": 17278.43,
+    "p50_when_llm_called": 12386.7,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 834573,
+    "output_incl_thinking": 109384
+  },
+  "cost_usd": {
+    "total": 2.8238,
+    "per_query": 0.02824
+  },
+  "agent": {
+    "planner_added_evidence": {
+      "mean": 0.41,
+      "share_questions_gt0": 0.29,
+      "questions_gt0": 29,
+      "gold_found_only_via_subqueries": 0
+    },
+    "mean_candidates": 36.05,
+    "critic": {
+      "answers_checked": 97,
+      "items_checked": 438,
+      "items_removed": 44,
+      "answers_with_removals": 34,
+      "answer_supported_false": 4,
+      "answers_abstained_by_critic": 4
+    },
+    "stage_latency_p50_ms": {
+      "planner": 2343.3500000000004,
+      "retriever": 1123.05,
+      "synthesizer": 3778.2,
+      "critic": 4119.7
+    }
+  },
+  "stopped_at_cost_cap": false
+}

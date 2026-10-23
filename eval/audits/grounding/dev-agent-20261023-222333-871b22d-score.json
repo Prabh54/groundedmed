@@ -1,0 +1,32 @@
+{
+  "judgments_file": "eval/audits/grounding/dev-agent-20261023-222333-871b22d-judgments.jsonl",
+  "method": "grounding_spotcheck_v1",
+  "run_id": "dev-agent-20261023-222333-871b22d",
+  "questions": 18,
+  "items": 74,
+  "judged_items": 74,
+  "not_judged": 0,
+  "counts": {
+    "supported": 72,
+    "partly": 2,
+    "unsupported": 0,
+    "not_judged": 0
+  },
+  "flagged_items": 2,
+  "unsupported_detail_rate": 0.02702702702702703,
+  "rows_with_flagged_items": 2,
+  "flagged": [
+    {
+      "pmid": "19925761",
+      "id": "c1",
+      "label": "partly",
+      "note": "'performed safely and effectively without... dilatation': passage gives only an overall 86.5% success rate (both groups) and no group difference in complications; success without dilatation is not reported."
+    },
+    {
+      "pmid": "21123461",
+      "id": "c3",
+      "label": "partly",
+      "note": "'consistent with a link between height and waist size': Manchester passage only relates height and waist separately to glucose, not to each other."
+    }
+  ]
+}
