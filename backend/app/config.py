@@ -70,8 +70,9 @@ def env(name: str) -> str:
 
 # Evidence gate (ARCHITECTURE §7, ADR-028): abstain when the top rerank score is below this.
 # Chosen on dev data only by eval/runners/gate_calibration.py; frozen before any test run.
-EVIDENCE_GATE_THRESHOLD = 0.72
-EVIDENCE_GATE_DEV_RUN = "dev-gate-20261023-020421-fb17179"
+EVIDENCE_GATE_THRESHOLD = 0.72  # top rerank-3 score
+EVIDENCE_GATE_DENSE_THRESHOLD = 0.62  # top cosine score, used only when reranking failed
+EVIDENCE_GATE_DEV_RUN = "dev-gate-PENDING"
 
 # API spend protection (ADR-021). Values come from the environment on Railway.
 PER_IP_QUERIES_PER_HOUR = 10

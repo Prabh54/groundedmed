@@ -4,8 +4,10 @@ Run: uv run python -m eval.runners.run_system --system baseline --split dev [--l
 
 Calls the same Python function the API uses (not HTTP), sequentially. The gold label is read here
 only, after the answer is produced; the pipeline never sees it. The test split additionally needs
---i-understand-this-is-the-final-test and a clean Git tree. Results go to
-eval/results/<run-id>/ (raw.jsonl, summary.json, run_config.json); a run is never overwritten.
+--i-understand-this-is-the-final-test, a clean Git tree, the manifest matching test.sha256, and no
+--limit. A question that fails (provider or database outage) is stored as an error row, counted as
+incorrect, and the run continues. Results go to eval/results/<run-id>/ (raw.jsonl, summary.json,
+run_config.json); a run is never overwritten.
 """
 
 import argparse
@@ -13,10 +15,16 @@ import hashlib
 import json
 import statistics
 import sys
+import time
 from datetime import UTC, datetime
 
 from backend.app.baseline.pipeline import answer_baseline
-from backend.app.baseline.synthesizer import SYNTHESIZER_EFFORT, SYNTHESIZER_VERSION, SYSTEM_PROMPT
+from backend.app.baseline.synthesizer import (
+    SYNTHESIZER_EFFORT,
+    SYNTHESIZER_VERSION,
+    SYSTEM_PROMPT,
+    USER_TEMPLATE,
+)
 from backend.app.config import (
     EMBEDDING_MODEL,
     EVIDENCE_GATE_DEV_RUN,
@@ -24,6 +32,7 @@ from backend.app.config import (
     LLM_MODEL,
     REPO_ROOT,
     RERANK_MODEL,
+    redact,
 )
 from backend.app.llm.client import anthropic_client
 from backend.app.retrieval.embed import voyage_client
@@ -41,18 +50,48 @@ MANIFESTS = REPO_ROOT / "data" / "manifests"
 FINAL_TEST_FLAG = "--i-understand-this-is-the-final-test"
 
 
-def load_split(split: str) -> list[dict]:
-    manifest = json.loads((MANIFESTS / f"{split}.json").read_text(encoding="utf-8"))
+def load_manifest(split: str) -> dict:
+    data = (MANIFESTS / f"{split}.json").read_bytes()
+    if split == "test":
+        frozen = (MANIFESTS / "test.sha256").read_text(encoding="utf-8").split()[0]
+        if hashlib.sha256(data).hexdigest() != frozen:
+            raise SystemExit("test.json does not match the frozen test.sha256; refusing to run.")
+    manifest = json.loads(data)
     if manifest["split"] != split:
         raise RuntimeError(f"{split}.json does not declare split {split!r}")
-    return manifest["items"]
+    return manifest
 
 
-def check_allowed(split: str, final_test_ok: bool, git: dict) -> None:
+def check_allowed(split: str, final_test_ok: bool, git: dict, limit: int | None = None) -> None:
     if split == "test" and not final_test_ok:
         raise SystemExit(f"Refusing the frozen test split without {FINAL_TEST_FLAG}.")
     if split == "test" and git["git_dirty"]:
         raise SystemExit("Refusing the frozen test split from a dirty Git tree; commit first.")
+    if split == "test" and limit is not None:
+        raise SystemExit("Refusing a partial run of the frozen test split (--limit).")
+    if limit is not None and limit < 1:
+        raise SystemExit("--limit must be at least 1.")
+
+
+def create_run_dir(run_id: str):
+    out = RESULTS_DIR / run_id
+    out.mkdir(parents=True, exist_ok=False)  # never overwrite an earlier run
+    return out
+
+
+def error_row(item: dict, error: str, elapsed_ms: float) -> dict:
+    """A question the system could not answer because a provider or the database failed."""
+    return {
+        "pmid": item["pmid"], "question": item["question"], "gold_label": item["final_decision"],
+        "verdict": "insufficient_evidence", "correct": False, "abstained": True,
+        "abstain_reason": "error", "answer": "", "claims": [], "uncertainty": "",
+        "validation": {"removed_uncited": [], "removed_invalid_citation": [],
+                       "downgraded_to_insufficient": False},
+        "evidence_pmids": [], "rerank_scores": [], "top_rerank_score": None,
+        "gate_passed": False, "gold_final_rank": None, "rerank_skipped": False,
+        "rerank_error": None, "error": error, "timings_ms": {"total": round(elapsed_ms, 1)},
+        "usage": [], "cost_usd": 0.0, "prompt_versions": {},
+    }  # fmt: skip
 
 
 def run_row(item: dict, answer) -> dict:
@@ -75,6 +114,7 @@ def run_row(item: dict, answer) -> dict:
         "gate_passed": answer.gate_passed,
         "gold_final_rank": gold_rank(final_pmids, item["pmid"]),
         "rerank_skipped": answer.rerank_skipped,
+        "rerank_error": answer.rerank_error,
         "error": answer.error,
         "timings_ms": {k: round(v, 1) for k, v in answer.timing_ms.items()},
         "usage": [u.model_dump() for u in answer.usage],
@@ -97,7 +137,9 @@ def summarize(rows: list[dict]) -> dict:
             reasons[r["abstain_reason"]] = reasons.get(r["abstain_reason"], 0) + 1
 
     def pct(values, q):
-        return statistics.quantiles(values, n=100, method="inclusive")[q - 1] if values else None
+        if len(values) < 2:
+            return values[0] if values else None
+        return statistics.quantiles(values, n=100, method="inclusive")[q - 1]
 
     return {
         "n_questions": len(rows),
@@ -136,16 +178,16 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--system", choices=["baseline"], required=True)
     parser.add_argument("--split", choices=["dev", "test"], required=True)
-    parser.add_argument("--limit", type=int, help="first N questions only (smoke runs)")
+    parser.add_argument("--limit", type=int, help="first N dev questions only (smoke runs)")
     parser.add_argument(FINAL_TEST_FLAG, dest="final_test_ok", action="store_true")
     args = parser.parse_args(argv)
 
     git = git_state()
-    check_allowed(args.split, args.final_test_ok, git)
-    items = load_split(args.split)[: args.limit]
+    check_allowed(args.split, args.final_test_ok, git, args.limit)
+    manifest = load_manifest(args.split)
+    items = manifest["items"][: args.limit]
     run_id = f"{args.split}-{args.system}-{datetime.now(UTC):%Y%m%d-%H%M%S}-{git['git_commit'][:7]}"
-    out = RESULTS_DIR / run_id
-    out.mkdir(parents=True, exist_ok=False)  # never overwrite an earlier run
+    out = create_run_dir(run_id)
     config = {
         "run_id": run_id,
         "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -158,9 +200,12 @@ def main(argv: list[str] | None = None) -> None:
             (MANIFESTS / f"{args.split}.json").read_bytes()
         ).hexdigest(),
         "corpus_manifest_sha256": hashlib.sha256(CORPUS_MANIFEST.read_bytes()).hexdigest(),
+        "dataset": manifest["dataset"],
+        "dataset_revision": manifest["revision"],
         "llm_model": LLM_MODEL,
         "synthesizer_prompt": SYNTHESIZER_VERSION,
         "synthesizer_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
+        "synthesizer_user_template_sha256": hashlib.sha256(USER_TEMPLATE.encode()).hexdigest(),
         "synthesizer_effort": SYNTHESIZER_EFFORT,
         "evidence_gate_threshold": EVIDENCE_GATE_THRESHOLD,
         "evidence_gate_dev_run": EVIDENCE_GATE_DEV_RUN,
@@ -170,11 +215,22 @@ def main(argv: list[str] | None = None) -> None:
     (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
     rows = []
-    voyage, llm = voyage_client(), anthropic_client()
-    with connect() as conn, (out / "raw.jsonl").open("w", encoding="utf-8") as raw:
+    voyage, llm = voyage_client(max_retries=3, timeout=60), anthropic_client()
+    conn = None
+    with (out / "raw.jsonl").open("w", encoding="utf-8") as raw:
         for i, item in enumerate(items, start=1):
-            answer = answer_baseline(item["question"], conn=conn, voyage=voyage, llm=llm)
-            row = run_row(item, answer)
+            start = time.perf_counter()
+            try:
+                conn = conn or connect()
+                answer = answer_baseline(item["question"], conn=conn, voyage=voyage, llm=llm)
+                row = run_row(item, answer)
+            except Exception as exc:  # outage: record it, reconnect, keep going
+                error = redact(f"{type(exc).__name__}: {exc}")[:300]
+                row = error_row(item, error, (time.perf_counter() - start) * 1000)
+                print(f"  ERROR on {item['pmid']}: {error}", flush=True)
+                if conn is not None:
+                    conn.close()
+                conn = None
             rows.append(row)
             raw.write(json.dumps(row) + "\n")
             raw.flush()
@@ -182,6 +238,8 @@ def main(argv: list[str] | None = None) -> None:
                 spent = sum(r["cost_usd"] for r in rows)
                 print(f"  {i}/{len(items)}  spent ${spent:.3f}", flush=True)
 
+    if conn is not None:
+        conn.close()
     summary = {"run_id": run_id, "system": args.system, "split": args.split, **summarize(rows)}
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))

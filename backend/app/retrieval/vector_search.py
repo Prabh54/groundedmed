@@ -3,7 +3,7 @@
 import psycopg
 
 from backend.app.config import env, redact
-from backend.app.models.retrieval import Candidate
+from backend.app.models.retrieval import Candidate, RetrievalError
 
 SEARCH_SQL = """
 select pmid, passage, sections, 1 - (embedding <=> %(q)s::vector) as score
@@ -18,7 +18,7 @@ def open_connection(url: str, **kwargs) -> psycopg.Connection:
     try:
         return psycopg.connect(url, connect_timeout=15, sslmode="require", **kwargs)
     except psycopg.Error as exc:
-        raise RuntimeError(f"database connection failed: {redact(str(exc))}") from None
+        raise RetrievalError(f"database connection failed: {redact(str(exc))}") from None
 
 
 def connect() -> psycopg.Connection:

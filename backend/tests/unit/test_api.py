@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from backend.app import main
 from backend.app.guardrails.rate_limit import RateLimiter
 from backend.app.models.answer import Claim, FinalAnswer, ValidationReport
-from backend.app.models.retrieval import Candidate, Section
+from backend.app.models.retrieval import Candidate, RetrievalError, Section
 
 
 def evidence():
@@ -37,7 +37,7 @@ class FakeConn:
 
     def __enter__(self):
         if self.fail:
-            raise RuntimeError("database connection failed: postgresql://u:secret@host/db")
+            raise RetrievalError("database connection failed: postgresql://u:secret@host/db")
         return self
 
     def __exit__(self, *exc):
@@ -147,9 +147,10 @@ def test_source_found(client, monkeypatch):
     assert client.get("/sources/102").status_code == 404
 
 
-@pytest.mark.parametrize("pmid", ["abc", "1; drop table documents", "1234567890"])
-def test_source_rejects_non_numeric_pmid(client, pmid):
-    assert client.get(f"/sources/{pmid}").status_code in (404, 422)
+@pytest.mark.parametrize("pmid", ["abc", "1; drop table documents", "1234567890", "1e5"])
+def test_source_rejects_non_numeric_pmid(client, monkeypatch, pmid):
+    monkeypatch.setattr(main, "get_document", lambda conn, p: pytest.fail("reached the database"))
+    assert client.get(f"/sources/{pmid}").status_code == 422
 
 
 def test_cors_allows_localhost_and_refuses_other_origins(client):
@@ -170,3 +171,45 @@ def test_rate_limiter_window_and_daily_reset():
     assert rl.check("b") is None and rl.check("c") == "daily_cap"
     now[0] += 86400
     assert rl.check("c") is None  # new UTC day
+
+
+def test_whitespace_only_question_is_422(client):
+    assert client.post("/query", json={"question": "      \n\t   "}).status_code == 422
+
+
+def test_unexpected_bug_is_500_not_disguised_as_503(monkeypatch):
+    def broken(q, **kw):
+        raise KeyError("bug in pipeline")
+
+    monkeypatch.setattr(main, "connect", lambda: FakeConn())
+    monkeypatch.setattr(main, "clients", lambda: (object(), object()))
+    monkeypatch.setattr(main, "answer_baseline", broken)
+    monkeypatch.setattr(main, "limiter", RateLimiter(per_ip_per_hour=100, daily_cap=100))
+    r = TestClient(main.app, raise_server_exceptions=False).post(
+        "/query", json={"question": "Does X help?"}
+    )
+    assert r.status_code == 500
+
+
+def test_allowed_origins_parsing():
+    assert main.allowed_origins("") == main.LOCAL_ORIGINS
+    assert main.allowed_origins(" https://a.vercel.app/ , ,https://b.app") == [
+        "https://a.vercel.app",
+        "https://b.app",
+        *main.LOCAL_ORIGINS,
+    ]
+
+
+@pytest.mark.parametrize("value,expected", [(None, 100), ("", 100), ("abc", 100), ("0", 100),
+                                            ("-5", 100), ("25", 25)])  # fmt: skip
+def test_daily_cap_parsing(value, expected):
+    assert main.daily_cap(value) == expected
+
+
+def test_rate_limiter_forgets_idle_ips_at_day_change():
+    now = [1_700_000_000.0]
+    rl = RateLimiter(per_ip_per_hour=5, daily_cap=100, clock=lambda: now[0])
+    rl.check("a")
+    now[0] += 86400
+    rl.check("b")
+    assert set(rl._hits) == {"b"}

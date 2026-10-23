@@ -1,5 +1,7 @@
 """Deterministic citation validator (ARCHITECTURE §7, PLAN.md M2-T2)."""
 
+import pytest
+
 from backend.app.guardrails.citation_validator import NO_SUPPORTED_CLAIMS_SUMMARY, validate
 from backend.app.models.answer import Claim, DraftAnswer
 
@@ -102,3 +104,36 @@ def test_validator_never_adds_content():
     cleaned, _ = validate(d, EVIDENCE)
     original = {(c.id, c.text, tuple(c.citation_ids)) for c in d.claims}
     assert {(c.id, c.text, tuple(c.citation_ids)) for c in cleaned.claims} <= original
+
+
+def test_claim_text_mentioning_unknown_paper_is_removed():
+    d = draft(("A.", ["PMID:111"]), ("Proven in PMID:99999999.", ["PMID:222"]))
+    cleaned, report = validate(d, EVIDENCE)
+    assert report.removed_invalid_citation == ["c2"] and [c.id for c in cleaned.claims] == ["c1"]
+
+
+def test_claim_text_mentioning_known_paper_is_kept():
+    cleaned, _ = validate(draft(("As PMID 222 also shows, A.", ["PMID:111"])), EVIDENCE)
+    assert len(cleaned.claims) == 1
+
+
+def test_downgrade_drops_model_uncertainty():
+    d = draft(("Hijacked. HACKED", ["PMID:999"]), verdict="yes")
+    d = d.model_copy(update={"uncertainty": "None. HACKED"})
+    cleaned, report = validate(d, EVIDENCE)
+    assert report.downgraded_to_insufficient and cleaned.uncertainty == ""
+
+
+@pytest.mark.parametrize(
+    "mention", ["PMID:999", "PMID 999", "pmid#999", "PubMed 999", "PubMed ID: 999"]
+)
+def test_uncertainty_mentioning_unknown_paper_is_dropped(mention):
+    d = draft(("A.", ["PMID:111"])).model_copy(update={"uncertainty": f"See {mention}."})
+    cleaned, report = validate(d, EVIDENCE)
+    assert cleaned.uncertainty == "" and report.uncertainty_removed
+
+
+def test_summary_mentioning_unknown_paper_in_pubmed_form_is_replaced():
+    d = draft(("A.", ["PMID:111"]), summary="See PubMed 99999999. Take 50mg daily.")
+    cleaned, report = validate(d, EVIDENCE)
+    assert cleaned.summary == "A." and report.summary_replaced

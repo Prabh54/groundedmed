@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from backend.app.models.answer import AbstainReason, Claim, Verdict
 from backend.app.models.retrieval import Section
@@ -11,6 +11,11 @@ from backend.app.models.retrieval import Section
 class QueryRequest(BaseModel):
     question: str = Field(min_length=5, max_length=500)
     mode: Literal["baseline"] = "baseline"  # "agent" arrives with M3-T7
+
+    @field_validator("question", mode="before")
+    @classmethod
+    def strip_question(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class Citation(BaseModel):

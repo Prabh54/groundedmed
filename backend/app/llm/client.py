@@ -5,10 +5,10 @@ which callers turn into a controlled abstention (`abstain_reason="error"`), neve
 """
 
 import time
-from typing import Literal
+from typing import Any, Literal
 
 import anthropic
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from backend.app.config import LLM_MODEL, LLM_PRICE_PER_M_TOKENS, env
 from backend.app.models.answer import LLMUsage
@@ -22,9 +22,9 @@ class LLMError(RuntimeError):
     `usage` is set when the call reached the model, so a failed call's cost is still counted.
     """
 
-    def __init__(self, message: str, usage: LLMUsage | None = None):
+    def __init__(self, message: str, usage: LLMUsage | None = None, elapsed_ms: float = 0.0):
         super().__init__(message)
-        self.usage = usage
+        self.usage, self.elapsed_ms = usage, elapsed_ms
 
 
 def anthropic_client() -> anthropic.Anthropic:
@@ -37,6 +37,28 @@ def llm_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     return (input_tokens * price["input"] + output_tokens * price["output"]) / 1e6
 
 
+def strict_schema(model: type[BaseModel]) -> dict[str, Any]:
+    """The model's JSON schema in the form structured outputs requires: references inlined, every
+    object closed (`additionalProperties: false`) with all properties required, no titles."""
+    root = model.model_json_schema()
+    defs = root.pop("$defs", {})
+
+    def walk(node: Any) -> Any:
+        if isinstance(node, list):
+            return [walk(n) for n in node]
+        if not isinstance(node, dict):
+            return node
+        if "$ref" in node:
+            return walk(defs[node["$ref"].rsplit("/", 1)[-1]])
+        out = {k: walk(v) for k, v in node.items() if k != "title"}
+        if out.get("type") == "object":
+            out["additionalProperties"] = False
+            out["required"] = list(out.get("properties", {}))
+        return out
+
+    return walk(root)
+
+
 def structured_call[T: BaseModel](
     client: anthropic.Anthropic,
     *,
@@ -46,19 +68,27 @@ def structured_call[T: BaseModel](
     effort: Effort,
     max_tokens: int = 16000,
 ) -> tuple[T, LLMUsage, float]:
-    """Return (parsed output, usage, elapsed ms). API errors propagate as LLMError."""
+    """Return (parsed output, usage, elapsed ms). Every failure raises LLMError (ARCHITECTURE §13).
+
+    Uses `messages.create` and validates afterwards, so the stop reason and usage are read before
+    parsing: a refused or truncated response is reported as such, with its cost counted.
+    """
     start = time.perf_counter()
     try:
-        response = client.messages.parse(
+        response = client.messages.create(
             model=LLM_MODEL,
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": user}],
-            output_config={"effort": effort},
-            output_format=schema,
+            output_config={
+                "effort": effort,
+                "format": {"type": "json_schema", "schema": strict_schema(schema)},
+            },
         )
     except anthropic.APIError as exc:
-        raise LLMError(f"{type(exc).__name__}: {getattr(exc, 'message', exc)}"[:300]) from None
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        message = f"{type(exc).__name__}: {getattr(exc, 'message', exc)}"[:300]
+        raise LLMError(message, elapsed_ms=elapsed_ms) from None
     elapsed_ms = (time.perf_counter() - start) * 1000
 
     usage = LLMUsage(
@@ -69,9 +99,14 @@ def structured_call[T: BaseModel](
     )
     if response.stop_reason == "refusal":
         category = getattr(response.stop_details, "category", None)
-        raise LLMError(f"model declined the request (category: {category})", usage)
+        raise LLMError(f"model declined the request (category: {category})", usage, elapsed_ms)
     if response.stop_reason == "max_tokens":
-        raise LLMError("model output was truncated (max_tokens)", usage)
-    if response.parsed_output is None:
-        raise LLMError("model returned no parseable structured output", usage)
-    return response.parsed_output, usage, elapsed_ms
+        raise LLMError("model output was truncated (max_tokens)", usage, elapsed_ms)
+    text = next((b.text for b in response.content if b.type == "text"), None)
+    if text is None:
+        raise LLMError("model returned no text output", usage, elapsed_ms)
+    try:
+        return schema.model_validate_json(text), usage, elapsed_ms
+    except ValidationError as exc:
+        raise LLMError(f"output failed schema validation: {exc.error_count()} errors", usage,
+                       elapsed_ms) from None  # fmt: skip

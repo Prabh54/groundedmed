@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from backend.app.models.retrieval import Candidate
+from backend.app.models.retrieval import Candidate, RetrievalError
 from backend.app.retrieval import retrieve as retrieve_module
 from backend.app.retrieval.rerank import rerank_candidates
 from backend.app.retrieval.retrieve import retrieve
@@ -83,5 +83,5 @@ def test_embedding_failure_raises(fake_search):
         def embed(self, texts, **kwargs):
             raise ConnectionError("voyage down")
 
-    with pytest.raises(ConnectionError):
+    with pytest.raises(RetrievalError, match="ConnectionError: voyage down"):
         retrieve("q", conn=object(), client=Broken())

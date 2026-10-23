@@ -10,7 +10,7 @@ import psycopg
 import voyageai
 
 from backend.app.config import EMBEDDING_MODEL, PRICE_PER_M_TOKENS, RERANK_MODEL, redact
-from backend.app.models.retrieval import CallUsage, RetrievalResult
+from backend.app.models.retrieval import CallUsage, RetrievalError, RetrievalResult
 from backend.app.retrieval.embed import embed_texts, voyage_client
 from backend.app.retrieval.rerank import rerank_candidates
 from backend.app.retrieval.vector_search import connect, dense_search
@@ -31,18 +31,22 @@ def retrieve(
     conn: psycopg.Connection | None = None,
     client: voyageai.Client | None = None,
 ) -> RetrievalResult:
-    """Embedding or database failures raise (the API turns them into 503); rerank failures don't."""
+    """Embedding or database failures raise RetrievalError (the API answers 503); rerank failures
+    don't."""
     start = time.perf_counter()
-    client = client or voyage_client()
-    vectors, embed_tokens = embed_texts(client, [query], input_type="query")
-    embedded = time.perf_counter()
-
     own_conn = conn is None
-    conn = conn or connect()
     try:
+        client = client or voyage_client()
+        vectors, embed_tokens = embed_texts(client, [query], input_type="query")
+        embedded = time.perf_counter()
+        conn = conn or connect()
         candidates = dense_search(conn, vectors[0], k_candidates)
+    except RetrievalError:
+        raise
+    except Exception as exc:
+        raise RetrievalError(redact(f"{type(exc).__name__}: {exc}")[:300]) from None
     finally:
-        if own_conn:
+        if own_conn and conn is not None:
             conn.close()
     searched = time.perf_counter()
 

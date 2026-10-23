@@ -11,6 +11,7 @@ import os
 import subprocess
 import uuid
 
+import psycopg
 from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -34,23 +35,37 @@ from backend.app.models.api import (
     Stage,
     pubmed_url,
 )
+from backend.app.models.retrieval import RetrievalError
 from backend.app.retrieval.embed import voyage_client
 from backend.app.retrieval.vector_search import connect, get_document
 
 LIMIT_MESSAGE = "Demo limit reached, please try again later."
 UNAVAILABLE_MESSAGE = "The service is temporarily unavailable, please try again later."
 
+
+def allowed_origins(env_value: str) -> list[str]:
+    """Comma-separated ALLOWED_ORIGINS (production Vercel domain) plus localhost (§14.8)."""
+    return [o.strip().rstrip("/") for o in env_value.split(",") if o.strip()] + LOCAL_ORIGINS
+
+
+def daily_cap(env_value: str | None) -> int:
+    """DAILY_QUERY_CAP if it is a positive integer, else the default (never crash at start-up)."""
+    try:
+        cap = int(env_value or "")
+    except ValueError:
+        return DEFAULT_DAILY_QUERY_CAP
+    return cap if cap > 0 else DEFAULT_DAILY_QUERY_CAP
+
+
 app = FastAPI(title="GroundedMed API", description="Research demonstration, not medical advice.")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
-    + LOCAL_ORIGINS,
+    allow_origins=allowed_origins(os.environ.get("ALLOWED_ORIGINS", "")),
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
-limiter = RateLimiter(
-    PER_IP_QUERIES_PER_HOUR, int(os.environ.get("DAILY_QUERY_CAP") or DEFAULT_DAILY_QUERY_CAP)
-)
+# In-memory limits: run a single uvicorn worker, or each worker gets its own counters.
+limiter = RateLimiter(PER_IP_QUERIES_PER_HOUR, daily_cap(os.environ.get("DAILY_QUERY_CAP")))
 
 
 @functools.cache
@@ -144,7 +159,7 @@ def query(body: QueryRequest, request: Request):
         voyage, llm = clients()
         with connect() as conn:
             answer = answer_baseline(body.question, conn=conn, voyage=voyage, llm=llm)
-    except Exception as exc:  # embedding or database failure: cannot retrieve
+    except (RetrievalError, psycopg.Error) as exc:  # embedding or database failure
         log({"request_id": request_id, "event": "error", "stage": "retrieval",
              "error": redact(f"{type(exc).__name__}: {exc}")[:300]})  # fmt: skip
         raise HTTPException(status_code=503, detail=UNAVAILABLE_MESSAGE) from None
@@ -153,7 +168,8 @@ def query(body: QueryRequest, request: Request):
         "request_id": request_id, "mode": "baseline", "question": body.question,
         "verdict": answer.verdict, "abstained": answer.abstained,
         "abstain_reason": answer.abstain_reason, "evidence": [c.pmid for c in answer.evidence],
-        "rerank_skipped": answer.rerank_skipped, "timing_ms": answer.timing_ms,
+        "rerank_skipped": answer.rerank_skipped, "rerank_error": answer.rerank_error,
+        "timing_ms": answer.timing_ms,
         "usage": [u.model_dump() for u in answer.usage], "cost_usd": answer.estimated_cost_usd,
         "validation": answer.validation.model_dump(), "error": answer.error,
     })  # fmt: skip
@@ -167,7 +183,7 @@ def source(pmid: str = Path(pattern=r"^\d{1,9}$")):
     try:
         with connect() as conn:
             doc = get_document(conn, pmid)
-    except Exception:
+    except (RetrievalError, psycopg.Error):
         raise HTTPException(status_code=503, detail=UNAVAILABLE_MESSAGE) from None
     if doc is None:
         raise HTTPException(status_code=404, detail="No such document in the corpus.")

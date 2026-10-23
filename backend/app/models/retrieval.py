@@ -3,6 +3,10 @@
 from pydantic import BaseModel
 
 
+class RetrievalError(RuntimeError):
+    """Embedding or database failure: no evidence can be retrieved (the API answers 503)."""
+
+
 class Section(BaseModel):
     label: str
     text: str

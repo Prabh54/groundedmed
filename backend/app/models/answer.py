@@ -1,5 +1,5 @@
 """Answer types: the synthesizer's structured output and the validated final answer
-(ARCHITECTURE §5–8, PROMPTS.md Synthesizer v1)."""
+(ARCHITECTURE §5–8, PROMPTS.md Synthesizer)."""
 
 from typing import Literal
 
@@ -39,6 +39,8 @@ class ValidationReport(BaseModel):
     removed_uncited: list[str] = []  # claim IDs
     removed_invalid_citation: list[str] = []  # claim IDs with a malformed or unknown citation ID
     downgraded_to_insufficient: bool = False
+    summary_replaced: bool = False  # summary mentioned a paper outside the evidence
+    uncertainty_removed: bool = False  # uncertainty mentioned a paper outside the evidence
 
 
 class FinalAnswer(BaseModel):
@@ -53,6 +55,7 @@ class FinalAnswer(BaseModel):
     abstain_reason: AbstainReason | None
     evidence: list[Candidate]  # the 5 passages the model saw (citations resolve to these)
     rerank_skipped: bool
+    rerank_error: str | None = None
     gate_passed: bool
     top_rerank_score: float | None
     validation: ValidationReport

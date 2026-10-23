@@ -25,6 +25,9 @@ class RateLimiter:
         with self._lock:
             if day != self._day:
                 self._day, self._day_count = day, 0
+                # Forget IPs idle for over an hour, so memory stays bounded.
+                for idle in [k for k, v in self._hits.items() if not v or v[-1] <= now - 3600]:
+                    del self._hits[idle]
             if self._day_count >= self.daily_cap:
                 return "daily_cap"
             hits = self._hits[ip]
