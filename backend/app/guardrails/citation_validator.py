@@ -10,6 +10,8 @@ Runs on every answer, baseline and agent:
 5. A yes/no/maybe verdict with zero valid claims left becomes `insufficient_evidence`, and its
    limitations are dropped too.
 Limitations go through the same checks (`removed_limitations`) but never change the verdict.
+Item IDs are model-written and reach the API, so they must be short and unique (`c1`, `c2`... for
+claims, `l1`... for limitations); other IDs remove the item (`removed_bad_id`, by position only).
 There is no free-text summary: the displayed answer is built from the surviving claims (ADR-030).
 """
 
@@ -17,7 +19,9 @@ import re
 
 from backend.app.models.answer import Claim, DraftAnswer, ValidationReport
 
-CITATION_ID = re.compile(r"^PMID:\d+$")
+# Used with fullmatch: `$` alone would also accept a trailing newline ("PMID:1\n").
+CITATION_ID = re.compile(r"PMID:\d+")
+ITEM_ID = {"claims": re.compile(r"c\d{1,2}"), "limitations": re.compile(r"l\d{1,2}")}
 _PMID_MENTION = re.compile(r"\b(?:PMID|PubMed(?:\s*ID)?)\s*[:#]?\s*(\d+)", re.IGNORECASE)
 
 
@@ -29,7 +33,7 @@ def _claim_problem(claim: Claim, allowed: set[str]) -> str | None:
     if not claim.citation_ids or not claim.text.strip():
         return "uncited"
     for cid in claim.citation_ids:
-        if not CITATION_ID.match(cid) or cid not in allowed:
+        if not CITATION_ID.fullmatch(cid) or cid not in allowed:
             return "invalid"
     if mentions_unknown_paper(claim.text, allowed):
         return "invalid"
@@ -40,8 +44,20 @@ def validate(draft: DraftAnswer, evidence_ids: list[str]) -> tuple[DraftAnswer, 
     """Return the cleaned answer and what was removed. Never adds or edits content."""
     allowed = set(evidence_ids)
     report = ValidationReport()
+
+    def well_named(field: str) -> list[Claim]:
+        seen: set[str] = set()
+        out = []
+        for i, item in enumerate(getattr(draft, field)):
+            if not ITEM_ID[field].fullmatch(item.id) or item.id in seen:
+                report.removed_bad_id.append(f"{field}[{i}]")  # never echo a bad ID's text
+            else:
+                seen.add(item.id)
+                out.append(item)
+        return out
+
     kept: list[Claim] = []
-    for claim in draft.claims:
+    for claim in well_named("claims"):
         problem = _claim_problem(claim, allowed)
         if problem == "uncited":
             report.removed_uncited.append(claim.id)
@@ -50,7 +66,7 @@ def validate(draft: DraftAnswer, evidence_ids: list[str]) -> tuple[DraftAnswer, 
         else:
             kept.append(claim)
     limitations = []
-    for item in draft.limitations:
+    for item in well_named("limitations"):
         if _claim_problem(item, allowed):
             report.removed_limitations.append(item.id)
         else:

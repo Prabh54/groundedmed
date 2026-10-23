@@ -41,6 +41,9 @@ class ValidationReport(BaseModel):
     removed_uncited: list[str] = []  # claim IDs
     removed_invalid_citation: list[str] = []  # claim IDs with a malformed or unknown citation ID
     removed_limitations: list[str] = []  # limitation IDs failing the same checks
+    removed_bad_id: list[
+        str
+    ] = []  # positions ("claims[2]") of items with a malformed or repeated ID
     downgraded_to_insufficient: bool = False
 
 
