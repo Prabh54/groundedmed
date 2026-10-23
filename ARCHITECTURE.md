@@ -272,6 +272,12 @@ or one `error` event. No model reasoning is ever streamed.
 Errors: 422 invalid input; 429 rate limit or daily cap reached (friendly message); 503 provider or
 DB unavailable. Never a mocked answer.
 
+As built in M2 (baseline only): `mode` accepts only `"baseline"` until M3-T7; the response also has
+`rerank_skipped`; `/query` stages are `retriever` and `synthesizer` with status `done | skipped | failed`
+(`skipped` = synthesis not run because the evidence gate abstained). Any other server error is a 500, not
+a 503. Rate limits are in memory, so the API must run as a single uvicorn worker. Before deployment the
+per-IP limit must read the client IP correctly behind Railway's proxy (`request.client.host` is the proxy).
+
 ## 9. Evaluation architecture
 
 ```
@@ -341,7 +347,7 @@ Names follow each SDK's default variable (ADR-018). Values never go in this file
 | Failure | Behavior |
 |---|---|
 | LLM call times out / errors | SDK retries (2); then the node fails → abstain with reason `error`; `/query` returns 503 and `/query/stream` sends an `error` event, each with a plain message; never a partial uncited answer |
-| Rerank API fails | Use dense order, mark `rerank_skipped: true` in response and logs (visible, not silent) |
+| Rerank API fails | Use dense order, mark `rerank_skipped: true` and `rerank_error` in response/logs; the evidence gate uses the dense fallback threshold (ADR-028) |
 | Embedding API fails | 503 (cannot retrieve) |
 | Database unreachable | `/health` 503; `/query` 503 |
 | Planner returns 0 usable sub-queries | Use the original question as the single query |
