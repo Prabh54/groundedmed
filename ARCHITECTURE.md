@@ -203,6 +203,11 @@ The verdict always comes from the synthesizer; the critic can only remove suppor
 Graph edges: `planner → retriever → gate →(pass) synthesizer → critic → validator → END`;
 `gate →(fail) validator` (abstain). A node exception routes to `validator` with `abstain_reason="error"`.
 
+As built (M3-T1, `backend/app/agents/graph.py`): nodes are passed into `build_graph()`; the gate is its own
+node. Each node returns only the keys it sets; `timings` (ms, keyed by node name), `usage` and `errors`
+accumulate across nodes. Only provider failures (`LLMError`) become `abstain_reason="error"`; retrieval/DB
+errors and bugs propagate (503/500), as in baseline mode. Total time is measured by the caller.
+
 Closed-book control (ADR-010): same runtime model, question only, verdict-only schema, no retrieval.
 It is an evaluation runner, not an API mode.
 
