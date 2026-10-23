@@ -72,6 +72,7 @@ class ResearchState(TypedDict):
     draft_answer: DraftAnswer | None  # synthesizer output
     claims: list[Claim]
     critic_results: list[CriticResult]
+    answer_supported: bool | None  # critic's view of the verdict; None if the critic made no call
     final_answer: FinalAnswer | None
     abstained: bool
     abstain_reason: AbstainReason | None
@@ -96,6 +97,7 @@ def initial_state(request_id: str, question: str) -> ResearchState:
         draft_answer=None,
         claims=[],
         critic_results=[],
+        answer_supported=None,
         final_answer=None,
         abstained=False,
         abstain_reason=None,
