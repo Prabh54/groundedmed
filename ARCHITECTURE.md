@@ -214,6 +214,9 @@ Evidence gate (shared by baseline and agent, ADR-015):
   separates them, write it to `config.py` with the dev run ID, and freeze it before any test run.
 - If no threshold separates the two groups, set `T` to 0 (gate off) and rely on model/critic abstention;
   document that in DECISIONS.md.
+- As built (ADR-028): dev Hit@5 is 100%, so T comes from a leave-one-out simulation (best non-source-paper
+  score = "unanswerable"), max Youden's J -> `T = 0.72`. If reranking was skipped there is no rerank score,
+  so the gate passes and the answer carries `rerank_skipped: true`.
 
 Citation validator (pure Python, runs on every answer, baseline and agent):
 1. Output parses into the Pydantic schema (verdict ∈ {yes, no, maybe, insufficient_evidence}).

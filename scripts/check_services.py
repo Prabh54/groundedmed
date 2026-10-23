@@ -1,14 +1,23 @@
-"""Connectivity check for M1-T0: Voyage key and Supabase admin connection.
+"""Connectivity check (M1-T0, M2-T0): Voyage key, Supabase admin connection, Anthropic key.
 
 Run: uv run python -m scripts.check_services
-Prints OK/FAIL per service and never prints keys, URLs or passwords. Costs a few Voyage tokens.
+Prints OK/FAIL per service and never prints keys, URLs or passwords. Costs a few Voyage tokens
+and one tiny Claude call (well under $0.01).
 """
 
 import sys
 
+import anthropic
 import voyageai
 
-from backend.app.config import EMBEDDING_DIMS, EMBEDDING_MODEL, RERANK_MODEL, env, redact
+from backend.app.config import (
+    EMBEDDING_DIMS,
+    EMBEDDING_MODEL,
+    LLM_MODEL,
+    RERANK_MODEL,
+    env,
+    redact,
+)
 from backend.app.retrieval.vector_search import open_connection
 
 
@@ -34,9 +43,27 @@ def check_database() -> str:
     return f"Postgres {major}, pgvector {row[0]} available"
 
 
+def check_anthropic() -> str:
+    client = anthropic.Anthropic(api_key=env("ANTHROPIC_API_KEY"), max_retries=1, timeout=60)
+    msg = client.messages.create(
+        model=LLM_MODEL,
+        max_tokens=64,
+        output_config={"effort": "low"},
+        messages=[{"role": "user", "content": "Reply with the single word: ok"}],
+    )
+    if msg.stop_reason == "refusal":
+        raise RuntimeError("test call was refused")
+    return f"{msg.model} answered ({msg.usage.input_tokens} in / {msg.usage.output_tokens} out)"
+
+
 def main() -> int:
     failed = False
-    for name, check in [("Voyage", check_voyage), ("Supabase", check_database)]:
+    checks = [
+        ("Voyage", check_voyage),
+        ("Supabase", check_database),
+        ("Anthropic", check_anthropic),
+    ]
+    for name, check in checks:
         try:
             print(f"{name}: OK - {check()}")
         except Exception as exc:  # driver errors can echo connection strings, so always redact

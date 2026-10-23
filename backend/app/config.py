@@ -17,12 +17,15 @@ load_dotenv(REPO_ROOT / ".env")
 EMBEDDING_MODEL = "voyage-4"
 EMBEDDING_DIMS = 1024
 RERANK_MODEL = "rerank-3"
+LLM_MODEL = "claude-sonnet-5-5"  # every runtime LLM call (ADR-022)
 
 # USD per million tokens, checked 2026-10-21 (ADR-019). Free allocations are not subtracted here.
 PRICE_PER_M_TOKENS = {
     EMBEDDING_MODEL: 0.06,
     RERANK_MODEL: 0.05,
 }
+# Anthropic list prices, USD per million tokens (ADR-022). Thinking tokens bill as output.
+LLM_PRICE_PER_M_TOKENS = {LLM_MODEL: {"input": 2.00, "output": 10.00}}
 
 
 SECRET_ENV_VARS = (
@@ -63,3 +66,14 @@ def env(name: str) -> str:
     if not value:
         raise RuntimeError(f"{name} is not set; add it to the local .env file (see .env.example)")
     return value
+
+
+# Evidence gate (ARCHITECTURE §7, ADR-028): abstain when the top rerank score is below this.
+# Chosen on dev data only by eval/runners/gate_calibration.py; frozen before any test run.
+EVIDENCE_GATE_THRESHOLD = 0.72
+EVIDENCE_GATE_DEV_RUN = "dev-gate-20261023-020421-fb17179"
+
+# API spend protection (ADR-021). Values come from the environment on Railway.
+PER_IP_QUERIES_PER_HOUR = 10
+DEFAULT_DAILY_QUERY_CAP = 100
+LOCAL_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]

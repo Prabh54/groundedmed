@@ -117,7 +117,7 @@ def embed_missing(texts: dict[str, str], path: Path, embed=None) -> tuple[dict, 
     tests; it defaults to voyage-4 with input_type="document".
     """
     if embed is None:
-        client = voyage_client()
+        client = voyage_client(max_retries=3, timeout=60)
 
         def embed(batch: list[str]) -> tuple[list[list[float]], int]:
             return embed_texts(client, batch, input_type="document")

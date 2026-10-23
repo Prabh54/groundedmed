@@ -7,8 +7,10 @@ import voyageai
 from backend.app.config import EMBEDDING_DIMS, EMBEDDING_MODEL, env
 
 
-def voyage_client() -> voyageai.Client:
-    return voyageai.Client(api_key=env("VOYAGE_API_KEY"), max_retries=3, timeout=60)
+def voyage_client(*, max_retries: int = 1, timeout: float = 15) -> voyageai.Client:
+    """Query-time defaults are tight so a rerank outage falls back to dense order within ~30 s
+    instead of minutes (M1 review); bulk ingestion passes longer limits."""
+    return voyageai.Client(api_key=env("VOYAGE_API_KEY"), max_retries=max_retries, timeout=timeout)
 
 
 def embed_texts(

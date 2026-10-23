@@ -33,3 +33,12 @@ def dense_search(conn: psycopg.Connection, query_vector: list[float], k: int) ->
         Candidate(pmid=pmid, passage=passage, sections=sections, dense_score=score, dense_rank=i)
         for i, (pmid, passage, sections, score) in enumerate(rows, start=1)
     ]
+
+
+def get_document(conn: psycopg.Connection, pmid: str) -> dict | None:
+    row = conn.execute(
+        "select pmid, passage, sections, meshes from documents where pmid = %s", (pmid,)
+    ).fetchone()
+    if row is None:
+        return None
+    return {"pmid": row[0], "passage": row[1], "sections": row[2], "meshes": row[3]}
