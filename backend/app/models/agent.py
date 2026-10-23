@@ -28,6 +28,25 @@ class StageError(BaseModel):
     message: str  # redacted, plain text
 
 
+class PooledRetrieval(BaseModel):
+    """Agent retrieval (ADR-023): question + sub-queries, pooled, reranked against the question.
+
+    `candidates` holds the question's dense top 20 first (in dense order), then papers only the
+    sub-queries found; a paper's dense score/rank come from the first query that found it.
+    """
+
+    question: str
+    queries: list[SubQuestion]  # q0 = the original question, then the distinct sub-queries
+    query_hits: dict[str, list[str]]  # query id -> PMIDs of its dense top 20, in dense order
+    candidates: list[Candidate]  # pooled, deduped by PMID
+    evidence: list[Candidate]  # final top 5 (reranked, or the question's dense top 5 on failure)
+    planner_added_evidence: int  # evidence PMIDs not in the question's dense top 20
+    rerank_skipped: bool
+    rerank_error: str | None = None
+    timings_ms: dict[str, float]
+    usage: list[CallUsage]
+
+
 def merge_dicts(left: dict, right: dict) -> dict:
     return {**left, **right}
 
@@ -47,6 +66,8 @@ class ResearchState(TypedDict):
     selected_evidence: list[Candidate]  # final top 5 after rerank
     retrieval_scores: dict[str, float]  # pmid -> rerank score
     planner_added_evidence: int  # final-5 papers not in the question-only top 20 (ADR-023)
+    rerank_skipped: bool  # evidence is the question's dense top 5; the gate uses its dense fallback
+    rerank_error: str | None
     gate_passed: bool
     draft_answer: DraftAnswer | None  # synthesizer output
     claims: list[Claim]
@@ -69,6 +90,8 @@ def initial_state(request_id: str, question: str) -> ResearchState:
         selected_evidence=[],
         retrieval_scores={},
         planner_added_evidence=0,
+        rerank_skipped=False,
+        rerank_error=None,
         gate_passed=False,
         draft_answer=None,
         claims=[],

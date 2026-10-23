@@ -207,6 +207,10 @@ As built (M3-T1, `backend/app/agents/graph.py`): nodes are passed into `build_gr
 node. Each node returns only the keys it sets; `timings` (ms, keyed by node name), `usage` and `errors`
 accumulate across nodes. Only provider failures (`LLMError`) become `abstain_reason="error"`; retrieval/DB
 errors and bugs propagate (503/500), as in baseline mode. Total time is measured by the caller.
+M3-T3 added `rerank_skipped` / `rerank_error` to the state (the gate and the answer need them). The agent
+retriever (`backend/app/agents/retriever.py`) reuses the M1 pieces (`embed_texts`, `dense_search`,
+`rerank_candidates`), not `retrieve()` itself, which stays the baseline's unchanged path. On rerank failure
+the agent's evidence is the question's own dense top 5 — exactly the baseline's fallback evidence.
 
 Closed-book control (ADR-010): same runtime model, question only, verdict-only schema, no retrieval.
 It is an evaluation runner, not an API mode.

@@ -44,7 +44,7 @@ class PlannerOutput(BaseModel):
     subquestions: list[SubQuestion]
 
 
-def _key(text: str) -> str:
+def query_key(text: str) -> str:
     return " ".join(text.lower().split()).rstrip("?.!")
 
 
@@ -53,15 +53,15 @@ def clean_subquestions(raw: list[SubQuestion], question: str) -> list[SubQuestio
 
     Dropped: blank, too long, verdict-like, duplicates (of each other or of the question, which the
     retriever searches anyway)."""
-    seen = {_key(question)}
+    seen = {query_key(question)}
     kept: list[str] = []
     for sub in raw:
         query = " ".join(sub.query.split())
         if not query or len(query) > MAX_QUERY_CHARS or _VERDICT.match(query):
             continue
-        if _key(query) in seen:
+        if query_key(query) in seen:
             continue
-        seen.add(_key(query))
+        seen.add(query_key(query))
         kept.append(query)
         if len(kept) == MAX_SUBQUESTIONS:
             break
