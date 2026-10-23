@@ -10,7 +10,7 @@ from backend.app.models.retrieval import Section
 
 class QueryRequest(BaseModel):
     question: str = Field(min_length=5, max_length=500)
-    mode: Literal["baseline"] = "baseline"  # "agent" arrives with M3-T7
+    mode: Literal["baseline", "agent"] = "baseline"
 
     @field_validator("question", mode="before")
     @classmethod
@@ -36,7 +36,7 @@ class Stage(BaseModel):
 
 class QueryResponse(BaseModel):
     request_id: str
-    mode: Literal["baseline"]
+    mode: Literal["baseline", "agent"]
     verdict: Verdict
     answer: str
     claims: list[Claim]

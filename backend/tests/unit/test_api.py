@@ -104,7 +104,6 @@ def test_weak_evidence_abstention_is_200_not_error(client, monkeypatch):
     [
         {"question": "abc"},  # too short
         {"question": "x" * 501},  # too long
-        {"question": "Does X help?", "mode": "agent"},  # not available until M3
         {"question": "Does X help?", "mode": "other"},
         {},
     ],

@@ -1,5 +1,9 @@
 """Agent retriever (ADR-023, ARCHITECTURE §4): question + planner sub-queries -> dense top 20 each
-(one batched embedding call) -> union, dedupe by PMID -> rerank against the question -> top 5.
+-> union, dedupe by PMID -> rerank against the question -> top 5.
+
+Each query is embedded in its own Voyage call: on 2026-10-23 any multi-input embedding request
+took 23-26 s (even ["a", "b"]) while single inputs took ~0.1 s, so a batch tripped the 15 s
+query timeout. Tokens and cost are the same either way.
 
 Built from the same tested pieces as the baseline's `retrieve()` (embed_texts, dense_search,
 rerank_candidates), which is left unchanged. No LLM call, no generated text.
@@ -63,7 +67,11 @@ def retrieve_pooled(
     own_conn = conn is None
     try:
         client = client or voyage_client()
-        vectors, embed_tokens = embed_texts(client, [q.query for q in queries], input_type="query")
+        vectors, embed_tokens = [], 0
+        for q in queries:
+            vector, tokens = embed_texts(client, [q.query], input_type="query")
+            vectors += vector
+            embed_tokens += tokens
         embedded = time.perf_counter()
         conn = conn or connect()
         hits = [dense_search(conn, v, k_candidates) for v in vectors]

@@ -37,7 +37,7 @@ QUESTION_TOP20 = [str(1000 + i) for i in range(20)]
 
 
 class FakeVoyage:
-    """embed(): vector i encodes the text's position; rerank(): scores by PMID from `scores`."""
+    """embed(): the vector encodes which call (= which query) it is; rerank(): scores by PMID."""
 
     def __init__(self, scores: dict[str, float] | None = None, rerank_error=None, embed_error=None):
         self.scores, self.rerank_error, self.embed_error = scores or {}, rerank_error, embed_error
@@ -47,7 +47,8 @@ class FakeVoyage:
         self.embed_calls.append(list(texts))
         if self.embed_error:
             raise self.embed_error
-        return SimpleNamespace(embeddings=[[float(i)] * 1024 for i in range(len(texts))],
+        index = len(self.embed_calls) - 1  # one text per call: vector i = the i-th query
+        return SimpleNamespace(embeddings=[[float(index)] * 1024 for _ in texts],
                                total_tokens=5 * len(texts))  # fmt: skip
 
     def rerank(self, query, documents, **kwargs):
@@ -89,11 +90,11 @@ def test_question_is_always_the_first_query_and_duplicates_are_searched_once():
     assert [(q.id, q.query) for q in queries] == [("q0", QUESTION), ("q2", "a"), ("q4", "b")]
 
 
-def test_all_queries_are_embedded_in_one_call_and_reranked_once_against_the_question(search):
+def test_each_query_is_embedded_alone_and_the_pool_reranked_once_against_the_question(search):
     search["hits"] = [QUESTION_TOP20, ["2001", "1000"], ["2002"]]
     client = FakeVoyage()
     result = run(client, subs("sub a", "sub b"))
-    assert client.embed_calls == [[QUESTION, "sub a", "sub b"]]
+    assert client.embed_calls == [[QUESTION], ["sub a"], ["sub b"]]  # no multi-input batch
     assert len(client.rerank_calls) == 1 and client.rerank_calls[0][0] == QUESTION
     assert len(client.rerank_calls[0][1]) == 22  # 20 + 2 new papers, 1000 deduped
     assert result.query_hits == {"q0": QUESTION_TOP20, "q1": ["2001", "1000"], "q2": ["2002"]}

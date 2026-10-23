@@ -207,7 +207,8 @@ class FakeVoyage:
         self.score = score
 
     def embed(self, texts, **kwargs):
-        return SimpleNamespace(embeddings=[[float(i)] * 1024 for i in range(len(texts))],
+        # vector 0 = the question, 1 = a sub-query (dense_search routes on it)
+        return SimpleNamespace(embeddings=[[0.0 if t == QUESTION else 1.0] * 1024 for t in texts],
                                total_tokens=10)  # fmt: skip
 
     def rerank(self, query, documents, **kwargs):

@@ -149,7 +149,7 @@ HF dataset @ pinned revision
 Baseline: `retrieve(question)` → evidence gate → one synthesis call → citation validator.
 
 Agent (ADR-023): queries = the original question + the planner's 1–3 sub-queries → dense top 20 for each
-(query embeddings batched in one Voyage call) → union, dedupe by PMID (up to ~80) → rerank the pool against
+(one Voyage embedding call per query: multi-input requests took 23–26 s on 2026-10-23, see M3-T7) → union, dedupe by PMID (up to ~80) → rerank the pool against
 the original question → top 5.
 Baseline and agent get the same number of passages (5), not necessarily the same passages: the planner
 widens the candidate pool, and because the original question is always one of the queries, the pool always
@@ -288,6 +288,14 @@ or one `error` event. No model reasoning is ever streamed.
 
 Errors: 422 invalid input; 429 rate limit or daily cap reached (friendly message); 503 provider or
 DB unavailable. Never a mocked answer.
+
+As built in M3-T7: `mode` accepts `"baseline"` (default) or `"agent"`. Agent `/query` stages are the six
+graph nodes (planner, retriever, gate, synthesizer, critic, validator) with status `done | skipped | failed`
+and count-only messages; `timing_ms` also has `rerank`. `/query/stream` (both modes) sends
+`event: stage` `{name, status: started|done|failed, message, ms}` then `event: result` (the `/query` body) or
+`event: error` `{message}` (model or retrieval failure, or a bug); 422/429 are still plain HTTP before the
+stream starts. Baseline mode streams its two stages once its answer is ready. Critic reasons never leave the
+server; the log line adds sub-queries, candidate count, `planner_added_evidence` and critic actions.
 
 As built in M2 (baseline only): `mode` accepts only `"baseline"` until M3-T7; the response also has
 `rerank_skipped`; `/query` stages are `retriever` and `synthesizer` with status `done | skipped | failed`
