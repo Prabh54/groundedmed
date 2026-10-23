@@ -99,3 +99,12 @@ def test_eval_run_survives_an_outage_on_one_question(tmp_path, monkeypatch):
     assert len(connects) == 2  # reconnected after the failure
     summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
     assert summary["errors"] == 1 and summary["n_questions"] == 3
+
+
+def test_gate_refusal_message_reports_the_threshold_not_an_empty_corpus(monkeypatch):
+    monkeypatch.setattr(pipeline, "retrieve", fake_retrieval)  # top rerank score 0.95
+    answer = pipeline.answer_baseline("Does X help?", threshold=0.99, llm=RefusingLLM())
+    assert answer.abstain_reason == "weak_evidence" and answer.estimated_cost_usd == 0
+    assert answer.answer == pipeline.WEAK_EVIDENCE_SUMMARY
+    assert "below the relevance threshold" in answer.answer
+    assert "corpus does not contain" not in answer.answer

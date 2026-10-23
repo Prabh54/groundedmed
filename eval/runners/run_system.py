@@ -5,9 +5,12 @@ Run: uv run python -m eval.runners.run_system --system baseline --split dev [--l
 Calls the same Python function the API uses (not HTTP), sequentially. The gold label is read here
 only, after the answer is produced; the pipeline never sees it. The test split additionally needs
 --i-understand-this-is-the-final-test, a clean Git tree, the manifest matching test.sha256, and no
---limit. A question that fails (provider or database outage) is stored as an error row, counted as
-incorrect, and the run continues. Results go to eval/results/<run-id>/ (raw.jsonl, summary.json,
-run_config.json); a run is never overwritten.
+--limit. Each system runs on the test split once (ADR-031): if a completed test run of that system
+exists, the script refuses unless given both --rerun-final-test and --reason "<why>"; the reason and
+the earlier run IDs are written to override.json in the new run directory. A question that fails
+(provider or database outage) is stored as an error row, counted as incorrect; the run continues.
+Results go to eval/results/<run-id>/ (raw.jsonl, summary.json, run_config.json); a run is never
+overwritten.
 """
 
 import argparse
@@ -48,6 +51,8 @@ from eval.runners.retrieval import CORPUS_MANIFEST, RESULTS_DIR, git_state
 
 MANIFESTS = REPO_ROOT / "data" / "manifests"
 FINAL_TEST_FLAG = "--i-understand-this-is-the-final-test"
+RERUN_FLAG = "--rerun-final-test"
+MIN_REASON_CHARS = 20
 
 
 def load_manifest(split: str) -> dict:
@@ -71,6 +76,44 @@ def check_allowed(split: str, final_test_ok: bool, git: dict, limit: int | None 
         raise SystemExit("Refusing a partial run of the frozen test split (--limit).")
     if limit is not None and limit < 1:
         raise SystemExit("--limit must be at least 1.")
+
+
+def completed_test_runs(system: str) -> list[str]:
+    """Run IDs of finished (summary.json written) test-split runs of `system`."""
+    done = []
+    for config_path in sorted(RESULTS_DIR.glob("*/run_config.json")):
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        if config.get("split") == "test" and config.get("system") == system:
+            if (config_path.parent / "summary.json").exists():
+                done.append(config["run_id"])
+    return done
+
+
+def check_once_only(split: str, system: str, rerun: bool, reason: str | None) -> dict | None:
+    """The frozen test split runs once per system (ADR-031). Returns the override record, if any."""
+    if split != "test":
+        if rerun or reason is not None:
+            raise SystemExit(f"{RERUN_FLAG} and --reason apply only to the test split.")
+        return None
+    previous = completed_test_runs(system)
+    if not previous:
+        if rerun or reason is not None:
+            raise SystemExit(f"No completed {system} test run exists; drop {RERUN_FLAG}/--reason.")
+        return None
+    if not rerun or reason is None:
+        raise SystemExit(
+            f"A completed {system} test run already exists ({', '.join(previous)}). The frozen "
+            f'test set runs once; to override, pass {RERUN_FLAG} and --reason "<why>".'
+        )
+    if len(reason.strip()) < MIN_REASON_CHARS:
+        raise SystemExit(
+            f"--reason must explain the rerun (at least {MIN_REASON_CHARS} characters)."
+        )
+    return {
+        "reason": reason.strip(),
+        "previous_completed_test_runs": previous,
+        "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
+    }
 
 
 def create_run_dir(run_id: str):
@@ -181,14 +224,26 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--split", choices=["dev", "test"], required=True)
     parser.add_argument("--limit", type=int, help="first N dev questions only (smoke runs)")
     parser.add_argument(FINAL_TEST_FLAG, dest="final_test_ok", action="store_true")
+    parser.add_argument(
+        RERUN_FLAG,
+        dest="rerun",
+        action="store_true",
+        help="override the once-only rule for the test split (needs --reason)",
+    )
+    parser.add_argument(
+        "--reason", help="why the test split is being run again (saved with the run)"
+    )
     args = parser.parse_args(argv)
 
     git = git_state()
     check_allowed(args.split, args.final_test_ok, git, args.limit)
+    override = check_once_only(args.split, args.system, args.rerun, args.reason)
     manifest = load_manifest(args.split)
     items = manifest["items"][: args.limit]
     run_id = f"{args.split}-{args.system}-{datetime.now(UTC):%Y%m%d-%H%M%S}-{git['git_commit'][:7]}"
     out = create_run_dir(run_id)
+    if override:
+        (out / "override.json").write_text(json.dumps(override, indent=2) + "\n", encoding="utf-8")
     config = {
         "run_id": run_id,
         "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -212,6 +267,7 @@ def main(argv: list[str] | None = None) -> None:
         "evidence_gate_dev_run": EVIDENCE_GATE_DEV_RUN,
         "embedding_model": EMBEDDING_MODEL,
         "rerank_model": RERANK_MODEL,
+        "test_rerun_override": override,
     }
     (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 

@@ -299,6 +299,8 @@ Guards (also tested):
 - `--split test` requires `--i-understand-this-is-the-final-test` and a clean Git tree; the run records the
   commit SHA, prompt versions, threshold `T`, model IDs and dataset revision in `run_config.json`.
 - A run directory that already exists is never overwritten.
+- Each system runs on the test split once; a second run needs `--rerun-final-test --reason "..."`, and
+  the reason is saved in that run's `override.json` (ADR-031).
 - Baseline, agent and closed-book runs on the same split must share an identical question-ID list.
 - Majority-class reference ("always yes") is computed and shown with the results.
 - Agent summaries include `planner_added_evidence` (mean, and share of questions > 0) — ADR-023.

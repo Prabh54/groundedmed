@@ -19,8 +19,10 @@ from backend.app.llm.client import LLMError, anthropic_client
 from backend.app.models.answer import FinalAnswer, ValidationReport
 from backend.app.retrieval.retrieve import retrieve
 
+# Says what was measured, not that the corpus lacks the evidence: in all 3 dev gate refusals the
+# source paper was retrieved (rank 1 or 2) but scored below the threshold (M2 final review).
 WEAK_EVIDENCE_SUMMARY = (
-    "The corpus does not contain evidence relevant enough to answer this question."
+    "No answer was generated: the retrieved evidence scored below the relevance threshold."
 )
 ERROR_SUMMARY = "The answer could not be generated because a model call failed."
 NO_SUPPORTED_CLAIMS_SUMMARY = (

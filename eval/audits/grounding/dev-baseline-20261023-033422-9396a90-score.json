@@ -1,0 +1,68 @@
+{
+  "judgments_file": "eval/audits/grounding/dev-baseline-20261023-033422-9396a90-judgments.jsonl",
+  "method": "grounding_spotcheck_v1",
+  "run_id": "dev-baseline-20261023-033422-9396a90",
+  "questions": 18,
+  "items": 89,
+  "judged_items": 88,
+  "not_judged": 1,
+  "counts": {
+    "supported": 80,
+    "partly": 5,
+    "unsupported": 3,
+    "not_judged": 1
+  },
+  "flagged_items": 8,
+  "unsupported_detail_rate": 0.09090909090909091,
+  "rows_with_flagged_items": 6,
+  "flagged": [
+    {
+      "pmid": "7664228",
+      "id": "c4",
+      "label": "partly",
+      "note": "Says the bypass-surgery study was \"in Canada\". 14566241 says only \"A national study\"; no country is given"
+    },
+    {
+      "pmid": "11053064",
+      "id": "c1",
+      "label": "unsupported",
+      "note": "\"suggesting an association between fatigue in pSS and fibromyalgia\": the passage compares fibromyalgia rates between diseases (12% vs 5%) and never links fibromyalgia to fatigue. The wrong \"yes\" verdict rests on this claim"
+    },
+    {
+      "pmid": "12595848",
+      "id": "c3",
+      "label": "partly",
+      "note": "\"largely disappeared after adjustment\": in 10399894 the family-practitioner OR stayed significant at 1.3 (1.1\u20131.6)"
+    },
+    {
+      "pmid": "12970636",
+      "id": "c1",
+      "label": "unsupported",
+      "note": "Asserts the newborn study \"did not involve nurse home visits\"; the passage does not say this"
+    },
+    {
+      "pmid": "12970636",
+      "id": "l1",
+      "label": "unsupported",
+      "note": "Asserts the newborn study \"did not involve nurse home visits\"; the passage does not say this"
+    },
+    {
+      "pmid": "12970636",
+      "id": "l2",
+      "label": "partly",
+      "note": "\"trials were in older adults\" is true for 26059872 and 10151166, but 18489451 gives no ages"
+    },
+    {
+      "pmid": "19925761",
+      "id": "l1",
+      "label": "partly",
+      "note": "\"single-center\" is not stated in the passage"
+    },
+    {
+      "pmid": "21123461",
+      "id": "c3",
+      "label": "partly",
+      "note": "\"consistent with a link between height and waist size\": the Glasgow passage links deprivation to both, not height to waist"
+    }
+  ]
+}
