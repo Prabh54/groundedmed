@@ -157,6 +157,8 @@ def test_agent_low_evidence_refusal_is_200_with_skipped_stages(setup):
     assert body["abstained"] and body["abstain_reason"] == "weak_evidence"
     status = {s["name"]: s["status"] for s in body["stages"]}
     assert status["synthesizer"] == status["critic"] == "skipped"
+    validator = next(s for s in body["stages"] if s["name"] == "validator")
+    assert validator["message"] == "No answer: the evidence scored below the relevance threshold"
     assert setup.llm.calls == ["planner"]
 
 
@@ -220,6 +222,13 @@ def test_stream_provider_failure_ends_with_an_error_event(setup):
     events = parse_sse(post(setup, "/query/stream").text)
     assert events[-1] == ("error", {"message": main.UNAVAILABLE_MESSAGE})
     assert ("critic", "failed") in [(d["name"], d["status"]) for k, d in events if k == "stage"]
+    stages = [d for k, d in events if k == "stage"]
+    validator_done = [
+        d["message"] for d in stages if (d["name"], d["status"]) == ("validator", "done")
+    ]
+    assert validator_done == [
+        "No answer: a processing step failed"
+    ]  # not "evidence did not support"
     assert all(k != "result" for k, _ in events)
 
 

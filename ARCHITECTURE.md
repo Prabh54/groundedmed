@@ -214,8 +214,10 @@ the agent's evidence is the question's own dense top 5 — exactly the baseline'
 M3-T5/T6 added `answer_supported` and `critic_removed` to the state. Final validator order
 (`backend/app/agents/validator.py`): error / weak-evidence abstention first; then the M2 citation validator
 on the draft (same report as the baseline); then the critic's removals on what survived; abstain
-`no_supported_claims` if no claim is left or `answer_supported` is false. `FinalAnswer.timing_ms` holds the
-stages before the validator; the validator's own time is in the state, and the total is measured by the caller.
+`no_supported_claims` if no claim is left or `answer_supported` is false. The validator builds `FinalAnswer`
+before its own time is known; `answer_agent()` (`backend/app/agents/pipeline.py`) then replaces
+`timing_ms` with every stage (including `validator` and the retriever's sub-timings) plus `total`, measured
+around the whole graph.
 
 Closed-book control (ADR-010): same runtime model, question only, verdict-only schema, no retrieval.
 It is an evaluation runner, not an API mode.
@@ -230,7 +232,8 @@ Evidence gate (shared by baseline and agent, ADR-015):
   document that in DECISIONS.md.
 - As built (ADR-028): dev Hit@5 is 100%, so T comes from a leave-one-out simulation (best non-source-paper
   score = "unanswerable"), max Youden's J -> `T = 0.72`. If reranking was skipped there is no rerank score,
-  so the gate passes and the answer carries `rerank_skipped: true`.
+  so the gate compares the top dense (cosine) score with the fallback threshold 0.62 (chosen by the same dev
+  rule, ADR-028; `guardrails/evidence_gate.py`) and the answer carries `rerank_skipped: true`.
 
 Citation validator (pure Python, runs on every answer, baseline and agent):
 1. Output parses into the Pydantic schema (verdict ∈ {yes, no, maybe, insufficient_evidence}).

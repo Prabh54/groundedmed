@@ -35,6 +35,12 @@ STARTED = {
     "validator": "Validating citations",
 }
 FAILED = "This step failed"
+NO_ANSWER = {  # validator "done" message per abstain reason (observable facts only)
+    "weak_evidence": "No answer: the evidence scored below the relevance threshold",
+    "no_supported_claims": "No answer: no claim was supported by its cited evidence",
+    "model_abstained": "No answer: the evidence does not address the question",
+    "error": "No answer: a processing step failed",
+}
 
 
 def _items(state: ResearchState) -> int:
@@ -70,7 +76,7 @@ def done_message(name: str, update: dict, state: ResearchState) -> str:
         return f"Checked {_items(state)} claims and limitations"
     final: FinalAnswer = update["final_answer"]
     if final.abstained:
-        return "No answer: the evidence did not support one"
+        return NO_ANSWER[final.abstain_reason]
     removed = len(update["critic_removed"]) + _validator_removed(final)
     return f"Kept {len(final.claims)} cited claims; removed {removed} unsupported items"
 
