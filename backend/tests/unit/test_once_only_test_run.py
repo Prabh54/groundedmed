@@ -92,7 +92,8 @@ def test_end_to_end_second_run_refused_then_override_written(results, tmp_path, 
 
     monkeypatch.setattr(run_system, "answer_baseline", answer)
     fake_run(results, "test-baseline-first")
-    base = ["--system", "baseline", "--split", "test", run_system.FINAL_TEST_FLAG]
+    base = ["--system", "baseline", "--split", "test", run_system.FINAL_TEST_FLAG,
+            "--max-cost", "5", "--approval", "Owner: yes, run the test split once."]  # fmt: skip
 
     with pytest.raises(SystemExit, match="already exists"):
         run_system.main(base)

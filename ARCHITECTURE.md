@@ -326,6 +326,9 @@ Guards (also tested):
 - A run directory that already exists is never overwritten.
 - Each system runs on the test split once; a second run needs `--rerun-final-test --reason "..."`, and
   the reason is saved in that run's `override.json` (ADR-031).
+- Spend approval (owner instruction 2026-10-24): any full run (no `--limit`) is refused unless given both
+  `--max-cost USD` (a soft stop) and `--approval "<the owner's typed approval>"`; the text is saved in
+  `run_config.json` and `summary.json`.
 - Baseline, agent and closed-book runs on the same split must share an identical question-ID list.
 - Majority-class reference ("always yes") is computed and shown with the results.
 - Agent summaries include `planner_added_evidence` (mean, and share of questions > 0) — ADR-023.

@@ -1,7 +1,12 @@
 """Run a system over a frozen split; store raw + summary results (ARCHITECTURE §9, PLAN M2-T5).
 
-Run: uv run python -m eval.runners.run_system --system baseline|agent --split dev [--limit N]
-     [--max-cost USD]
+Run: uv run python -m eval.runners.run_system --system baseline|agent --split dev \
+         --max-cost USD --approval "<the owner's approval, word for word>"
+     (smoke runs: add --limit N; then --max-cost and --approval are optional)
+
+Approval guard (owner instruction 2026-10-24): a full run (no --limit; the test split is always
+full) is refused unless it has both --max-cost and --approval with the owner's own approval text
+(at least MIN_APPROVAL_CHARS characters), saved word for word in run_config.json and summary.json.
 
 --max-cost is a soft spending stop: before each question the runner checks that the money spent so
 far plus a margin (twice the most expensive question so far, at least PER_QUESTION_ALLOWANCE) stays
@@ -62,6 +67,7 @@ MANIFESTS = REPO_ROOT / "data" / "manifests"
 FINAL_TEST_FLAG = "--i-understand-this-is-the-final-test"
 RERUN_FLAG = "--rerun-final-test"
 MIN_REASON_CHARS = 20
+MIN_APPROVAL_CHARS = 10
 PER_QUESTION_ALLOWANCE = 0.05  # USD; agent questions measured $0.024-0.034 (M3-T7)
 
 
@@ -86,6 +92,21 @@ def check_allowed(split: str, final_test_ok: bool, git: dict, limit: int | None 
         raise SystemExit("Refusing a partial run of the frozen test split (--limit).")
     if limit is not None and limit < 1:
         raise SystemExit("--limit must be at least 1.")
+
+
+def check_approval(limit: int | None, max_cost: float | None, approval: str | None) -> None:
+    """Full runs spend real money: they need a cost cap and the owner's approval text."""
+    if max_cost is not None and max_cost <= 0:
+        raise SystemExit("--max-cost must be positive.")
+    if approval is not None and len(approval.strip()) < MIN_APPROVAL_CHARS:
+        raise SystemExit(
+            f"--approval must quote the owner's approval (>= {MIN_APPROVAL_CHARS} chars)."
+        )
+    if limit is None and (max_cost is None or approval is None):
+        raise SystemExit(
+            "Refusing a full run without both --max-cost USD and --approval "
+            "\"<the owner's approval, word for word>\". Get the owner's typed OK first."
+        )
 
 
 def completed_test_runs(system: str) -> list[str]:
@@ -309,10 +330,10 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--reason", help="why the test split is being run again (saved with the run)"
     )
-    parser.add_argument("--max-cost", type=float, help="hard spending stop for this run (USD)")
+    parser.add_argument("--max-cost", type=float, help="soft spending stop for this run (USD)")
+    parser.add_argument("--approval", help="the owner's approval text, word for word (saved)")
     args = parser.parse_args(argv)
-    if args.max_cost is not None and args.max_cost <= 0:
-        raise SystemExit("--max-cost must be positive.")
+    check_approval(args.limit, args.max_cost, args.approval)
 
     git = git_state()
     check_allowed(args.split, args.final_test_ok, git, args.limit)
@@ -347,6 +368,7 @@ def main(argv: list[str] | None = None) -> None:
         "embedding_model": EMBEDDING_MODEL,
         "rerank_model": RERANK_MODEL,
         "max_cost_usd": args.max_cost,
+        "owner_approval": args.approval.strip() if args.approval else None,
         "test_rerun_override": override,
     }
     if args.system == "agent":
@@ -413,6 +435,7 @@ def main(argv: list[str] | None = None) -> None:
         summary["agent"] = summarize_agent(rows)
     if args.max_cost is not None:
         summary["stopped_at_cost_cap"] = stopped_at_cap
+    summary["owner_approval"] = config["owner_approval"]
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
     print(f"Saved to {out.relative_to(REPO_ROOT)}")

@@ -166,3 +166,30 @@ def test_cost_stop_margin_grows_with_the_most_expensive_question(runner, monkeyp
     rows, summary, _ = runner("--limit", "10", "--max-cost", "0.03")
     assert len(rows) == 2 and summary["stopped_at_cost_cap"] is True
     assert sum(r["cost_usd"] for r in rows) <= 0.03
+
+
+# --- approval guard (owner instruction 2026-10-24) ---------------------------------------------
+
+APPROVAL = "Yes, run the agent on the 100 dev questions with a hard cap of $5."
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [[], ["--max-cost", "5"], ["--approval", APPROVAL], ["--max-cost", "5", "--approval", "ok"]],
+)
+def test_full_run_without_cap_and_approval_text_is_refused(runner, tmp_path, extra):
+    with pytest.raises(SystemExit, match="max-cost|approval"):
+        runner(*extra)
+    assert list(tmp_path.iterdir()) == []  # refused before any folder or paid call
+
+
+def test_full_run_saves_the_owner_approval_word_for_word(runner):
+    rows, summary, config = runner("--max-cost", "5", "--approval", f"  {APPROVAL}  ")
+    assert len(rows) == 100 and config["limit"] is None
+    assert config["owner_approval"] == summary["owner_approval"] == APPROVAL
+    assert config["max_cost_usd"] == 5.0
+
+
+def test_smoke_run_needs_no_approval_and_records_none(runner):
+    rows, summary, config = runner("--limit", "1")
+    assert len(rows) == 1 and config["owner_approval"] is None and summary["owner_approval"] is None
