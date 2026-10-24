@@ -193,3 +193,40 @@ def test_full_run_saves_the_owner_approval_word_for_word(runner):
 def test_smoke_run_needs_no_approval_and_records_none(runner):
     rows, summary, config = runner("--limit", "1")
     assert len(rows) == 1 and config["owner_approval"] is None and summary["owner_approval"] is None
+
+
+# --- cost-based trigger (owner instruction 2026-10-24: --limit 100 must not skip the guard) -----
+
+
+@pytest.mark.parametrize("limit", ["100", "20", "15"])  # agent est. $3.50, $0.70, $0.525
+def test_runs_estimated_above_the_threshold_need_approval_whatever_the_limit(
+    runner, tmp_path, limit
+):
+    with pytest.raises(SystemExit, match=r"estimated at \$"):
+        runner("--limit", limit)
+    assert list(tmp_path.iterdir()) == []  # refused before any folder or paid call
+
+
+def test_run_at_or_below_the_threshold_needs_no_approval(runner):
+    rows, summary, config = runner("--limit", "14")  # 14 x $0.035 = $0.49
+    assert len(rows) == 14 and config["owner_approval"] is None
+    assert config["estimated_cost_usd"] == summary["estimated_cost_usd"] == pytest.approx(0.49)
+
+
+def test_limit_100_with_cap_and_approval_runs_and_saves_both(runner):
+    rows, summary, config = runner("--limit", "100", "--max-cost", "5", "--approval", APPROVAL)
+    assert len(rows) == 100 and config["owner_approval"] == APPROVAL
+    assert config["estimated_cost_usd"] == pytest.approx(3.5)
+
+
+@pytest.mark.parametrize(
+    "system,n,needs",
+    [("baseline", 33, False), ("baseline", 34, True), ("agent", 14, False), ("agent", 15, True)],
+)
+def test_threshold_is_per_system_estimate(system, n, needs):
+    estimate = run_system.estimated_cost(system, n)
+    if needs:
+        with pytest.raises(SystemExit, match="estimated"):
+            run_system.check_approval(estimate, None, None)
+    else:
+        run_system.check_approval(estimate, None, None)  # no error

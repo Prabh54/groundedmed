@@ -2,11 +2,13 @@
 
 Run: uv run python -m eval.runners.run_system --system baseline|agent --split dev \
          --max-cost USD --approval "<the owner's approval, word for word>"
-     (smoke runs: add --limit N; then --max-cost and --approval are optional)
+     (small smoke runs, --limit N, estimated at or below APPROVAL_THRESHOLD_USD need neither)
 
-Approval guard (owner instruction 2026-10-24): a full run (no --limit; the test split is always
-full) is refused unless it has both --max-cost and --approval with the owner's own approval text
-(at least MIN_APPROVAL_CHARS characters), saved word for word in run_config.json and summary.json.
+Approval guard (owner instructions 2026-10-24): the run's cost is estimated before anything starts
+(questions x EST_COST_PER_QUESTION for the system). Any run estimated above APPROVAL_THRESHOLD_USD
+is refused unless it has both --max-cost and --approval with the owner's own approval text (at
+least MIN_APPROVAL_CHARS characters); `--limit 100` is treated like a full run. The estimate and the
+approval text are saved in run_config.json and summary.json.
 
 --max-cost is a soft spending stop: before each question the runner checks that the money spent so
 far plus a margin (twice the most expensive question so far, at least PER_QUESTION_ALLOWANCE) stays
@@ -68,6 +70,10 @@ FINAL_TEST_FLAG = "--i-understand-this-is-the-final-test"
 RERUN_FLAG = "--rerun-final-test"
 MIN_REASON_CHARS = 20
 MIN_APPROVAL_CHARS = 10
+APPROVAL_THRESHOLD_USD = 0.50
+# Conservative per-question estimates from measured dev runs (baseline v3 $0.013, agent $0.028;
+# agent questions up to ~$0.035 in M3-T7). Used only to decide whether approval is needed.
+EST_COST_PER_QUESTION = {"baseline": 0.015, "agent": 0.035}
 PER_QUESTION_ALLOWANCE = 0.05  # USD; agent questions measured $0.024-0.034 (M3-T7)
 
 
@@ -94,18 +100,24 @@ def check_allowed(split: str, final_test_ok: bool, git: dict, limit: int | None 
         raise SystemExit("--limit must be at least 1.")
 
 
-def check_approval(limit: int | None, max_cost: float | None, approval: str | None) -> None:
-    """Full runs spend real money: they need a cost cap and the owner's approval text."""
+def estimated_cost(system: str, n_questions: int) -> float:
+    return round(n_questions * EST_COST_PER_QUESTION[system], 4)
+
+
+def check_approval(estimate: float, max_cost: float | None, approval: str | None) -> None:
+    """A run estimated above APPROVAL_THRESHOLD_USD needs a cost cap and the owner's approval text,
+    whatever --limit says (owner instruction 2026-10-24)."""
     if max_cost is not None and max_cost <= 0:
         raise SystemExit("--max-cost must be positive.")
     if approval is not None and len(approval.strip()) < MIN_APPROVAL_CHARS:
         raise SystemExit(
             f"--approval must quote the owner's approval (>= {MIN_APPROVAL_CHARS} chars)."
         )
-    if limit is None and (max_cost is None or approval is None):
+    if estimate > APPROVAL_THRESHOLD_USD and (max_cost is None or approval is None):
         raise SystemExit(
-            "Refusing a full run without both --max-cost USD and --approval "
-            "\"<the owner's approval, word for word>\". Get the owner's typed OK first."
+            f"Refusing: this run is estimated at ${estimate:.2f} "
+            f"(> ${APPROVAL_THRESHOLD_USD:.2f}). It needs both --max-cost USD and "
+            "--approval \"<the owner's approval, word for word>\". Get the owner's typed OK first."
         )
 
 
@@ -333,13 +345,14 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--max-cost", type=float, help="soft spending stop for this run (USD)")
     parser.add_argument("--approval", help="the owner's approval text, word for word (saved)")
     args = parser.parse_args(argv)
-    check_approval(args.limit, args.max_cost, args.approval)
 
     git = git_state()
     check_allowed(args.split, args.final_test_ok, git, args.limit)
     override = check_once_only(args.split, args.system, args.rerun, args.reason)
     manifest = load_manifest(args.split)
     items = manifest["items"][: args.limit]
+    estimate = estimated_cost(args.system, len(items))
+    check_approval(estimate, args.max_cost, args.approval)  # before any folder or paid call
     run_id = f"{args.split}-{args.system}-{datetime.now(UTC):%Y%m%d-%H%M%S}-{git['git_commit'][:7]}"
     out = create_run_dir(run_id)
     if override:
@@ -369,6 +382,7 @@ def main(argv: list[str] | None = None) -> None:
         "rerank_model": RERANK_MODEL,
         "max_cost_usd": args.max_cost,
         "owner_approval": args.approval.strip() if args.approval else None,
+        "estimated_cost_usd": estimate,
         "test_rerun_override": override,
     }
     if args.system == "agent":
@@ -436,6 +450,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.max_cost is not None:
         summary["stopped_at_cost_cap"] = stopped_at_cap
     summary["owner_approval"] = config["owner_approval"]
+    summary["estimated_cost_usd"] = estimate
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
     print(f"Saved to {out.relative_to(REPO_ROOT)}")
