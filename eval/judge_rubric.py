@@ -55,3 +55,30 @@ def load_prompt() -> dict[str, str]:
 
 def load_schema() -> dict:
     return json.loads((RUBRIC_DIR / "judge_v1_schema.json").read_text(encoding="utf-8"))
+
+
+def check_response(obj, item_ids: list[str]) -> list[str]:
+    """Problems with a parsed judge response (rubric v2 §5); [] = one valid judgment per item."""
+    if (
+        not isinstance(obj, dict)
+        or set(obj) != {"judgments"}
+        or not isinstance(obj["judgments"], list)
+    ):
+        return ["response is not an object with exactly one key, 'judgments' (a list)"]
+    problems, seen = [], []
+    for j in obj["judgments"]:
+        keys = {"item_id", "evidence_quote", "reason", "label"}
+        if (
+            not isinstance(j, dict)
+            or set(j) != keys
+            or not all(isinstance(j[k], str) for k in keys)
+        ):
+            problems.append(f"malformed judgment: {str(j)[:80]}")
+        elif j["label"] not in LABELS:
+            problems.append(f"{j['item_id']}: unknown label {j['label']!r}")
+        elif j["item_id"] not in item_ids:
+            problems.append(f"unknown item_id {j['item_id']!r}")
+        else:
+            seen.append(j["item_id"])
+    problems += [f"{i}: {seen.count(i)} judgments" for i in item_ids if seen.count(i) != 1]
+    return problems
