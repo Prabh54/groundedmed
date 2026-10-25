@@ -83,7 +83,8 @@ MIN_REASON_CHARS = 20
 MIN_APPROVAL_CHARS = 10
 APPROVAL_THRESHOLD_USD = 0.50
 # Conservative per-question estimates from measured dev runs (baseline v3 $0.013, agent $0.028;
-# agent questions up to ~$0.035 in M3-T7). Used only to decide whether approval is needed.
+# agent questions up to ~$0.035 in M3-T7; closed-book $0.00105 on 5 dev questions, 2026-10-25).
+# Used only to decide whether approval is needed.
 EST_COST_PER_QUESTION = {"baseline": 0.015, "agent": 0.035, "closed_book": 0.005}
 PER_QUESTION_ALLOWANCE = 0.05  # USD; agent questions measured $0.024-0.034 (M3-T7)
 MAX_CONSECUTIVE_ERRORS = 5  # this many failed questions in a row = an outage -> void run (ADR-034)
@@ -583,6 +584,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.system == "agent":
         summary["agent"] = summarize_agent(rows)
     if args.system == "closed_book":  # no retrieval, no claims (ADR-010)
+        summary["latency_ms"]["measured_from"] = "developer machine, sequential, no retrieval"
         summary |= {"hit_at_1": "not applicable", "hit_at_5": "not applicable",
                     "citations_removed": "not applicable",
                     "claim_support": "not applicable"}  # fmt: skip

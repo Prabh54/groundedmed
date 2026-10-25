@@ -1,0 +1,80 @@
+{
+  "run_id": "judge-dev-20261025-192833-c72234e",
+  "complete": true,
+  "judge_model": "gemini-3.1-pro-preview",
+  "model_versions_reported": [
+    "gemini-3.1-pro-preview"
+  ],
+  "version_checks": [
+    "3.1-pro-preview-01-2026",
+    "3.1-pro-preview-01-2026"
+  ],
+  "rubric_file_sha256": {
+    "judge_v2.md": "05a92c8a32359428eea00323a957f452c33855aeb9a7da026bcc4d1b9384d7d0",
+    "judge_v1_prompt.txt": "b240c38ad57deceb651f1357112ceb362848afd392a53d9932d473d537b27a95",
+    "judge_v1_schema.json": "5d35d697c96b13a639920588ab37e5018c0bbbb66483e52dd9bdeeec71342915"
+  },
+  "questions_judged": 10,
+  "items": 109,
+  "not_judged": 0,
+  "labels": {
+    "agent": {
+      "claim": {
+        "supported": 30
+      },
+      "limitation": {
+        "partially_supported": 1,
+        "supported": 22
+      }
+    },
+    "baseline": {
+      "claim": {
+        "supported": 30,
+        "partially_supported": 2
+      },
+      "limitation": {
+        "supported": 21,
+        "unsupported": 1,
+        "partially_supported": 2
+      }
+    }
+  },
+  "malformed_questions": [],
+  "reasked_questions": [],
+  "api_retry_questions": [],
+  "failed_questions": [],
+  "tokens_per_question": {
+    "input_tokens": {
+      "median": 5955.0,
+      "p95": 8708.5,
+      "max": 8830,
+      "mean": 6308.2
+    },
+    "output_tokens": {
+      "median": 1225.0,
+      "p95": 1611.95,
+      "max": 1679,
+      "mean": 1186.9
+    },
+    "thinking_tokens": {
+      "median": 2334.5,
+      "p95": 4918.85,
+      "max": 5417,
+      "mean": 2567
+    }
+  },
+  "cost_per_question_usd": {
+    "median": 0.057555999999999996,
+    "p95": 0.0878984,
+    "max": 0.096992,
+    "mean": 0.0576632
+  },
+  "latency_per_question_s": {
+    "median": 21.2291,
+    "p95": 34.6762,
+    "max": 37.666,
+    "mean": 22.03125
+  },
+  "cost_usd_total": 0.576632,
+  "wall_clock_s": 220.5
+}

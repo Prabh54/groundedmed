@@ -68,13 +68,15 @@ is reported per group and per system, with counts and Wilson intervals (ADR-033)
   typed approval (both checked by code). A complete run cannot be voided. Void runs stay on disk and are
   listed in the final methodology (ADR-034).
 - Isolated failed questions are kept as error rows and count as incorrect.
-- Spending: each run has a soft cap of about twice its estimate, approved by the owner in writing before
-  the run (proposed: baseline $6, agent $14, closed-book $2, judge on all test claims $30; approved
-  2026-10-25: judge test call $0.05, judge setup check $1.50, closed-book prompt check $0.10).
-  All caps once: $53.65. **True ceiling including void reruns: $107.30** — every run voided once at its
-  cap and rerun once to its cap. A second rerun is impossible without a new typed approval (the runner
-  refuses a rerun that reuses the void run's approval text). The judge contingency below would add up to
-  $31.55 (or $63.10 if that re-judge were itself voided once), only with a new approval.
+- Spending: each run has a soft cap, approved by the owner in writing before the run. Spent on M4
+  dev work (owner-approved): judge test call $0.01493, judge setup check on 10 dev questions $0.5766,
+  closed-book check on 5 dev questions $0.0053 — $0.5969 in all. Proposed for the test runs (revised
+  2026-10-25 from measured data): baseline est $3.00 / cap $6, agent est $7.00 / cap $14, closed-book
+  est $0.21 / cap $1, judge on all test claims est $10.68 / cap $20 — est $20.89, caps $41.00.
+  **True ceiling including void reruns: $82.00** — every run voided once at its cap and rerun once to
+  its cap. A second rerun is impossible without a new typed approval (the runner refuses a rerun that
+  reuses the void run's approval text). The judge contingency below would add up to $21.55 (or $43.10
+  if that re-judge were itself voided once), only with a new approval.
 
 ## If the judge model is retired or changes (decided 2026-10-25, before any judging)
 Detection: a free check compares Google's model metadata version with the pinned
@@ -99,13 +101,12 @@ Google does not reflect in the metadata version cannot be detected.
 - **Manual audit:** the owner's labels do not depend on the judge and are kept. If the judge changes,
   agreement is recomputed on the same audit claims against the new judge's labels, noting that the
   sample groups were drawn from the earlier judge's labels.
-- **Cost of re-judging everything:** about $15.54 estimated (test call $0.02 + dev setup check $0.74 +
-  all test claims $14.78, if the replacement is priced like gemini-3.1-pro-preview), cap $31.55. The
-  test-claims figure still rests on an assumed 4,000 thinking tokens per question until the setup
-  check measures it.
-- **Time:** about 200 judge calls, one per test question, run one after another. Machine time is
-  roughly 1–3 hours (assumed 20–60 s per call with thinking; the setup check measures it), plus the
-  owner's decision and approvals.
+- **Cost of re-judging everything:** about $11.28 estimated (test call $0.02 + dev setup check $0.58 +
+  all test claims $10.68, if the replacement is priced like gemini-3.1-pro-preview), cap $21.55.
+  Figures measured by the dev setup check (judge-dev-20261025-192833-c72234e).
+- **Time:** about 194 judge calls (one per test question with items), run one after another:
+  measured 22 s mean / 38 s max per call on the tail-heavy dev sample, so about 70 minutes, at most
+  about 2 hours, plus the owner's decision and approvals.
 
 ## Known limitations (stated before results)
 - Hit@5 is saturated on dev (1.00): questions are usually derived from the source paper's title and the

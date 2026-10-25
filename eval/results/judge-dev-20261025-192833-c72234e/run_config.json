@@ -1,0 +1,92 @@
+{
+  "run_id": "judge-dev-20261025-192833-c72234e",
+  "created_utc": "2026-10-25T19:28:33+00:00",
+  "git_commit": "c72234e5809d5a3a7556b3ffd2c9094d926ea0bb",
+  "git_dirty": false,
+  "git_diff_sha256": null,
+  "split": "dev",
+  "baseline_run": "dev-baseline-20261023-033422-9396a90",
+  "agent_run": "dev-agent-20261023-222333-871b22d",
+  "setup_check": [
+    [
+      "7664228",
+      "largest request #1"
+    ],
+    [
+      "12595848",
+      "largest request #2"
+    ],
+    [
+      "2503176",
+      "largest request #3"
+    ],
+    [
+      "15670262",
+      "largest request #4"
+    ],
+    [
+      "16296668",
+      "most items (12)"
+    ],
+    [
+      "19925761",
+      "most items (12)"
+    ],
+    [
+      "11138995",
+      "random"
+    ],
+    [
+      "23449952",
+      "random"
+    ],
+    [
+      "25819796",
+      "random"
+    ],
+    [
+      "26708803",
+      "random"
+    ]
+  ],
+  "question_ids": [
+    "2503176",
+    "7664228",
+    "11138995",
+    "12595848",
+    "15670262",
+    "16296668",
+    "19925761",
+    "23449952",
+    "25819796",
+    "26708803"
+  ],
+  "questions_without_items": null,
+  "judge_provider": "google",
+  "judge_model": "gemini-3.1-pro-preview",
+  "expected_model_version": "3.1-pro-preview-01-2026",
+  "expected_response_model_version": "gemini-3.1-pro-preview",
+  "judge_price_per_m_tokens": {
+    "input": 2.0,
+    "output": 12.0
+  },
+  "rubric_version": "judge_v2",
+  "rubric_file_sha256": {
+    "judge_v2.md": "05a92c8a32359428eea00323a957f452c33855aeb9a7da026bcc4d1b9384d7d0",
+    "judge_v1_prompt.txt": "b240c38ad57deceb651f1357112ceb362848afd392a53d9932d473d537b27a95",
+    "judge_v1_schema.json": "5d35d697c96b13a639920588ab37e5018c0bbbb66483e52dd9bdeeec71342915"
+  },
+  "generation": {
+    "temperature": 0,
+    "seed": 20261024,
+    "max_output_tokens": 16000,
+    "thinking": "model default",
+    "response_schema": "judge_v1_schema.json"
+  },
+  "blinding": "baseline is SYSTEM_A when random.Random(f\"judge_v1|20261024|{pmid}\").random() < 0.5",
+  "version_check_every": 25,
+  "estimated_cost_usd": 0.672,
+  "max_cost_usd": 1.5,
+  "owner_approval": "Start M4-T2, the judge runner. Then run the setup check on 10 dev questions (cap $1.50) and the closed-book prompt check on 5 dev questions (cap $0.10), both already approved.",
+  "rerun_reason": null
+}

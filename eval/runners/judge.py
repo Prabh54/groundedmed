@@ -46,9 +46,9 @@ MAX_API_TRIES = 3
 BACKOFF_S = (5, 20)
 MAX_CONSECUTIVE_FAILURES = 5
 MAX_OUTPUT_TOKENS = 16000  # includes thinking (Google); bounds one call at ~$0.19 + input
-# Per judged question, from ADR-035's estimate (ASSUMED 4,000 thinking tokens; replaced by the
-# measured figure after the dev setup check). Used for the approval guard and the summary only.
-EST_COST_PER_QUESTION = 0.0672
+# Per judged question, measured by the dev setup check judge-dev-20261025-192833-c72234e
+# ($10.68 over ~194 test questions incl. 10% retries). Used for the approval guard only.
+EST_COST_PER_QUESTION = 0.055
 PER_QUESTION_ALLOWANCE = 0.25  # USD margin for the soft cost stop (one large question + retry)
 VOID_FILE = "VOID.json"
 SYSTEMS = ("baseline", "agent")

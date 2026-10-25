@@ -1,0 +1,42 @@
+{
+  "run_id": "dev-closed_book-20261025-193452-43fdf5e",
+  "system": "closed_book",
+  "split": "dev",
+  "n_questions": 5,
+  "accuracy": 1.0,
+  "coverage": 1.0,
+  "answered_only_accuracy": 1.0,
+  "majority_class_reference": 0.8,
+  "verdict_counts": {
+    "no": 1,
+    "yes": 4
+  },
+  "gold_counts": {
+    "no": 1,
+    "yes": 4
+  },
+  "abstain_reasons": {},
+  "hit_at_1": "not applicable",
+  "hit_at_5": "not applicable",
+  "citations_removed": "not applicable",
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 1541.0,
+    "p95": 4490.64,
+    "p50_when_llm_called": null,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 2313,
+    "output_incl_thinking": 64
+  },
+  "cost_usd": {
+    "total": 0.0053,
+    "per_query": 0.00105
+  },
+  "claim_support": "not applicable",
+  "complete": true,
+  "owner_approval": "Start M4-T2, the judge runner. Then run the setup check on 10 dev questions (cap $1.50) and the closed-book prompt check on 5 dev questions (cap $0.10), both already approved.",
+  "estimated_cost_usd": 0.025
+}

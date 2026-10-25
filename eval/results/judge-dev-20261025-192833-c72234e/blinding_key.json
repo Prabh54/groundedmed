@@ -1,0 +1,42 @@
+{
+  "2503176": {
+    "SYSTEM_A": "agent",
+    "SYSTEM_B": "baseline"
+  },
+  "7664228": {
+    "SYSTEM_A": "agent",
+    "SYSTEM_B": "baseline"
+  },
+  "11138995": {
+    "SYSTEM_A": "baseline",
+    "SYSTEM_B": "agent"
+  },
+  "12595848": {
+    "SYSTEM_A": "agent",
+    "SYSTEM_B": "baseline"
+  },
+  "15670262": {
+    "SYSTEM_A": "baseline",
+    "SYSTEM_B": "agent"
+  },
+  "16296668": {
+    "SYSTEM_A": "baseline",
+    "SYSTEM_B": "agent"
+  },
+  "19925761": {
+    "SYSTEM_A": "baseline",
+    "SYSTEM_B": "agent"
+  },
+  "23449952": {
+    "SYSTEM_A": "agent",
+    "SYSTEM_B": "baseline"
+  },
+  "25819796": {
+    "SYSTEM_A": "baseline",
+    "SYSTEM_B": "agent"
+  },
+  "26708803": {
+    "SYSTEM_A": "baseline",
+    "SYSTEM_B": "agent"
+  }
+}
