@@ -1,0 +1,52 @@
+{
+  "run_id": "test-baseline-20261025-194639-4ebd38d",
+  "system": "baseline",
+  "split": "test",
+  "n_questions": 200,
+  "accuracy": 0.765,
+  "coverage": 0.975,
+  "answered_only_accuracy": 0.7846153846153846,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "insufficient_evidence": 5,
+    "maybe": 25,
+    "no": 66,
+    "yes": 104
+  },
+  "gold_counts": {
+    "maybe": 22,
+    "no": 68,
+    "yes": 110
+  },
+  "abstain_reasons": {
+    "model_abstained": 2,
+    "weak_evidence": 3
+  },
+  "hit_at_1": 0.985,
+  "hit_at_5": 1.0,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "limitations": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 4230.6,
+    "p95": 6212.15,
+    "p50_when_llm_called": 4268.4,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 828309,
+    "output_incl_thinking": 90213
+  },
+  "cost_usd": {
+    "total": 2.6257,
+    "per_query": 0.01313
+  },
+  "complete": true,
+  "owner_approval": "Approved, one at a time, in this order. Stop after each and report before starting the next: 1. Baseline test run \u2014 cap $6 2. Agent test run \u2014 cap $14 3. Closed-book control \u2014 cap $1 4. Judge over all test claims \u2014 cap $20. This is the frozen test set. Run once.",
+  "estimated_cost_usd": 3.0
+}
