@@ -1,0 +1,44 @@
+{
+  "run_id": "test-closed_book-20261025-211502-6eecb38",
+  "system": "closed_book",
+  "split": "test",
+  "n_questions": 200,
+  "accuracy": 0.54,
+  "coverage": 1.0,
+  "answered_only_accuracy": 0.54,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "maybe": 35,
+    "no": 63,
+    "yes": 102
+  },
+  "gold_counts": {
+    "maybe": 22,
+    "no": 68,
+    "yes": 110
+  },
+  "abstain_reasons": {},
+  "hit_at_1": "not applicable",
+  "hit_at_5": "not applicable",
+  "citations_removed": "not applicable",
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 1003.4,
+    "p95": 1647.505,
+    "p50_when_llm_called": null,
+    "measured_from": "developer machine, sequential, no retrieval"
+  },
+  "llm_tokens": {
+    "input": 92589,
+    "output_incl_thinking": 2572
+  },
+  "cost_usd": {
+    "total": 0.2109,
+    "per_query": 0.00105
+  },
+  "claim_support": "not applicable",
+  "complete": true,
+  "owner_approval": "Approved: closed-book control, cap $1. Same conditions, no scores shown.",
+  "estimated_cost_usd": 1.0
+}
