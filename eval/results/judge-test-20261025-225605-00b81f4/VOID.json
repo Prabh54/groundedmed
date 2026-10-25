@@ -1,0 +1,10 @@
+{
+  "run_id": "judge-test-20261025-225605-00b81f4",
+  "void": true,
+  "reason": "5 questions in a row failed",
+  "questions_done": 5,
+  "questions_planned": 197,
+  "resumable": true,
+  "created_utc": "2026-10-25T22:58:14+00:00",
+  "rule": "Judge run stopped early: void. Judgments not read or scored. Either re-judge in full under a new run ID, or resume this run from its checkpoint with the owner's fresh typed approval (--resume)."
+}
