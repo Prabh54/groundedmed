@@ -114,3 +114,24 @@ def test_generate_refuses_a_response_from_a_different_model_version(monkeypatch)
     monkeypatch.setattr(jc, "_request", lambda path, body=None: {"modelVersion": "other-version"})
     with pytest.raises(jc.JudgeModelChanged, match="other-version"):
         jc.generate({"generationConfig": {}})
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        __import__("http.client").client.RemoteDisconnected("Remote end closed connection"),
+        ConnectionResetError("reset by peer"),
+        __import__("http.client").client.IncompleteRead(b"partial"),
+    ],
+)
+def test_dropped_connection_is_a_retryable_judge_error(monkeypatch, error):
+    """DEFECT 1 (void run judge-test-20261025-213638-cc3f2f7): a connection dropped mid-response
+    escaped as a raw exception, so the backoff never ran. It must become JudgeAPIError."""
+    monkeypatch.setenv("EVALUATOR_API_KEY", "fake-key-123456")
+
+    def urlopen(req, timeout):
+        raise error
+
+    monkeypatch.setattr(jc.urllib.request, "urlopen", urlopen)
+    with pytest.raises(jc.JudgeAPIError):
+        jc.model_metadata("gemini-test-model")

@@ -65,8 +65,8 @@ is reported per group and per system, with counts and Wilson intervals (ADR-033)
   interruption), is **void**: not scored, no results computed or shown, rows renamed
   `raw.VOID-do-not-score.jsonl`, and a new run ID is used. It does not count as the system's one test run,
   because no results were seen; the rerun must test the identical system and carry the owner's fresh
-  typed approval (both checked by code). A complete run cannot be voided. Void runs stay on disk and are
-  listed in the final methodology (ADR-034).
+  typed approval (both checked by code, for system runs and for judge runs). A complete run cannot be
+  voided. Void runs stay on disk and are listed in the final methodology (ADR-034).
 - Isolated failed questions are kept as error rows and count as incorrect.
 - Spending: each run has a soft cap, approved by the owner in writing before the run. Spent on M4
   dev work (owner-approved): judge test call $0.01493, judge setup check on 10 dev questions $0.5766,
@@ -77,6 +77,26 @@ is reported per group and per system, with counts and Wilson intervals (ADR-033)
   its cap. A second rerun is impossible without a new typed approval (the runner refuses a rerun that
   reuses the void run's approval text). The judge contingency below would add up to $21.55 (or $43.10
   if that re-judge were itself voided once), only with a new approval.
+
+## Judge runs: checkpoint and resume (owner instruction 2026-10-25, before any test scoring)
+- Each question's judge call and judgments are written to disk as soon as that question is done
+  (`calls.jsonl`, `judgments.jsonl`), so a dropped connection does not lose finished work.
+- A judge run that stops early is still **void** (ADR-034). It is never resumed automatically: a
+  plain re-run always starts a new run ID, and the runner refuses a re-judge of the same pair that
+  reuses an approval already spent on a void run.
+- A void judge run may be **resumed only with the owner's fresh typed approval**
+  (`--resume <run-id> --approval "<new text>" --max-cost <cap for the whole run>`). The runner refuses
+  unless: the stop was not a model change (a changed judge means re-judging everything, below); the
+  rubric files, rubric version, judge model and pinned versions equal the stopped run's; the blinding
+  key rebuilds identically; and every already-judged question's request rebuilds byte-identically
+  (same request hash). It then judges only the remaining questions, appending to the same files; each
+  question is judged exactly once. The resume (time, approval, questions done, the void record, code
+  commit) is recorded in `run_config.json` and `summary.json`; the cap covers the whole run.
+- Void judgments are never read before scoring, whether or not the run is later resumed.
+- Defects found in the first test judge run (`judge-test-20261025-213638-cc3f2f7`, void after 118/197
+  questions, $4.8673): a dropped connection was not retried; model-check records were not saved on a
+  crash; the fresh-approval rule existed for system runs but not for the judge. All three fixed with
+  tests that failed on the old code. That run was not resumed (owner: re-judge in full, new run ID).
 
 ## If the judge model is retired or changes (decided 2026-10-25, before any judging)
 Detection: a free check compares Google's model metadata version with the pinned

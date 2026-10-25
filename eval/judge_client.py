@@ -16,6 +16,7 @@ metadata. A swap that changes neither string cannot be detected.
 """
 
 import hashlib
+import http.client
 import json
 import urllib.error
 import urllib.request
@@ -63,7 +64,11 @@ def _request(path: str, body: dict | None = None, timeout: float = 120) -> dict:
     except urllib.error.HTTPError as exc:
         detail = redact(exc.read().decode(errors="replace"))[:800]
         raise JudgeAPIError(f"HTTP {exc.code}: {detail}") from None
-    except (urllib.error.URLError, TimeoutError) as exc:
+    except (OSError, http.client.HTTPException, ValueError) as exc:
+        # URLError, timeouts, a connection dropped or reset mid-response (RemoteDisconnected,
+        # IncompleteRead) and a truncated JSON body are all retryable failures of one request:
+        # they must reach the caller's backoff, never escape as raw exceptions (void run
+        # judge-test-20261025-213638-cc3f2f7).
         raise JudgeAPIError(redact(f"{type(exc).__name__}: {exc}")) from None
 
 

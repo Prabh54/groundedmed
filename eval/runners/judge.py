@@ -51,6 +51,8 @@ MAX_OUTPUT_TOKENS = 16000  # includes thinking (Google); bounds one call at ~$0.
 EST_COST_PER_QUESTION = 0.055
 PER_QUESTION_ALLOWANCE = 0.25  # USD margin for the soft cost stop (one large question + retry)
 VOID_FILE = "VOID.json"
+VOID_JUDGMENTS = "judgments.VOID-do-not-score.jsonl"
+MIN_APPROVAL_CHARS = 10
 SYSTEMS = ("baseline", "agent")
 _TAG = re.compile(r"<\s*(/?)\s*(question|answer_set|item|statement|passage)\b", re.IGNORECASE)
 
@@ -151,9 +153,17 @@ def call_with_backoff(body: dict, attempts: list) -> dict | None:
     return None
 
 
-def judge_question(q: dict, system_instruction: str, schema: dict) -> dict:
-    body = jc.build_body(system_instruction, q["user"], schema, temperature=0, seed=jr.SEED,
+def make_body(q: dict, system_instruction: str, schema: dict) -> dict:
+    return jc.build_body(system_instruction, q["user"], schema, temperature=0, seed=jr.SEED,
                          max_output_tokens=MAX_OUTPUT_TOKENS, thinking_budget=None)  # fmt: skip
+
+
+def request_sha256(body: dict) -> str:
+    return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
+
+
+def judge_question(q: dict, system_instruction: str, schema: dict) -> dict:
+    body = make_body(q, system_instruction, schema)
     ids = list(q["items"])
     attempts, problems, usable = [], [], {}
     for _ in range(2):  # the request, then one unchanged re-ask (rubric v2 §5)
@@ -177,7 +187,7 @@ def judge_question(q: dict, system_instruction: str, schema: dict) -> dict:
              for k in ("input_tokens", "output_tokens", "thinking_tokens")}  # fmt: skip
     return {
         "pmid": q["pmid"],
-        "request_sha256": hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest(),
+        "request_sha256": request_sha256(body),
         "n_items": len(ids),
         "attempts": [_slim(a) for a in attempts],
         "api_calls": len(attempts),
@@ -222,25 +232,212 @@ def setup_check_sample(questions: list[dict], n: int) -> list[tuple[str, str]]:
 
 
 def write_void(out, run_id: str, reason: str, done: int, planned: int) -> None:
+    """Mark a judge run void. Its checkpoint (calls.jsonl) stays; resuming it needs the owner's
+    fresh typed approval (`--resume`), never happens by itself, and is impossible after a model
+    change (methodology: a changed judge means re-judging everything)."""
     record = {"run_id": run_id, "void": True, "reason": reason, "questions_done": done,
-              "questions_planned": planned,
+              "questions_planned": planned, "resumable": not reason.startswith("model changed"),
               "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
-              "rule": "Judge run stopped early: void. Judgments not read or scored; re-judge in "
-                      "full under a new judge run ID (rubric v2 §5, ADR-034)."}  # fmt: skip
+              "rule": "Judge run stopped early: void. Judgments not read or scored. Either "
+                      "re-judge in full under a new run ID, or resume this run from its checkpoint "
+                      "with the owner's fresh typed approval (--resume)."}  # fmt: skip
     (out / VOID_FILE).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     if (out / "judgments.jsonl").exists():
-        (out / "judgments.jsonl").rename(out / "judgments.VOID-do-not-score.jsonl")
+        (out / "judgments.jsonl").rename(out / VOID_JUDGMENTS)
+
+
+def judge_runs_of_pair(baseline_run: str, agent_run: str) -> list[tuple[dict, str]]:
+    """(run_config, status) of every full (non-setup-check) judge run of this pair; status is
+    "complete", "void" or "unfinished". Reads configs and markers only, never judgments."""
+    found = []
+    for path in sorted(RESULTS_DIR.glob("judge-*/run_config.json")):
+        c = json.loads(path.read_text(encoding="utf-8"))
+        if (c.get("baseline_run"), c.get("agent_run")) != (baseline_run, agent_run) or c.get(
+            "setup_check"
+        ) is not None:
+            continue
+        d = path.parent
+        status = "void" if (d / VOID_FILE).exists() else (
+            "complete" if (d / "summary.json").exists() else "unfinished")  # fmt: skip
+        found.append((c, status))
+    return found
 
 
 def completed_judge_runs(baseline_run: str, agent_run: str) -> list[str]:
-    done = []
-    for path in sorted(RESULTS_DIR.glob("judge-*/run_config.json")):
-        c = json.loads(path.read_text(encoding="utf-8"))
-        if (c.get("baseline_run"), c.get("agent_run")) == (baseline_run, agent_run) \
-                and c.get("setup_check") is None and (path.parent / "summary.json").exists() \
-                and not (path.parent / VOID_FILE).exists():  # fmt: skip
-            done.append(c["run_id"])
-    return done
+    return [c["run_id"] for c, s in judge_runs_of_pair(baseline_run, agent_run) if s == "complete"]
+
+
+def used_approvals(config: dict) -> set[str]:
+    return {a for a in [config.get("owner_approval")]
+            + [r["approval"] for r in config.get("resumes", [])] if a}  # fmt: skip
+
+
+def check_fresh_approval(approval: str | None, earlier: list[dict], what: str) -> str:
+    """After a void run, the owner's approval must be new text, not one already spent (ADR-034)."""
+    approval = (approval or "").strip()
+    if len(approval) < MIN_APPROVAL_CHARS or any(approval in used_approvals(c) for c in earlier):
+        raise SystemExit(f"{what} after a void judge run needs the owner's fresh typed approval "
+                         "(--approval with new text); refusing.")  # fmt: skip
+    return approval
+
+
+def load_pair(baseline_run: str, agent_run: str) -> tuple[str, list[str], dict]:
+    dirs = {"baseline": RESULTS_DIR / baseline_run, "agent": RESULTS_DIR / agent_run}
+    configs = {s: json.loads((d / "run_config.json").read_text(encoding="utf-8"))
+               for s, d in dirs.items()}  # fmt: skip
+    for system, config in configs.items():
+        if config["system"] != system:
+            raise SystemExit(f"{dirs[system].name} is a {config['system']} run, not {system}.")
+    split = configs["baseline"]["split"]
+    if configs["agent"]["split"] != split:
+        raise SystemExit("The two runs are on different splits; refusing.")
+    question_ids = require_same_questions(dirs["baseline"], dirs["agent"])
+    rows = {s: {r["pmid"]: r for r in require_complete_run(d)} for s, d in dirs.items()}
+    return split, question_ids, rows
+
+
+def build_questions(question_ids, rows, corpus, templates) -> list[dict]:
+    return [
+        q
+        for pmid in question_ids
+        if (q := build_question({s: rows[s][pmid] for s in SYSTEMS}, corpus, templates))
+    ]
+
+
+def save_checks(out, checks: list) -> None:
+    (out / "version_checks.json").write_text(json.dumps(checks, indent=2) + "\n", encoding="utf-8")
+
+
+def judge_loop(
+    out, run_id, questions, templates, schema, max_cost, calls, judgments, checks, planned
+):
+    """Judge `questions` in order, appending each one to calls.jsonl / judgments.jsonl as soon as
+    it is done (the checkpoint). `calls` / `judgments` may already hold a resumed run's questions;
+    they count toward the cost cap and the version-check schedule. Returns the stop reason."""
+    stop_reason, streak = None, 0
+    try:
+        with (out / "calls.jsonl").open("a", encoding="utf-8") as cf, \
+                (out / "judgments.jsonl").open("a", encoding="utf-8") as jf:  # fmt: skip
+            for q in questions:
+                i = len(calls)
+                if i and i % VERSION_CHECK_EVERY == 0:
+                    checks.append({"at": f"after {i} questions", **jc.verify_model()})
+                    save_checks(out, checks)
+                if max_cost is not None:
+                    spent = sum(c["cost_usd"] for c in calls)
+                    margin = max([PER_QUESTION_ALLOWANCE] + [2 * c["cost_usd"] for c in calls])
+                    if spent + margin > max_cost:
+                        stop_reason = f"cost cap ${max_cost} before question {i + 1} "
+                        stop_reason += f"(spent ${spent:.4f})"
+                        break
+                call = judge_question(q, templates["SYSTEM_INSTRUCTION"], schema)
+                calls.append(call)
+                cf.write(json.dumps(call) + "\n")
+                cf.flush()
+                for blind_id, it in q["items"].items():
+                    j = call["judgments"].get(blind_id)
+                    judgments.append({"pmid": q["pmid"], "blind_id": blind_id, **it,
+                                      "label": j["label"] if j else "not_judged",
+                                      "evidence_quote": j["evidence_quote"] if j else None,
+                                      "reason": j["reason"] if j else None})  # fmt: skip
+                    jf.write(json.dumps(judgments[-1]) + "\n")
+                jf.flush()
+                print(f"  {i + 1}/{planned} {q['pmid']}: {call['usage']} ${call['cost_usd']:.4f} "
+                      f"{call['latency_ms'] / 1000:.1f}s"
+                      + (" MALFORMED" if call["malformed"] else ""), flush=True)  # fmt: skip
+                streak = streak + 1 if call["failed"] else 0
+                if streak >= MAX_CONSECUTIVE_FAILURES and q is not questions[-1]:
+                    stop_reason = f"{streak} questions in a row failed"
+                    break
+            if stop_reason is None:
+                checks.append({"at": "end", **jc.verify_model()})
+                save_checks(out, checks)
+    except jc.JudgeModelChanged as exc:
+        stop_reason = f"model changed: {exc}"
+    except BaseException as exc:
+        save_checks(out, checks)
+        write_void(out, run_id, f"interrupted: {type(exc).__name__}", len(calls), planned)
+        raise
+    save_checks(out, checks)
+    return stop_reason
+
+
+def finish(out, run_id, config, planned, calls, judgments, checks, stop_reason, wall_s) -> None:
+    if stop_reason is None and len(calls) != planned:
+        stop_reason = "fewer judged questions than planned"
+    if stop_reason is not None:
+        write_void(out, run_id, stop_reason, len(calls), planned)
+        spent = sum(c["cost_usd"] for c in calls)
+        raise SystemExit(f"VOID judge run {run_id}: {stop_reason}; ${spent:.4f} spent. Not scored. "
+                         "Re-judge in full under a new run ID, or resume only with the owner's "
+                         "fresh typed approval.")  # fmt: skip
+    summary = {"run_id": run_id, "complete": True, "judge_model": jc.JUDGE_MODEL,
+               "model_versions_reported": sorted({a["model_version_reported"] for c in calls
+                                                  for a in c["attempts"] if a["ok"]}),
+               "version_checks": [v["version"] for v in checks],
+               "rubric_file_sha256": jr.file_hashes(),
+               "resumes": config.get("resumes", []),
+               **summarize(calls, judgments, wall_s)}  # fmt: skip
+    summary["wall_clock_s_note"] = "this session only" if summary["resumes"] else "whole run"
+    (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({k: summary[k] for k in summary if k != "labels"}, indent=2))
+    print(f"Saved to {out.relative_to(REPO_ROOT)}")
+
+
+def resume(args) -> None:
+    """Continue a void judge run from its checkpoint (owner's fresh typed approval only). Refused
+    if the run is not resumable (model change), or if anything the judge reads, the rubric, the
+    model or the blinding would differ from the stopped run."""
+    out = RESULTS_DIR / args.resume
+    if not (out / VOID_FILE).exists():
+        raise SystemExit(f"{args.resume} is not a stopped (void) judge run; nothing to resume.")
+    void = json.loads((out / VOID_FILE).read_text(encoding="utf-8"))
+    if not void.get("resumable"):
+        raise SystemExit(f"{args.resume} is not resumable ({void['reason']}); re-judge in full.")
+    config = json.loads((out / "run_config.json").read_text(encoding="utf-8"))
+    approval = check_fresh_approval(args.approval, [config], "Resuming")
+    if args.max_cost is None:
+        raise SystemExit(
+            "--max-cost (the cap for the whole run, incl. what was spent) is required."
+        )
+    jr.check_frozen()
+    pinned = (jc.JUDGE_MODEL, jc.EXPECTED_MODEL_VERSION, jc.EXPECTED_RESPONSE_MODEL_VERSION)
+    recorded = (config["judge_model"], config["expected_model_version"],
+                config["expected_response_model_version"])  # fmt: skip
+    if (jr.file_hashes() != config["rubric_file_sha256"]
+            or jr.JUDGE_VERSION != config["rubric_version"] or pinned != recorded):  # fmt: skip
+        raise SystemExit("Rubric or judge model differs from the stopped run; refusing to resume.")
+    _, question_ids, rows = load_pair(config["baseline_run"], config["agent_run"])
+    corpus, templates, schema = load_corpus(), jr.load_prompt(), jr.load_schema()
+    by_pmid = {q["pmid"]: q for q in build_questions(question_ids, rows, corpus, templates)}
+    questions = [by_pmid[p] for p in config["question_ids"]]
+    key = json.loads((out / "blinding_key.json").read_text(encoding="utf-8"))
+    if key != {q["pmid"]: q["key"] for q in questions}:
+        raise SystemExit("Blinding would differ from the stopped run; refusing to resume.")
+    done = [json.loads(line) for line in (out / "calls.jsonl").open(encoding="utf-8")]
+    if [c["pmid"] for c in done] != config["question_ids"][: len(done)]:
+        raise SystemExit("The checkpoint is not a prefix of the planned questions; refusing.")
+    for c in done:  # what the judge reads must be byte-identical to what it already judged
+        body = make_body(by_pmid[c["pmid"]], templates["SYSTEM_INSTRUCTION"], schema)
+        if request_sha256(body) != c["request_sha256"]:
+            raise SystemExit(f"The judge request for {c['pmid']} differs from the stopped run's; "
+                             "refusing to resume.")  # fmt: skip
+    checks = json.loads((out / "version_checks.json").read_text(encoding="utf-8"))
+    checks.append({"at": f"resume after {len(done)} questions", **jc.verify_model()})
+    (out / VOID_JUDGMENTS).rename(out / "judgments.jsonl")
+    judgments = [json.loads(line) for line in (out / "judgments.jsonl").open(encoding="utf-8")]
+    config.setdefault("resumes", []).append({
+        "resumed_utc": datetime.now(UTC).isoformat(timespec="seconds"), "approval": approval,
+        "questions_done": len(done), "max_cost_usd": args.max_cost, "void_record": void,
+        **git_state()})  # fmt: skip
+    (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    (out / VOID_FILE).unlink()
+    print(f"Resuming {args.resume}: {len(done)} done, {len(questions) - len(done)} to judge.")
+    wall_start = now()
+    stop = judge_loop(out, args.resume, questions[len(done):], templates, schema, args.max_cost,
+                      done, judgments, checks, len(questions))  # fmt: skip
+    finish(out, args.resume, config, len(questions), done, judgments, checks, stop,
+           now() - wall_start)  # fmt: skip
 
 
 def pct(values: list[float], q: int):
@@ -282,40 +479,40 @@ def summarize(calls: list[dict], judgments: list[dict], wall_s: float) -> dict:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--baseline-run", required=True)
-    parser.add_argument("--agent-run", required=True)
+    parser.add_argument("--baseline-run")
+    parser.add_argument("--agent-run")
     parser.add_argument("--setup-check", type=int, help="dev only: judge this many questions")
     parser.add_argument("--max-cost", type=float, help="soft spending stop (USD)")
     parser.add_argument("--approval", help="the owner's approval text, word for word (saved)")
     parser.add_argument("--rerun-reason", help="test only: why a judged pair is judged again")
+    parser.add_argument("--resume", help="a void judge run to continue (owner's fresh approval)")
     args = parser.parse_args(argv)
+    if args.resume:
+        if args.baseline_run or args.agent_run or args.setup_check is not None:
+            raise SystemExit("--resume takes the stopped run's own settings; give only --resume, "
+                             "--max-cost and --approval.")  # fmt: skip
+        return resume(args)
+    if not (args.baseline_run and args.agent_run):
+        raise SystemExit("--baseline-run and --agent-run are required (or --resume).")
 
     jr.check_frozen()
-    dirs = {"baseline": RESULTS_DIR / args.baseline_run, "agent": RESULTS_DIR / args.agent_run}
-    configs = {s: json.loads((d / "run_config.json").read_text(encoding="utf-8"))
-               for s, d in dirs.items()}  # fmt: skip
-    for system, config in configs.items():
-        if config["system"] != system:
-            raise SystemExit(f"{dirs[system].name} is a {config['system']} run, not {system}.")
-    split = configs["baseline"]["split"]
-    if configs["agent"]["split"] != split:
-        raise SystemExit("The two runs are on different splits; refusing.")
-    question_ids = require_same_questions(dirs["baseline"], dirs["agent"])
-    rows = {s: {r["pmid"]: r for r in require_complete_run(d)} for s, d in dirs.items()}
+    split, question_ids, rows = load_pair(args.baseline_run, args.agent_run)
     if args.setup_check is not None and split != "dev":
         raise SystemExit("--setup-check is for dev runs only; the test split is judged in full.")
-    if split == "test" and args.setup_check is None:
-        earlier = completed_judge_runs(args.baseline_run, args.agent_run)
-        if earlier and (args.rerun_reason is None or len(args.rerun_reason.strip()) < 20):
+    earlier_void = []
+    if args.setup_check is None:
+        runs = judge_runs_of_pair(args.baseline_run, args.agent_run)
+        earlier = [c["run_id"] for c, s in runs if s == "complete"]
+        if split == "test" and earlier and (args.rerun_reason is None
+                                            or len(args.rerun_reason.strip()) < 20):  # fmt: skip
             raise SystemExit(f"Test pair already judged ({', '.join(earlier)}); a re-judge needs "
                              "--rerun-reason (>= 20 chars), saved with the run.")  # fmt: skip
+        earlier_void = [c for c, s in runs if s in ("void", "unfinished")]
+        if earlier_void:
+            check_fresh_approval(args.approval, earlier_void, "A re-judge")
 
     corpus, templates, schema = load_corpus(), jr.load_prompt(), jr.load_schema()
-    questions = [
-        q
-        for pmid in question_ids
-        if (q := build_question({s: rows[s][pmid] for s in SYSTEMS}, corpus, templates))
-    ]
+    questions = build_questions(question_ids, rows, corpus, templates)
     selection = None
     if args.setup_check is not None:
         selection = setup_check_sample(questions, args.setup_check)
@@ -324,11 +521,12 @@ def main(argv: list[str] | None = None) -> None:
     estimate = round(len(questions) * EST_COST_PER_QUESTION, 4)
     check_approval(estimate, args.max_cost, args.approval)  # before any folder or paid call
 
-    version_checks = [{"at": "start", **jc.verify_model()}]  # free; refuses a changed model
+    checks = [{"at": "start", **jc.verify_model()}]  # free; refuses a changed model
     git = git_state()
     run_id = f"judge-{split}-{datetime.now(UTC):%Y%m%d-%H%M%S}-{git['git_commit'][:7]}"
     out = RESULTS_DIR / run_id
     out.mkdir(parents=True, exist_ok=False)
+    save_checks(out, checks)
     config = {
         "run_id": run_id, "created_utc": datetime.now(UTC).isoformat(timespec="seconds"), **git,
         "split": split, "baseline_run": args.baseline_run, "agent_run": args.agent_run,
@@ -336,6 +534,7 @@ def main(argv: list[str] | None = None) -> None:
         "questions_without_items": [p for p in question_ids
                                     if p not in {q["pmid"] for q in questions}] if not selection
         else None,
+        "earlier_void_judge_runs": [c["run_id"] for c in earlier_void],
         "judge_provider": jc.JUDGE_PROVIDER, "judge_model": jc.JUDGE_MODEL,
         "expected_model_version": jc.EXPECTED_MODEL_VERSION,
         "expected_response_model_version": jc.EXPECTED_RESPONSE_MODEL_VERSION,
@@ -353,66 +552,11 @@ def main(argv: list[str] | None = None) -> None:
     (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     key = {q["pmid"]: q["key"] for q in questions}
     (out / "blinding_key.json").write_text(json.dumps(key, indent=2) + "\n", encoding="utf-8")
-
-    calls, judgments, stop_reason, streak = [], [], None, 0
     wall_start = now()
-    try:
-        with (out / "calls.jsonl").open("w", encoding="utf-8") as cf, \
-                (out / "judgments.jsonl").open("w", encoding="utf-8") as jf:  # fmt: skip
-            for i, q in enumerate(questions):
-                if i and i % VERSION_CHECK_EVERY == 0:
-                    version_checks.append({"at": f"after {i} questions", **jc.verify_model()})
-                if args.max_cost is not None:
-                    spent = sum(c["cost_usd"] for c in calls)
-                    margin = max([PER_QUESTION_ALLOWANCE] + [2 * c["cost_usd"] for c in calls])
-                    if spent + margin > args.max_cost:
-                        stop_reason = f"cost cap ${args.max_cost} before question {i + 1} "
-                        stop_reason += f"(spent ${spent:.4f})"
-                        break
-                call = judge_question(q, templates["SYSTEM_INSTRUCTION"], schema)
-                calls.append(call)
-                cf.write(json.dumps(call) + "\n")
-                cf.flush()
-                for blind_id, it in q["items"].items():
-                    j = call["judgments"].get(blind_id)
-                    judgments.append({"pmid": q["pmid"], "blind_id": blind_id, **it,
-                                      "label": j["label"] if j else "not_judged",
-                                      "evidence_quote": j["evidence_quote"] if j else None,
-                                      "reason": j["reason"] if j else None})  # fmt: skip
-                    jf.write(json.dumps(judgments[-1]) + "\n")
-                jf.flush()
-                print(f"  {i + 1}/{len(questions)} {q['pmid']}: {call['usage']} "
-                      f"${call['cost_usd']:.4f} {call['latency_ms'] / 1000:.1f}s"
-                      + (" MALFORMED" if call["malformed"] else ""), flush=True)  # fmt: skip
-                streak = streak + 1 if call["failed"] else 0
-                if streak >= MAX_CONSECUTIVE_FAILURES and i + 1 < len(questions):
-                    stop_reason = f"{streak} questions in a row failed"
-                    break
-            if stop_reason is None:
-                version_checks.append({"at": "end", **jc.verify_model()})
-    except jc.JudgeModelChanged as exc:
-        stop_reason = f"model changed: {exc}"
-    except BaseException as exc:
-        write_void(out, run_id, f"interrupted: {type(exc).__name__}", len(calls), len(questions))
-        raise
-    (out / "version_checks.json").write_text(json.dumps(version_checks, indent=2) + "\n",
-                                             encoding="utf-8")  # fmt: skip
-    if stop_reason is None and len(calls) != len(questions):
-        stop_reason = "fewer judged questions than planned"
-    if stop_reason is not None:
-        write_void(out, run_id, stop_reason, len(calls), len(questions))
-        spent = sum(c["cost_usd"] for c in calls)
-        raise SystemExit(f"VOID judge run {run_id}: {stop_reason}; ${spent:.4f} spent. Not "
-                         "scored; re-judge in full under a new run ID.")  # fmt: skip
-    summary = {"run_id": run_id, "complete": True, "judge_model": jc.JUDGE_MODEL,
-               "model_versions_reported": sorted({a["model_version_reported"] for c in calls
-                                                  for a in c["attempts"] if a["ok"]}),
-               "version_checks": [v["version"] for v in version_checks],
-               "rubric_file_sha256": jr.file_hashes(),
-               **summarize(calls, judgments, now() - wall_start)}  # fmt: skip
-    (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({k: summary[k] for k in summary if k != "labels"}, indent=2))
-    print(f"Saved to {out.relative_to(REPO_ROOT)}")
+    calls, judgments = [], []
+    stop = judge_loop(out, run_id, questions, templates, schema, args.max_cost, calls, judgments,
+                      checks, len(questions))  # fmt: skip
+    finish(out, run_id, config, len(questions), calls, judgments, checks, stop, now() - wall_start)
 
 
 if __name__ == "__main__":
