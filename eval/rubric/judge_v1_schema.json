@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "properties": {
+    "judgments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "evidence_quote": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "enum": [
+              "supported",
+              "partially_supported",
+              "unsupported"
+            ]
+          }
+        },
+        "required": [
+          "item_id",
+          "evidence_quote",
+          "reason",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "judgments"
+  ],
+  "additionalProperties": false
+}

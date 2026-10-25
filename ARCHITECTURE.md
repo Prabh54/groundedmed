@@ -369,12 +369,12 @@ Database hosting for the public month is decided at M6 (ADR-017): Supabase Free 
 | `DATABASE_ADMIN_URL` | `scripts/ingest.py` only | local `.env` only |
 | `VOYAGE_API_KEY` | embeddings + rerank | local `.env`, Railway |
 | `ANTHROPIC_API_KEY` | runtime LLM | local `.env`, Railway |
-| `GEMINI_API_KEY` | independent judge | local `.env` only (never deployed) |
+| `EVALUATOR_API_KEY` | independent judge (Gemini, Google AI Studio) | local `.env` only (never deployed) |
 | `ALLOWED_ORIGINS` | CORS | Railway |
 | `DAILY_QUERY_CAP` | spend protection | Railway |
 | `NEXT_PUBLIC_API_BASE_URL` | frontend | Vercel |
 
-Names follow each SDK's default variable (ADR-018). Values never go in this file or in Git.
+Names follow each SDK's default variable (ADR-018), except `EVALUATOR_API_KEY` (owner's name, 2026-10-24; passed to the Gemini client explicitly). Values never go in this file or in Git.
 
 ## 13. Failure and fallback behavior
 

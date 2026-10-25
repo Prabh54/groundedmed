@@ -33,7 +33,7 @@ SECRET_ENV_VARS = (
     "DATABASE_ADMIN_URL",
     "VOYAGE_API_KEY",
     "ANTHROPIC_API_KEY",
-    "GEMINI_API_KEY",
+    "EVALUATOR_API_KEY",
 )
 _URL_PASSWORD = re.compile(r"(://[^:/@\s]*:)[^@\s]+@")
 _KEYWORD_PASSWORD = re.compile(r"(password\s*=\s*)('[^']*'|\S+)", re.IGNORECASE)
