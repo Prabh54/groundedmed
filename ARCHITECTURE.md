@@ -331,6 +331,10 @@ Guards (also tested):
   refused unless given both `--max-cost USD` (a soft stop) and `--approval "<the owner's typed approval>"`;
   the estimate and the text are saved in `run_config.json` and `summary.json`.
 - Baseline, agent and closed-book runs on the same split must share an identical question-ID list.
+- A run that stops early (cost cap, 5 failed questions in a row, crash, Ctrl-C) is void (ADR-034):
+  `VOID.json`, rows renamed `raw.VOID-do-not-score.jsonl`, no summary; it does not count as the test
+  run, and the rerun must have the identical system identity. The scorer refuses void, unfinished or
+  partial runs and runs on different question IDs (`require_complete_run`, `require_same_questions`).
 - Majority-class reference ("always yes") is computed and shown with the results.
 - Agent summaries include `planner_added_evidence` (mean, and share of questions > 0) — ADR-023.
 - The runtime model cannot fix its random seed or temperature, so reruns are reproducible in procedure, not

@@ -12,8 +12,17 @@ approval text are saved in run_config.json and summary.json.
 
 --max-cost is a soft spending stop: before each question the runner checks that the money spent so
 far plus a margin (twice the most expensive question so far, at least PER_QUESTION_ALLOWANCE) stays
-within the cap; otherwise it stops, and the summary says `stopped_at_cost_cap`. It can only be
-exceeded if one question costs more than that margin. Failed questions count the calls they made.
+within the cap; otherwise it stops. It can only be exceeded if one question costs more than that
+margin. Failed questions count the calls they made.
+
+Void runs (owner instruction 2026-10-24, ADR-034): a run that stops before all of its planned
+questions (cost cap, MAX_CONSECUTIVE_ERRORS failures in a row, crash, Ctrl-C) is void. It writes
+VOID.json, renames its rows to raw.VOID-do-not-score.jsonl, computes and prints no results, and
+exits with an error; a new run (new run ID) is needed. A void test run does not count as the
+system's one test run. The next test run of that system refuses unless its frozen system identity
+(model, prompts, efforts, gate threshold) equals the void run's, so nothing about the system can
+change between the two. `require_complete_run` and `require_same_questions` are the checks the
+scorer runs before computing anything.
 
 Calls the same Python function the API uses (not HTTP), sequentially. The gold label is read here
 only, after the answer is produced; the pipeline never sees it. The test split additionally needs
@@ -21,7 +30,8 @@ only, after the answer is produced; the pipeline never sees it. The test split a
 --limit. Each system runs on the test split once (ADR-031): if a completed test run of that system
 exists, the script refuses unless given both --rerun-final-test and --reason "<why>"; the reason and
 the earlier run IDs are written to override.json in the new run directory. A question that fails
-(provider or database outage) is stored as an error row, counted as incorrect; the run continues.
+(provider or database outage) is stored as an error row, counted as incorrect; the run continues
+unless MAX_CONSECUTIVE_ERRORS questions fail in a row (an outage), which makes the run void.
 Results go to eval/results/<run-id>/ (raw.jsonl, summary.json, run_config.json); a run is never
 overwritten.
 """
@@ -75,6 +85,17 @@ APPROVAL_THRESHOLD_USD = 0.50
 # agent questions up to ~$0.035 in M3-T7). Used only to decide whether approval is needed.
 EST_COST_PER_QUESTION = {"baseline": 0.015, "agent": 0.035}
 PER_QUESTION_ALLOWANCE = 0.05  # USD; agent questions measured $0.024-0.034 (M3-T7)
+MAX_CONSECUTIVE_ERRORS = 5  # this many failed questions in a row = an outage -> void run (ADR-034)
+VOID_FILE = "VOID.json"
+VOID_RAW = "raw.VOID-do-not-score.jsonl"
+# run_config keys that define the system being tested; must match across a void run and its rerun
+IDENTITY_KEYS = (
+    "system", "split", "question_ids", "manifest_sha256", "corpus_manifest_sha256", "llm_model",
+    "synthesizer_prompt_sha256", "synthesizer_user_template_sha256", "synthesizer_effort",
+    "evidence_gate_threshold", "embedding_model", "rerank_model", "planner_prompt_sha256",
+    "planner_user_template_sha256", "planner_effort", "critic_prompt_sha256",
+    "critic_user_template_sha256", "critic_effort",
+)  # fmt: skip
 
 
 def load_manifest(split: str) -> dict:
@@ -121,15 +142,73 @@ def check_approval(estimate: float, max_cost: float | None, approval: str | None
         )
 
 
-def completed_test_runs(system: str) -> list[str]:
-    """Run IDs of finished (summary.json written) test-split runs of `system`."""
-    done = []
+def test_run_configs(system: str) -> list[tuple[dict, bool]]:
+    """(run_config, completed) for every test-split run directory of `system`. Completed = it has
+    summary.json and no VOID.json; anything else (void, crashed) is not a completed run."""
+    found = []
     for config_path in sorted(RESULTS_DIR.glob("*/run_config.json")):
         config = json.loads(config_path.read_text(encoding="utf-8"))
         if config.get("split") == "test" and config.get("system") == system:
-            if (config_path.parent / "summary.json").exists():
-                done.append(config["run_id"])
-    return done
+            run_dir = config_path.parent
+            done = (run_dir / "summary.json").exists() and not (run_dir / VOID_FILE).exists()
+            found.append((config, done))
+    return found
+
+
+def completed_test_runs(system: str) -> list[str]:
+    """Run IDs of finished test-split runs of `system` (void and crashed runs excluded)."""
+    return [config["run_id"] for config, done in test_run_configs(system) if done]
+
+
+def check_same_identity_as_void_runs(config: dict) -> list[str]:
+    """A rerun after a void test run must test the identical system (ADR-034). Returns the void
+    run IDs (recorded in the new run's config)."""
+    void = [c for c, done in test_run_configs(config["system"]) if not done]
+    for earlier in void:
+        changed = [k for k in IDENTITY_KEYS if earlier.get(k) != config.get(k)]
+        if changed:
+            raise SystemExit(
+                f"Void test run {earlier['run_id']} tested a different system ({', '.join(changed)}"
+                "). A rerun after a void run must not change the system; refusing."
+            )
+    return [c["run_id"] for c in void]
+
+
+def write_void(out, run_id: str, reason: str, done: int, planned: int) -> None:
+    """Mark a run void (ADR-034): no summary, rows renamed so nothing scores them by accident."""
+    record = {
+        "run_id": run_id,
+        "void": True,
+        "reason": reason,
+        "questions_done": done,
+        "questions_planned": planned,
+        "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
+        "rule": "Stopped before all planned questions: void. Not scored, no results computed or "
+        "shown. Does not count as the system's test run (ADR-034). Rerun under a new run ID with "
+        "the identical system.",
+    }
+    (out / VOID_FILE).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    if (out / "raw.jsonl").exists():
+        (out / "raw.jsonl").rename(out / VOID_RAW)
+
+
+def require_complete_run(run_dir) -> list[dict]:
+    """The scorer's gate: refuse a void, crashed or partial run. Returns its rows."""
+    if (run_dir / VOID_FILE).exists() or not (run_dir / "summary.json").exists():
+        raise SystemExit(f"{run_dir.name} is void or unfinished; it must not be scored.")
+    config = json.loads((run_dir / "run_config.json").read_text(encoding="utf-8"))
+    rows = [json.loads(line) for line in (run_dir / "raw.jsonl").open(encoding="utf-8")]
+    if [r["pmid"] for r in rows] != config["question_ids"]:
+        raise SystemExit(f"{run_dir.name}: rows do not match its planned question IDs; refusing.")
+    return rows
+
+
+def require_same_questions(*run_dirs) -> list[str]:
+    """Every compared run must be complete and cover the identical question IDs, in order."""
+    ids = [[r["pmid"] for r in require_complete_run(d)] for d in run_dirs]
+    if any(i != ids[0] for i in ids[1:]):
+        raise SystemExit("Runs cover different question IDs; refusing to compare them.")
+    return ids[0]
 
 
 def check_once_only(split: str, system: str, rerun: bool, reason: str | None) -> dict | None:
@@ -354,9 +433,6 @@ def main(argv: list[str] | None = None) -> None:
     estimate = estimated_cost(args.system, len(items))
     check_approval(estimate, args.max_cost, args.approval)  # before any folder or paid call
     run_id = f"{args.split}-{args.system}-{datetime.now(UTC):%Y%m%d-%H%M%S}-{git['git_commit'][:7]}"
-    out = create_run_dir(run_id)
-    if override:
-        (out / "override.json").write_text(json.dumps(override, indent=2) + "\n", encoding="utf-8")
     config = {
         "run_id": run_id,
         "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -402,53 +478,77 @@ def main(argv: list[str] | None = None) -> None:
             ).hexdigest(),
             "critic_effort": agent_critic.CRITIC_EFFORT,
         }
+    if args.split == "test":  # before the new folder exists, so it is not compared with itself
+        config["earlier_void_test_runs"] = check_same_identity_as_void_runs(config)
+    out = create_run_dir(run_id)
+    if override:
+        (out / "override.json").write_text(json.dumps(override, indent=2) + "\n", encoding="utf-8")
     (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
     rows = []
-    stopped_at_cap = False
+    stop_reason = None
+    consecutive_errors = 0
     voyage, llm = voyage_client(max_retries=3, timeout=60), anthropic_client()
     conn = None
-    with (out / "raw.jsonl").open("w", encoding="utf-8") as raw:
-        for i, item in enumerate(items, start=1):
-            if args.max_cost is not None:
-                spent = sum(r["cost_usd"] for r in rows)
-                margin = max([PER_QUESTION_ALLOWANCE] + [2 * r["cost_usd"] for r in rows])
-                if spent + margin > args.max_cost:
-                    stopped_at_cap = True
-                    print(f"  COST CAP: stopping before question {i} (spent ${spent:.3f})")
-                    break
-            start = time.perf_counter()
-            try:
-                conn = conn or connect()
-                if args.system == "agent":
-                    answer, state = answer_agent(item["question"], conn=conn, voyage=voyage,
+    try:
+        with (out / "raw.jsonl").open("w", encoding="utf-8") as raw:
+            for i, item in enumerate(items, start=1):
+                if args.max_cost is not None:
+                    spent = sum(r["cost_usd"] for r in rows)
+                    margin = max([PER_QUESTION_ALLOWANCE] + [2 * r["cost_usd"] for r in rows])
+                    if spent + margin > args.max_cost:
+                        stop_reason = f"cost cap ${args.max_cost} reached before question {i} "
+                        stop_reason += f"(spent ${spent:.3f})"
+                        break
+                start = time.perf_counter()
+                try:
+                    conn = conn or connect()
+                    if args.system == "agent":
+                        answer, state = answer_agent(item["question"], conn=conn, voyage=voyage,
+                                                     llm=llm)  # fmt: skip
+                        row = agent_row(item, answer, state)
+                    else:
+                        answer = answer_baseline(item["question"], conn=conn, voyage=voyage,
                                                  llm=llm)  # fmt: skip
-                    row = agent_row(item, answer, state)
-                else:
-                    answer = answer_baseline(item["question"], conn=conn, voyage=voyage, llm=llm)
-                    row = run_row(item, answer)
-            except Exception as exc:  # outage: record it, reconnect, keep going
-                error = redact(f"{type(exc).__name__}: {exc}")[:300]
-                row = error_row(item, error, (time.perf_counter() - start) * 1000,
-                                getattr(exc, "usage", None))  # fmt: skip
-                print(f"  ERROR on {item['pmid']}: {error}", flush=True)
-                if conn is not None:
-                    conn.close()
-                conn = None
-            rows.append(row)
-            raw.write(json.dumps(row) + "\n")
-            raw.flush()
-            if i % 10 == 0:
-                spent = sum(r["cost_usd"] for r in rows)
-                print(f"  {i}/{len(items)}  spent ${spent:.3f}", flush=True)
-
-    if conn is not None:
-        conn.close()
+                        row = run_row(item, answer)
+                    consecutive_errors = 0
+                except Exception as exc:  # outage: record it, reconnect, keep going
+                    error = redact(f"{type(exc).__name__}: {exc}")[:300]
+                    row = error_row(item, error, (time.perf_counter() - start) * 1000,
+                                    getattr(exc, "usage", None))  # fmt: skip
+                    print(f"  ERROR on {item['pmid']}: {error}", flush=True)
+                    if conn is not None:
+                        conn.close()
+                    conn = None
+                    consecutive_errors += 1
+                rows.append(row)
+                raw.write(json.dumps(row) + "\n")
+                raw.flush()
+                if i % 10 == 0:
+                    spent = sum(r["cost_usd"] for r in rows)
+                    print(f"  {i}/{len(items)}  spent ${spent:.3f}", flush=True)
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS and i < len(items):
+                    stop_reason = f"{consecutive_errors} questions in a row failed (outage?)"
+                    break
+    except BaseException as exc:  # crash or Ctrl-C mid-run: the run is void
+        write_void(out, run_id, f"interrupted: {type(exc).__name__}", len(rows), len(items))
+        raise
+    finally:
+        if conn is not None:
+            conn.close()
+    if stop_reason is None and len(rows) != len(items):
+        stop_reason = "fewer rows than planned questions"
+    if stop_reason is not None:
+        write_void(out, run_id, stop_reason, len(rows), len(items))
+        spent = sum(r["cost_usd"] for r in rows)
+        raise SystemExit(
+            f"VOID run {run_id}: {stop_reason}; {len(rows)}/{len(items)} questions, ${spent:.3f} "
+            "spent. Not scored and no results computed (ADR-034). Start a new run."
+        )
     summary = {"run_id": run_id, "system": args.system, "split": args.split, **summarize(rows)}
     if args.system == "agent":
         summary["agent"] = summarize_agent(rows)
-    if args.max_cost is not None:
-        summary["stopped_at_cost_cap"] = stopped_at_cap
+    summary["complete"] = True
     summary["owner_approval"] = config["owner_approval"]
     summary["estimated_cost_usd"] = estimate
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")

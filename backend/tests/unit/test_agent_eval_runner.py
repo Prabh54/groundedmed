@@ -122,17 +122,26 @@ def test_agent_run_stores_agent_diagnostics(runner):
     assert len(config["critic_prompt_sha256"]) == 64
 
 
-def test_cost_cap_stops_before_exceeding(runner):
+def void_run(tmp_path):
+    """The single run folder of a void run: its VOID.json and its renamed rows."""
+    (run_dir,) = tmp_path.iterdir()
+    assert not (run_dir / "summary.json").exists() and not (run_dir / "raw.jsonl").exists()
+    rows = [json.loads(line) for line in (run_dir / run_system.VOID_RAW).open(encoding="utf-8")]
+    return json.loads((run_dir / run_system.VOID_FILE).read_text(encoding="utf-8")), rows
+
+
+def test_cost_cap_stops_before_exceeding_and_voids_the_run(runner, tmp_path):
     # each fake question costs 3 x $0.003 + Voyage list price; allowance $0.05 per question
-    rows, summary, config = runner("--limit", "10", "--max-cost", "0.07")
-    assert len(rows) == 3 and summary["n_questions"] == 3
-    assert summary["stopped_at_cost_cap"] is True and config["max_cost_usd"] == 0.07
-    assert sum(r["cost_usd"] for r in rows) <= 0.07
+    with pytest.raises(SystemExit, match="VOID run"):
+        runner("--limit", "10", "--max-cost", "0.07")
+    void, rows = void_run(tmp_path)
+    assert void["questions_done"] == 3 == len(rows) and void["questions_planned"] == 10
+    assert "cost cap" in void["reason"] and sum(r["cost_usd"] for r in rows) <= 0.07
 
 
-def test_no_cap_hit_is_reported_as_such(runner):
+def test_run_that_finishes_under_the_cap_is_complete(runner):
     _, summary, _ = runner("--limit", "2", "--max-cost", "5")
-    assert summary["stopped_at_cost_cap"] is False and summary["n_questions"] == 2
+    assert summary["complete"] is True and summary["n_questions"] == 2
 
 
 def test_non_positive_cap_is_refused(runner):
@@ -159,13 +168,14 @@ def test_failed_question_still_counts_the_planner_cost(runner, monkeypatch):
                                                          abs=1e-4)  # fmt: skip
 
 
-def test_cost_stop_margin_grows_with_the_most_expensive_question(runner, monkeypatch):
+def test_cost_stop_margin_grows_with_the_most_expensive_question(runner, monkeypatch, tmp_path):
     """Margin = max($0.05, 2 x the most expensive question so far)."""
     monkeypatch.setattr(run_system, "PER_QUESTION_ALLOWANCE", 0.001)
     # each fake question costs ~$0.009, so the margin is ~$0.018: q3 would need 0.018 + 0.018
-    rows, summary, _ = runner("--limit", "10", "--max-cost", "0.03")
-    assert len(rows) == 2 and summary["stopped_at_cost_cap"] is True
-    assert sum(r["cost_usd"] for r in rows) <= 0.03
+    with pytest.raises(SystemExit, match="VOID run"):
+        runner("--limit", "10", "--max-cost", "0.03")
+    _, rows = void_run(tmp_path)
+    assert len(rows) == 2 and sum(r["cost_usd"] for r in rows) <= 0.03
 
 
 # --- approval guard (owner instruction 2026-10-24) ---------------------------------------------
