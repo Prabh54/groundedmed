@@ -6,10 +6,13 @@ URL). Every result records the exact model string requested, the `modelVersion` 
 the response and the model's metadata, so a silent change behind the name can be seen afterwards,
 as far as Google exposes it.
 
-Pinning: `gemini-2.5-pro` is Google's stable endpoint ("Stable release (June 17th, 2025)" in its
-model metadata, version "2.5"). Google publishes no dated snapshot (e.g. `-001`) for it, so this
-name is the most exact pin available; Google says stable models "usually don't change", which is
-not a guarantee.
+Pinning (ADR-035): `gemini-3.1-pro-preview`, whose metadata reports the dated version
+"3.1-pro-preview-01-2026". No frozen snapshot name is reachable for this account, so the pin is
+the name plus that version string: `verify_model` refuses to judge if Google's metadata version
+differs (the judge runner checks it before, during and after each run), and `generate` refuses a
+response whose reported `modelVersion` differs from the one observed at the M4-T0 test call. That
+per-response value is only "gemini-3.1-pro-preview" (undated), so the dated check lives in the
+metadata. A swap that changes neither string cannot be detected.
 """
 
 import hashlib
@@ -20,27 +23,29 @@ import urllib.request
 from backend.app.config import env, redact
 
 JUDGE_PROVIDER = "google"
-# ADR-014 choice. 2026-10-24: Google refused it here (HTTP 404 "no longer available to new
-# users", on the free countTokens call; nothing billed). Replacement pending the owner's decision.
-JUDGE_MODEL = "gemini-2.5-pro"
-EXPECTED_MODEL_VERSION = "2.5"  # `version` in Google's metadata for JUDGE_MODEL on 2026-10-24
+JUDGE_MODEL = "gemini-3.1-pro-preview"  # ADR-035 (gemini-2.5-pro refused for this account)
+EXPECTED_MODEL_VERSION = "3.1-pro-preview-01-2026"  # Google's metadata `version`, 2026-10-24
+# `modelVersion` reported at the M4-T0 test call (judge-testcall-20261025-190152); undated
+EXPECTED_RESPONSE_MODEL_VERSION = "gemini-3.1-pro-preview"
 # USD per million tokens, paid tier, prompts <= 200k tokens (Google pricing page, 2026-10-24).
 # Thinking tokens are billed as output.
-JUDGE_PRICE_PER_M_TOKENS = {"input": 1.25, "output": 10.00}
+JUDGE_PRICE_PER_M_TOKENS = {"input": 2.00, "output": 12.00}
 API = "https://generativelanguage.googleapis.com/v1beta"
-FLOATING_MARKERS = ("latest", "preview", "exp")
+FLOATING_MARKERS = ("latest", "exp")  # aliases that move by design
 
 
 class JudgeAPIError(RuntimeError):
     pass
 
 
+class JudgeModelChanged(JudgeAPIError):
+    """Google reports a different model version than the pinned one (methodology contingency)."""
+
+
 def check_pinned(model: str) -> None:
-    """Refuse floating aliases and preview/experimental names (they can change under us)."""
+    """Refuse floating aliases ("latest") and experimental names (they change by design)."""
     if any(marker in model for marker in FLOATING_MARKERS):
-        raise ValueError(
-            f"{model!r} is a floating or preview model name; the judge must be pinned."
-        )
+        raise ValueError(f"{model!r} is a floating or experimental name; the judge must be pinned.")
 
 
 def judge_cost(input_tokens: int, output_tokens_incl_thinking: int) -> float:
@@ -66,6 +71,16 @@ def model_metadata(model: str = JUDGE_MODEL) -> dict:
     """Google's metadata for the model (free call)."""
     meta = _request(f"models/{model}")
     return {k: meta.get(k) for k in ("name", "version", "displayName", "description")}
+
+
+def verify_model(model: str = JUDGE_MODEL, expected: str = EXPECTED_MODEL_VERSION) -> dict:
+    """Free check before judging: refuse if Google's metadata version is not the pinned one."""
+    check_pinned(model)
+    meta = model_metadata(model)
+    if meta["version"] != expected:
+        raise JudgeModelChanged(f"{model}: Google reports version {meta['version']!r}, pinned "
+                                f"{expected!r}. Stop: see eval/methodology.md.")  # fmt: skip
+    return meta
 
 
 def build_body(system_instruction: str, user_text: str, schema: dict, *, temperature: float,
@@ -98,6 +113,10 @@ def generate(body: dict, model: str = JUDGE_MODEL) -> dict:
     """One paid generateContent call. Returns the raw response plus usage, cost and fingerprint."""
     check_pinned(model)
     raw = _request(f"models/{model}:generateContent", body)
+    reported = raw.get("modelVersion")
+    if EXPECTED_RESPONSE_MODEL_VERSION is not None and reported != EXPECTED_RESPONSE_MODEL_VERSION:
+        raise JudgeModelChanged(f"response came from {reported!r}, pinned "
+                                f"{EXPECTED_RESPONSE_MODEL_VERSION!r}; stop.")  # fmt: skip
     usage = raw.get("usageMetadata", {})
     out = usage.get("candidatesTokenCount", 0) + usage.get("thoughtsTokenCount", 0)
     return {

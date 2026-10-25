@@ -42,7 +42,7 @@ def test_generate_sends_key_in_header_only_and_counts_thinking_as_output(monkeyp
     monkeypatch.setenv("EVALUATOR_API_KEY", "fake-key-123456")
     sent = {}
     reply = {
-        "modelVersion": "fake-version",
+        "modelVersion": jc.EXPECTED_RESPONSE_MODEL_VERSION,
         "candidates": [{"content": {"parts": [{"text": "thinking", "thought": True},
                                               {"text": '{"judgments": []}'}]},
                         "finishReason": "STOP"}],
@@ -63,7 +63,7 @@ def test_generate_sends_key_in_header_only_and_counts_thinking_as_output(monkeyp
     assert "fake-key-123456" not in sent["url"]
     assert sent["headers"]["X-goog-api-key"] == "fake-key-123456"
     assert sent["body"]["generationConfig"]["responseJsonSchema"] == jr.load_schema()
-    assert out["model_version_reported"] == "fake-version"
+    assert out["model_version_reported"] == jc.EXPECTED_RESPONSE_MODEL_VERSION
     assert out["usage"]["thinking_tokens"] == 30
     assert out["cost_usd"] == pytest.approx(jc.judge_cost(100, 50))
     assert jc.response_text(out["response"]) == '{"judgments": []}'
@@ -92,3 +92,25 @@ def test_check_response_accepts_exactly_one_valid_judgment_per_item():
 def test_check_response_reports_each_problem(obj, expected):
     problems = jr.check_response(obj, ["A.c1", "B.c1"])
     assert any(expected in p for p in problems), problems
+
+
+def test_pinned_judge_is_the_adr_035_model_and_version():
+    assert jc.JUDGE_MODEL == "gemini-3.1-pro-preview"
+    assert jc.EXPECTED_MODEL_VERSION == "3.1-pro-preview-01-2026"
+    assert jc.EXPECTED_RESPONSE_MODEL_VERSION == "gemini-3.1-pro-preview"  # seen at the test call
+    jc.check_pinned(jc.JUDGE_MODEL)  # a dated preview is allowed; aliases are not
+
+
+def test_verify_model_refuses_a_changed_metadata_version(monkeypatch):
+    monkeypatch.setattr(jc, "model_metadata", lambda model: {"version": "3.1-pro-preview-07-2027"})
+    with pytest.raises(jc.JudgeModelChanged, match="pinned"):
+        jc.verify_model()
+    monkeypatch.setattr(jc, "model_metadata", lambda model: {"version": jc.EXPECTED_MODEL_VERSION})
+    assert jc.verify_model()["version"] == jc.EXPECTED_MODEL_VERSION
+
+
+def test_generate_refuses_a_response_from_a_different_model_version(monkeypatch):
+    monkeypatch.setattr(jc, "EXPECTED_RESPONSE_MODEL_VERSION", "pinned-version")
+    monkeypatch.setattr(jc, "_request", lambda path, body=None: {"modelVersion": "other-version"})
+    with pytest.raises(jc.JudgeModelChanged, match="other-version"):
+        jc.generate({"generationConfig": {}})

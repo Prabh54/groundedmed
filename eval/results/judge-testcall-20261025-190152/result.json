@@ -1,0 +1,94 @@
+{
+  "purpose": "M4-T0 judge test call on fictional data (no project, dev or test data)",
+  "owner_approval": "Approved now, nothing else: the new judge test call, fake data only, $0.05 ceiling",
+  "ceiling_usd": 0.05,
+  "worst_case_usd": 0.044114,
+  "judge_provider": "google",
+  "model_requested": "gemini-3.1-pro-preview",
+  "model_version_reported": "gemini-3.1-pro-preview",
+  "model_metadata": {
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  },
+  "rubric_version": "judge_v2",
+  "rubric_file_sha256": {
+    "judge_v2.md": "05a92c8a32359428eea00323a957f452c33855aeb9a7da026bcc4d1b9384d7d0",
+    "judge_v1_prompt.txt": "b240c38ad57deceb651f1357112ceb362848afd392a53d9932d473d537b27a95",
+    "judge_v1_schema.json": "5d35d697c96b13a639920588ab37e5018c0bbbb66483e52dd9bdeeec71342915"
+  },
+  "generation_config": {
+    "temperature": 0,
+    "seed": 20261024,
+    "maxOutputTokens": 3500,
+    "responseMimeType": "application/json",
+    "responseJsonSchema": "judge_v1_schema.json"
+  },
+  "request_sha256": "8e4038ad7ee9d20a161189fe7cfca7b5d680f677b35df71ca35a4386e5bfcece",
+  "input_tokens_counted_before": 1057,
+  "usage": {
+    "input_tokens": 1057,
+    "output_tokens": 209,
+    "thinking_tokens": 859,
+    "total_tokens": 2125
+  },
+  "cost_usd": 0.01493,
+  "finish_reason": "STOP",
+  "format_accepted_by_google": true,
+  "format_problems": [],
+  "parsed": {
+    "judgments": [
+      {
+        "item_id": "A.c1",
+        "evidence_quote": "The tea group recalled a mean of 14 words and the water group 11 words (p = 0.03).",
+        "reason": "The statement accurately reflects the results reported in the passage.",
+        "label": "supported"
+      },
+      {
+        "item_id": "B.c1",
+        "evidence_quote": "The tea group recalled a mean of 14 words and the water group 11 words (p = 0.03).",
+        "reason": "The passage discusses a word recall test, not dementia risk.",
+        "label": "unsupported"
+      },
+      {
+        "item_id": "B.l1",
+        "evidence_quote": "40 adult volunteers were randomly assigned to drink green tea or water",
+        "reason": "The passage confirms the sample size of 40 adults, but does not state that the study was conducted in Japan.",
+        "label": "partially_supported"
+      }
+    ]
+  },
+  "raw_response": {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "{\"judgments\": [{\"item_id\": \"A.c1\", \"evidence_quote\": \"The tea group recalled a mean of 14 words and the water group 11 words (p = 0.03).\", \"reason\": \"The statement accurately reflects the results reported in the passage.\", \"label\": \"supported\"}, {\"item_id\": \"B.c1\", \"evidence_quote\": \"The tea group recalled a mean of 14 words and the water group 11 words (p = 0.03).\", \"reason\": \"The passage discusses a word recall test, not dementia risk.\", \"label\": \"unsupported\"}, {\"item_id\": \"B.l1\", \"evidence_quote\": \"40 adult volunteers were randomly assigned to drink green tea or water\", \"reason\": \"The passage confirms the sample size of 40 adults, but does not state that the study was conducted in Japan.\", \"label\": \"partially_supported\"}]}",
+              "thoughtSignature": "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"
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP",
+        "index": 0
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 1057,
+      "candidatesTokenCount": 209,
+      "totalTokenCount": 2125,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 1057
+        }
+      ],
+      "thoughtsTokenCount": 859,
+      "serviceTier": "standard"
+    },
+    "modelVersion": "gemini-3.1-pro-preview",
+    "responseId": "GFLeasu6G_2tz7IPw6GgoQg"
+  }
+}

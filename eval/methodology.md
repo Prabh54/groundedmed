@@ -44,7 +44,9 @@ total and per-stage latency, token usage and cost, errors.
 
 ## Independent judge
 Gemini (Google, `EVALUATOR_API_KEY`), a different provider from the runtime system and its critic
-(Anthropic). Rubric v2, prompt and schema frozen and hash-checked before any test run. Blind: the systems
+(Anthropic). Model `gemini-3.1-pro-preview`, pinned to Google's reported version
+`3.1-pro-preview-01-2026` (ADR-035); every judge result file records the model string, the version
+Google reports for each response, the model metadata and the rubric fingerprints. Rubric v2, prompt and schema frozen and hash-checked before any test run. Blind: the systems
 are shown as SYSTEM_A / SYSTEM_B, assigned by a seeded coin per question; the judge is never told which
 is which, nor the verdict, gold label or reference conclusion. Each claim is judged only against the
 passages it cites.
@@ -62,11 +64,48 @@ is reported per group and per system, with counts and Wilson intervals (ADR-033)
 - A run that stops before all planned questions, for any reason (cost cap, 5 failures in a row, crash,
   interruption), is **void**: not scored, no results computed or shown, rows renamed
   `raw.VOID-do-not-score.jsonl`, and a new run ID is used. It does not count as the system's one test run,
-  because no results were seen; the rerun must test the identical system (checked by code). A complete
-  run cannot be voided. Void runs stay on disk and are listed in the final methodology (ADR-034).
+  because no results were seen; the rerun must test the identical system and carry the owner's fresh
+  typed approval (both checked by code). A complete run cannot be voided. Void runs stay on disk and are
+  listed in the final methodology (ADR-034).
 - Isolated failed questions are kept as error rows and count as incorrect.
-- Spending: each test run has a soft cap of about twice its estimate (proposed: baseline $6, agent $14),
-  approved by the owner in writing before the run.
+- Spending: each run has a soft cap of about twice its estimate, approved by the owner in writing before
+  the run (proposed: baseline $6, agent $14, closed-book $2, judge on all test claims $30; approved
+  2026-10-25: judge test call $0.05, judge setup check $1.50, closed-book prompt check $0.10).
+  All caps once: $53.65. **True ceiling including void reruns: $107.30** — every run voided once at its
+  cap and rerun once to its cap. A second rerun is impossible without a new typed approval (the runner
+  refuses a rerun that reuses the void run's approval text). The judge contingency below would add up to
+  $31.55 (or $63.10 if that re-judge were itself voided once), only with a new approval.
+
+## If the judge model is retired or changes (decided 2026-10-25, before any judging)
+Detection: a free check compares Google's model metadata version with the pinned
+`3.1-pro-preview-01-2026` before every judge run, after every 25 questions, and at the end; every
+response's reported `modelVersion` must equal `gemini-3.1-pro-preview`, the value seen at the M4-T0
+test call. Either mismatch, or Google refusing the model, stops judging (`JudgeModelChanged` / API
+error), which makes that judge run void. Limitation, measured at the test call: the per-response value
+is only the undated model name, so the dated version is visible only in the metadata. A swap that
+Google does not reflect in the metadata version cannot be detected.
+
+- **Before any test judging:** pick a replacement by a DECISIONS.md entry (same rubric v2, prompt and
+  schema, which are model-independent), run a fake-data test call and the 10-question dev setup check
+  with it, and get the owner's OK. Nothing to re-judge.
+- **During test judging:** the judge run is void (rubric v2 §5): its judgments are not read or scored.
+  After the replacement steps above, both systems' claims are judged again in full under a new judge
+  run ID. Baseline and agent are always judged by the same model version: never a mix.
+- **After test judging has finished:** the reported results stand, labelled with the model and version
+  that produced them. Nothing is re-judged unless the owner asks; any later re-judging covers both
+  systems in full and is reported beside the original, never replacing it.
+- **System runs are never re-run because of a judge change.** The baseline, agent and closed-book
+  answers are fixed files; the judge only reads them, so the frozen test set is not used again.
+- **Manual audit:** the owner's labels do not depend on the judge and are kept. If the judge changes,
+  agreement is recomputed on the same audit claims against the new judge's labels, noting that the
+  sample groups were drawn from the earlier judge's labels.
+- **Cost of re-judging everything:** about $15.54 estimated (test call $0.02 + dev setup check $0.74 +
+  all test claims $14.78, if the replacement is priced like gemini-3.1-pro-preview), cap $31.55. The
+  test-claims figure still rests on an assumed 4,000 thinking tokens per question until the setup
+  check measures it.
+- **Time:** about 200 judge calls, one per test question, run one after another. Machine time is
+  roughly 1–3 hours (assumed 20–60 s per call with thinking; the setup check measures it), plus the
+  owner's decision and approvals.
 
 ## Known limitations (stated before results)
 - Hit@5 is saturated on dev (1.00): questions are usually derived from the source paper's title and the

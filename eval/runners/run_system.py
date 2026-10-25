@@ -161,10 +161,16 @@ def completed_test_runs(system: str) -> list[str]:
 
 
 def check_same_identity_as_void_runs(config: dict) -> list[str]:
-    """A rerun after a void test run must test the identical system (ADR-034). Returns the void
-    run IDs (recorded in the new run's config)."""
+    """A rerun after a void test run must test the identical system (ADR-034) and carry a fresh
+    owner approval, not the one the void run spent. Returns the void run IDs (recorded in the new
+    run's config)."""
     void = [c for c, done in test_run_configs(config["system"]) if not done]
     for earlier in void:
+        if earlier.get("owner_approval") == config.get("owner_approval"):
+            raise SystemExit(
+                f"Void test run {earlier['run_id']} used this same approval. A rerun after a void "
+                "run needs the owner's fresh typed approval (ADR-034); refusing."
+            )
         changed = [k for k in IDENTITY_KEYS if earlier.get(k) != config.get(k)]
         if changed:
             raise SystemExit(

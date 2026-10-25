@@ -1,13 +1,13 @@
 """M4-T0: one paid test call to the independent judge, on made-up data only.
 
-Run: uv run python -m scripts.judge_test_call --approval "<the owner's approval, word for word>"
+Run: uv run python -m scripts.judge_test_call --ceiling 0.05 --approval "<the owner's approval>"
 
 Uses the frozen judge prompt and schema (rubric v2) on three fictional items, so no project, dev or
-test data is sent. Two free calls first (model metadata, token count); then it refuses unless the
-worst case stays within --ceiling (default $0.02), counting the thinking budget ON TOP of the
-output cap in case Google does not include thinking in the cap. Writes eval/results/judge-
-testcall-<UTC time>/result.json: model string, Google's reported model version and metadata, rubric
-fingerprints, request hash, raw response, token usage, cost, format check.
+test data is sent. Two free calls first (model metadata with the pinned-version check, token count);
+then it refuses unless the worst case (counted input + the full output cap, which Google documents
+as including thinking tokens) stays within --ceiling. Writes
+eval/results/judge-testcall-<UTC time>/result.json: model string, Google's reported model version
+and metadata, rubric fingerprints, request hash, raw response, token usage, cost, format check.
 """
 
 import argparse
@@ -18,8 +18,8 @@ from backend.app.config import REPO_ROOT
 from eval import judge_client as jc
 from eval import judge_rubric as jr
 
-MAX_OUTPUT_TOKENS = 1000
-THINKING_BUDGET = 512
+MAX_OUTPUT_TOKENS = 3500  # Google: the output cap includes thinking tokens (hard cutoff)
+THINKING_BUDGET = None  # the model's default thinking, as the judge will use (rubric v2 §4)
 FAKE_QUESTION = (
     "Does drinking green tea improve word recall in adult volunteers? (fictional test record)"
 )
@@ -70,13 +70,11 @@ def main(argv=None) -> None:
         max_output_tokens=MAX_OUTPUT_TOKENS, thinking_budget=THINKING_BUDGET,
     )  # fmt: skip
 
-    metadata = jc.model_metadata()  # free
+    metadata = jc.verify_model()  # free; refuses a changed version
     input_tokens = jc.count_tokens(body)  # free
-    worst = jc.judge_cost(input_tokens, MAX_OUTPUT_TOKENS + THINKING_BUDGET)
+    worst = jc.judge_cost(input_tokens, MAX_OUTPUT_TOKENS)
     print(f"model {jc.JUDGE_MODEL} (Google version {metadata['version']}); input {input_tokens} "
           f"tokens; worst case ${worst:.4f}; ceiling ${args.ceiling:.2f}")  # fmt: skip
-    if metadata["version"] != jc.EXPECTED_MODEL_VERSION:
-        raise SystemExit(f"Google now reports version {metadata['version']!r}; refusing.")
     if worst > args.ceiling:
         raise SystemExit("Worst case exceeds the ceiling; refusing before the paid call.")
 

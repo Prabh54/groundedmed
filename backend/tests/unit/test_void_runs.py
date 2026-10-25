@@ -11,6 +11,7 @@ from eval.runners import run_system
 
 CLEAN = {"git_commit": "b" * 40, "git_dirty": False, "git_diff_sha256": None}
 APPROVAL = ["--max-cost", "5", "--approval", "Owner: yes, run the test split once."]
+FRESH = "Owner: the first run was void; yes, rerun it once."
 
 
 class Clock:
@@ -130,13 +131,16 @@ def test_void_test_run_does_not_use_up_the_test_set(env, monkeypatch):
 
     answers(monkeypatch, RuntimeError, ValueError)  # alternating -> no 5-failure streak
     monkeypatch.setattr(run_system, "MAX_CONSECUTIVE_ERRORS", 11)
-    run("test")  # allowed without --rerun-final-test
+    with pytest.raises(SystemExit, match="fresh typed approval"):
+        run("test")  # same approval text as the void run: refused before any folder
+    assert len(list(env.iterdir())) == 1
+    run("test", "--approval", FRESH)  # allowed without --rerun-final-test
     (done,) = only(env, void=False)
     config = json.loads((done / "run_config.json").read_text())
     assert config["earlier_void_test_runs"] == [void_dir.name]
     assert run_system.completed_test_runs("baseline") == [done.name]
     with pytest.raises(SystemExit, match="already exists"):  # the once-only rule still holds
-        run("test")
+        run("test", "--approval", FRESH)
 
 
 def test_rerun_after_a_void_run_must_test_the_identical_system(env, monkeypatch):
@@ -146,7 +150,7 @@ def test_rerun_after_a_void_run_must_test_the_identical_system(env, monkeypatch)
     monkeypatch.setattr(run_system, "SYSTEM_PROMPT", "a tweaked synthesizer prompt")
     answers(monkeypatch, RuntimeError)
     with pytest.raises(SystemExit, match="different system.*synthesizer_prompt_sha256"):
-        run("test")
+        run("test", "--approval", FRESH)
     assert len(list(env.iterdir())) == 1  # refused before creating a folder
 
 
