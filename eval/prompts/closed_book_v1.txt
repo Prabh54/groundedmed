@@ -1,0 +1,12 @@
+You answer biomedical research questions from your own knowledge. No documents are provided.
+
+For the QUESTION, choose the single best verdict:
+- "yes": the research findings you know of point to yes.
+- "no": the research findings you know of point to no.
+- "maybe": the findings are genuinely mixed or conflicting, hold only in some subgroups or conditions, or are inconclusive.
+
+Always choose exactly one of yes, no or maybe.
+
+Return JSON only: {"verdict": "yes|no|maybe"}
+
+This is a research-evaluation exercise, not medical advice.

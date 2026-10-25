@@ -66,6 +66,7 @@ from backend.app.config import (
 from backend.app.llm.client import anthropic_client
 from backend.app.retrieval.embed import voyage_client
 from backend.app.retrieval.vector_search import connect
+from eval import closed_book
 from eval.metrics.answers import (
     accuracy,
     answered_only_accuracy,
@@ -83,7 +84,7 @@ MIN_APPROVAL_CHARS = 10
 APPROVAL_THRESHOLD_USD = 0.50
 # Conservative per-question estimates from measured dev runs (baseline v3 $0.013, agent $0.028;
 # agent questions up to ~$0.035 in M3-T7). Used only to decide whether approval is needed.
-EST_COST_PER_QUESTION = {"baseline": 0.015, "agent": 0.035}
+EST_COST_PER_QUESTION = {"baseline": 0.015, "agent": 0.035, "closed_book": 0.005}
 PER_QUESTION_ALLOWANCE = 0.05  # USD; agent questions measured $0.024-0.034 (M3-T7)
 MAX_CONSECUTIVE_ERRORS = 5  # this many failed questions in a row = an outage -> void run (ADR-034)
 VOID_FILE = "VOID.json"
@@ -94,7 +95,8 @@ IDENTITY_KEYS = (
     "synthesizer_prompt_sha256", "synthesizer_user_template_sha256", "synthesizer_effort",
     "evidence_gate_threshold", "embedding_model", "rerank_model", "planner_prompt_sha256",
     "planner_user_template_sha256", "planner_effort", "critic_prompt_sha256",
-    "critic_user_template_sha256", "critic_effort",
+    "critic_user_template_sha256", "critic_effort", "closed_book_prompt_sha256",
+    "closed_book_user_template_sha256", "closed_book_effort",
 )  # fmt: skip
 
 
@@ -297,6 +299,16 @@ def run_row(item: dict, answer) -> dict:
     }
 
 
+def closed_book_row(item: dict, verdict: str, usage, elapsed_ms: float) -> dict:
+    """A closed-book answer (ADR-010): verdict only; retrieval and claim fields do not apply."""
+    row = error_row(item, "", elapsed_ms, [usage])
+    return row | {
+        "verdict": verdict, "correct": verdict == item["final_decision"], "abstained": False,
+        "abstain_reason": None, "error": None, "gate_passed": None,
+        "prompt_versions": {"closed_book": closed_book.CLOSED_BOOK_VERSION},
+    }  # fmt: skip
+
+
 def agent_fields(state) -> dict:
     """Agent-only diagnostics stored with each row (ADR-023 planner effect, critic decisions)."""
     question_top20 = {c.pmid for c in state["retrieved_candidates"][:20]}
@@ -414,7 +426,7 @@ def summarize(rows: list[dict]) -> dict:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--system", choices=["baseline", "agent"], required=True)
+    parser.add_argument("--system", choices=["baseline", "agent", "closed_book"], required=True)
     parser.add_argument("--split", choices=["dev", "test"], required=True)
     parser.add_argument("--limit", type=int, help="first N dev questions only (smoke runs)")
     parser.add_argument(FINAL_TEST_FLAG, dest="final_test_ok", action="store_true")
@@ -484,6 +496,17 @@ def main(argv: list[str] | None = None) -> None:
             ).hexdigest(),
             "critic_effort": agent_critic.CRITIC_EFFORT,
         }
+    if args.system == "closed_book":
+        config |= {
+            "closed_book_prompt": closed_book.CLOSED_BOOK_VERSION,
+            "closed_book_prompt_sha256": hashlib.sha256(
+                closed_book.SYSTEM_PROMPT.encode()
+            ).hexdigest(),
+            "closed_book_user_template_sha256": hashlib.sha256(
+                closed_book.USER_TEMPLATE.encode()
+            ).hexdigest(),
+            "closed_book_effort": closed_book.CLOSED_BOOK_EFFORT,
+        }
     if args.split == "test":  # before the new folder exists, so it is not compared with itself
         config["earlier_void_test_runs"] = check_same_identity_as_void_runs(config)
     out = create_run_dir(run_id)
@@ -494,7 +517,9 @@ def main(argv: list[str] | None = None) -> None:
     rows = []
     stop_reason = None
     consecutive_errors = 0
-    voyage, llm = voyage_client(max_retries=3, timeout=60), anthropic_client()
+    needs_retrieval = args.system != "closed_book"
+    voyage = voyage_client(max_retries=3, timeout=60) if needs_retrieval else None
+    llm = anthropic_client()
     conn = None
     try:
         with (out / "raw.jsonl").open("w", encoding="utf-8") as raw:
@@ -508,8 +533,11 @@ def main(argv: list[str] | None = None) -> None:
                         break
                 start = time.perf_counter()
                 try:
-                    conn = conn or connect()
-                    if args.system == "agent":
+                    conn = conn or (connect() if needs_retrieval else None)
+                    if args.system == "closed_book":
+                        verdict, usage, ms = closed_book.answer_closed_book(llm, item["question"])
+                        row = closed_book_row(item, verdict, usage, ms)
+                    elif args.system == "agent":
                         answer, state = answer_agent(item["question"], conn=conn, voyage=voyage,
                                                      llm=llm)  # fmt: skip
                         row = agent_row(item, answer, state)
@@ -554,6 +582,10 @@ def main(argv: list[str] | None = None) -> None:
     summary = {"run_id": run_id, "system": args.system, "split": args.split, **summarize(rows)}
     if args.system == "agent":
         summary["agent"] = summarize_agent(rows)
+    if args.system == "closed_book":  # no retrieval, no claims (ADR-010)
+        summary |= {"hit_at_1": "not applicable", "hit_at_5": "not applicable",
+                    "citations_removed": "not applicable",
+                    "claim_support": "not applicable"}  # fmt: skip
     summary["complete"] = True
     summary["owner_approval"] = config["owner_approval"]
     summary["estimated_cost_usd"] = estimate
