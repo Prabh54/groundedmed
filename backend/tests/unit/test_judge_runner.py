@@ -1,6 +1,7 @@
 """Judge runner (M4-T2): blinding, version checks, token logging, retries, void runs, setup sample.
 Fake Gemini, fake corpus and fake source runs in tmp_path; no network."""
 
+import datetime as dt
 import json
 
 import pytest
@@ -57,15 +58,15 @@ class FakeGemini:
                 "cost_usd": jc.judge_cost(1000, 500)}  # fmt: skip
 
 
-class Clock:
-    """datetime stand-in: each now() is one second later, so run IDs never collide."""
+class Clock(dt.datetime):
+    """datetime whose now() is one second later each call, so run IDs never collide."""
 
-    t = __import__("datetime").datetime(2026, 10, 25, tzinfo=__import__("datetime").UTC)
+    t = dt.datetime(2026, 10, 25, 18, tzinfo=dt.UTC)
 
     @classmethod
     def now(cls, tz=None):
-        cls.t += __import__("datetime").timedelta(seconds=1)
-        return cls.t
+        Clock.t += dt.timedelta(seconds=1)
+        return Clock.t
 
 
 @pytest.fixture
@@ -101,9 +102,13 @@ def env(tmp_path, monkeypatch):
     return {"results": results, "fake": fake, "checks": checks, "pmids": pmids}
 
 
+QUOTA = ["--rpd-limit", "10000", "--rpd-used-today", "0"]
+
+
 def run(*extra):
     judge.main(
         [
+            *QUOTA,
             "--baseline-run",
             "dev-baseline-x",
             "--agent-run",
@@ -339,7 +344,7 @@ def void_then(env, monkeypatch, n_calls=4, exc=KeyboardInterrupt):
 
 
 def resume(d, approval=FRESH, *extra):
-    judge.main(["--resume", d.name, "--max-cost", "5", "--approval", approval, *extra])
+    judge.main(["--resume", d.name, *QUOTA, "--max-cost", "5", "--approval", approval, *extra])
 
 
 def test_each_question_is_checkpointed_as_it_is_judged(env, monkeypatch):
@@ -353,7 +358,7 @@ def test_resume_needs_a_fresh_typed_approval_and_never_happens_by_itself(env, mo
     with pytest.raises(SystemExit, match="fresh typed approval"):
         resume(d, "Owner: yes, judge the dev runs.")  # the original approval: refused
     with pytest.raises(SystemExit):
-        judge.main(["--resume", d.name, "--max-cost", "5"])  # no approval: refused
+        judge.main(["--resume", d.name, *QUOTA, "--max-cost", "5"])  # no approval: refused
     assert (d / "VOID.json").exists()
     run("--approval", "Owner: new full run instead.")  # a plain run never continues the old one
     assert (d / "VOID.json").exists() and not (d / "summary.json").exists()
@@ -386,3 +391,77 @@ def test_resume_refused_if_what_the_judge_reads_has_changed(env, monkeypatch):
     monkeypatch.setattr(judge, "render_passage", lambda sections: "changed passage text")
     with pytest.raises(SystemExit, match="request"):
         resume(d)
+
+
+# --- daily request quota (owner, 2026-10-25: 130/250 used; 197 needed) ------------------------
+
+QUOTA_ARGS = ["--baseline-run", "dev-baseline-x", "--agent-run", "dev-agent-x", "--max-cost", "5"]
+
+
+def judge_dirs(results):
+    return [p for p in results.iterdir() if p.name.startswith("judge-")]
+
+
+def test_refuses_to_start_when_todays_remaining_requests_are_too_few(env):
+    # 29 questions + 3 margin = 32 needed; 250 - 230 = 20 left
+    with pytest.raises(SystemExit, match=r"Daily request limit: 20 left today.*32 needed.*Resets"):
+        judge.main([*QUOTA_ARGS, "--rpd-limit", "250", "--rpd-used-today", "230",
+                    "--approval", "Owner: yes, judge the dev runs."])  # fmt: skip
+    assert judge_dirs(env["results"]) == [] and env["fake"].calls == 0
+
+
+def test_quota_inputs_are_required(env):
+    with pytest.raises(SystemExit, match="rpd-limit"):
+        judge.main([*QUOTA_ARGS, "--approval", "Owner: yes, judge the dev runs."])
+
+
+def test_quota_check_uses_our_own_logged_requests_when_higher(env):
+    run()  # 29 requests logged today
+    with pytest.raises(SystemExit, match=r"31 left today.*AI Studio says 0, our logs 29"):
+        judge.main([*QUOTA_ARGS, "--rpd-limit", "60", "--rpd-used-today", "0",
+                    "--approval", "Owner: second dev judging."])  # fmt: skip
+
+
+def test_quota_check_is_recorded_with_the_run(env):
+    run()
+    _, load, _ = judge_dir(env["results"])
+    q = load("run_config.json")["daily_quota_check"]
+    assert q["rpd_limit"] == 10000 and q["needed"] == 32 and q["remaining"] == 10000
+
+
+def test_daily_quota_429_stops_at_once_as_a_resumable_void(env, monkeypatch):
+    slept = []
+    monkeypatch.setattr(judge, "sleep", slept.append)
+    interrupt_after(env, monkeypatch, 3, exc=jc.JudgeQuotaExhausted("HTTP 429: per day"))
+    with pytest.raises(SystemExit, match="JudgeQuotaExhausted"):
+        run()
+    _, load, _ = judge_dir(env["results"])
+    assert env["fake"].calls == 3 and slept == []  # no retry, no further questions
+    assert load("VOID.json")["resumable"] is True
+
+
+def test_billing_error_stops_without_retrying(env, monkeypatch):
+    slept = []
+    monkeypatch.setattr(judge, "sleep", slept.append)
+    interrupt_after(env, monkeypatch, 1, exc=jc.JudgeBillingOrAccess("HTTP 402: credits depleted"))
+    with pytest.raises(SystemExit, match="JudgeBillingOrAccess"):
+        run()
+    assert slept == [] and env["fake"].calls == 1
+
+
+def test_per_minute_rate_limit_waits_as_long_as_google_asks_then_continues(env, monkeypatch):
+    slept, fake, sent = [], env["fake"], {"n": 0}
+    monkeypatch.setattr(judge, "sleep", slept.append)
+
+    def limited_once(body, model=None):
+        sent["n"] += 1
+        if sent["n"] == 2:
+            error = jc.JudgeAPIError("HTTP 429: per minute")
+            error.retry_after_s = 37.0
+            raise error
+        return FakeGemini.generate(fake, body, model)
+
+    monkeypatch.setattr(jc, "generate", limited_once)
+    run()
+    _, load, _ = judge_dir(env["results"])
+    assert slept == [37.0] and load("summary.json")["complete"] is True

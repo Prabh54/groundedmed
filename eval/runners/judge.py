@@ -26,13 +26,15 @@ import argparse
 import hashlib
 import html
 import json
+import math
 import random
 import re
 import statistics
 import sys
 import time
 import unicodedata
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from backend.app.config import REPO_ROOT
 from eval import judge_client as jc
@@ -42,8 +44,11 @@ from eval.runners.run_system import check_approval, require_complete_run, requir
 
 CORPUS = REPO_ROOT / "data" / "corpus.jsonl"
 VERSION_CHECK_EVERY = 25
-MAX_API_TRIES = 3
-BACKOFF_S = (5, 20)
+MAX_API_TRIES = 4
+BACKOFF_S = (5, 20, 60)  # or longer when Google asks (per-minute rate limit)
+MAX_WAIT_S = 300
+QUOTA_MARGIN = 0.10  # extra daily requests kept free for re-asks and retries
+PACIFIC = ZoneInfo("America/Los_Angeles")  # Gemini daily quotas reset at midnight Pacific
 MAX_CONSECUTIVE_FAILURES = 5
 MAX_OUTPUT_TOKENS = 16000  # includes thinking (Google); bounds one call at ~$0.19 + input
 # Per judged question, measured by the dev setup check judge-dev-20261025-192833-c72234e
@@ -134,19 +139,20 @@ def usable_judgments(obj, item_ids) -> dict:
 
 
 def call_with_backoff(body: dict, attempts: list) -> dict | None:
-    """One judge request, retrying API errors. Appends every try to `attempts`. A model change is
-    never retried (it stops the run)."""
+    """One judge request, retrying retryable API errors (network, 5xx, per-minute rate limit:
+    waiting at least as long as Google asks). Appends every try to `attempts`. A JudgeStop (model
+    change, daily quota used up, billing/access) is never retried: it stops the run."""
     for i in range(MAX_API_TRIES):
         start = now()
         try:
             result = jc.generate(body)
-        except jc.JudgeModelChanged:
+        except jc.JudgeStop:
             raise
         except jc.JudgeAPIError as exc:
             attempts.append({"ok": False, "error": str(exc)[:300],
                              "latency_ms": round((now() - start) * 1000, 1)})  # fmt: skip
             if i < len(BACKOFF_S):
-                sleep(BACKOFF_S[i])
+                sleep(min(MAX_WAIT_S, max(BACKOFF_S[i], exc.retry_after_s or 0)))
             continue
         attempts.append({"ok": True, "latency_ms": round((now() - start) * 1000, 1), **result})
         return result
@@ -304,6 +310,58 @@ def build_questions(question_ids, rows, corpus, templates) -> list[dict]:
     ]
 
 
+def logged_requests_today(model: str) -> int:
+    """Requests to `model` our own records show for today's Pacific day (Gemini's quota day):
+    every attempt in judge runs started today, plus the M4-T0 test call(s). A lower bound: a run
+    started before midnight that ran past it is counted on its start day."""
+    today = datetime.now(UTC).astimezone(PACIFIC).date()
+    total = 0
+    for d in sorted(RESULTS_DIR.glob("judge-*")):
+        if d.name.startswith("judge-testcall-"):
+            started = datetime.strptime(d.name[15:], "%Y%m%d-%H%M%S").replace(tzinfo=UTC)
+            result = json.loads((d / "result.json").read_text(encoding="utf-8"))
+            if started.astimezone(PACIFIC).date() == today and result["model_requested"] == model:
+                total += 2  # one countTokens + one generateContent
+            continue
+        config_path = d / "run_config.json"
+        if not config_path.exists():
+            continue
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        started = datetime.fromisoformat(config["created_utc"]).astimezone(PACIFIC)
+        if config.get("judge_model") == model and started.date() == today and \
+                (d / "calls.jsonl").exists():  # fmt: skip
+            with (d / "calls.jsonl").open(encoding="utf-8") as f:
+                total += sum(len(json.loads(line)["attempts"]) for line in f)
+    return total
+
+
+def check_daily_quota(n_questions: int, limit: int | None, reported_used: int | None) -> dict:
+    """Refuse to start unless today's remaining requests cover every question plus a margin for
+    re-asks/retries. Google has no API for remaining quota, so the owner reads the limit and
+    today's usage from AI Studio; our own logged requests are used if they are higher."""
+    if limit is None or reported_used is None:
+        raise SystemExit("--rpd-limit and --rpd-used-today are required: read both from Google AI "
+                         "Studio (Google offers no API for remaining quota).")  # fmt: skip
+    logged = logged_requests_today(jc.JUDGE_MODEL)
+    used = max(reported_used, logged)
+    margin = math.ceil(n_questions * QUOTA_MARGIN)
+    needed, remaining = n_questions + margin, limit - used
+    now_pt = datetime.now(UTC).astimezone(PACIFIC)
+    reset = (now_pt + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    record = {"rpd_limit": limit, "used_reported_by_owner": reported_used,
+              "used_logged_by_us": logged, "used": used, "remaining": remaining,
+              "questions": n_questions, "margin": margin, "needed": needed,
+              "checked_pacific": now_pt.isoformat(timespec="minutes"),
+              "resets_pacific": reset.isoformat(timespec="minutes")}  # fmt: skip
+    if remaining < needed:
+        raise SystemExit(
+            f"Daily request limit: {remaining} left today ({limit} - {used} used; AI Studio says "
+            f"{reported_used}, our logs {logged}); {needed} needed ({n_questions} questions + "
+            f"{margin} for re-asks/retries). Resets {reset:%Y-%m-%d %H:%M %Z}. Refusing to start."
+        )
+    return record
+
+
 def save_checks(out, checks: list) -> None:
     (out / "version_checks.json").write_text(json.dumps(checks, indent=2) + "\n", encoding="utf-8")
 
@@ -354,6 +412,8 @@ def judge_loop(
                 save_checks(out, checks)
     except jc.JudgeModelChanged as exc:
         stop_reason = f"model changed: {exc}"
+    except jc.JudgeStop as exc:  # daily quota or billing/access: void, resumable with approval
+        stop_reason = f"{type(exc).__name__}: {str(exc)[:300]}"
     except BaseException as exc:
         save_checks(out, checks)
         write_void(out, run_id, f"interrupted: {type(exc).__name__}", len(calls), planned)
@@ -422,6 +482,7 @@ def resume(args) -> None:
         if request_sha256(body) != c["request_sha256"]:
             raise SystemExit(f"The judge request for {c['pmid']} differs from the stopped run's; "
                              "refusing to resume.")  # fmt: skip
+    quota = check_daily_quota(len(questions) - len(done), args.rpd_limit, args.rpd_used_today)
     checks = json.loads((out / "version_checks.json").read_text(encoding="utf-8"))
     checks.append({"at": f"resume after {len(done)} questions", **jc.verify_model()})
     (out / VOID_JUDGMENTS).rename(out / "judgments.jsonl")
@@ -429,6 +490,7 @@ def resume(args) -> None:
     config.setdefault("resumes", []).append({
         "resumed_utc": datetime.now(UTC).isoformat(timespec="seconds"), "approval": approval,
         "questions_done": len(done), "max_cost_usd": args.max_cost, "void_record": void,
+        "daily_quota_check": quota,
         **git_state()})  # fmt: skip
     (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     (out / VOID_FILE).unlink()
@@ -486,6 +548,10 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--approval", help="the owner's approval text, word for word (saved)")
     parser.add_argument("--rerun-reason", help="test only: why a judged pair is judged again")
     parser.add_argument("--resume", help="a void judge run to continue (owner's fresh approval)")
+    parser.add_argument(
+        "--rpd-limit", type=int, help="the model's requests-per-day limit (AI Studio)"
+    )
+    parser.add_argument("--rpd-used-today", type=int, help="requests used today, per AI Studio")
     args = parser.parse_args(argv)
     if args.resume:
         if args.baseline_run or args.agent_run or args.setup_check is not None:
@@ -520,6 +586,7 @@ def main(argv: list[str] | None = None) -> None:
         questions = [q for q in questions if q["pmid"] in wanted]
     estimate = round(len(questions) * EST_COST_PER_QUESTION, 4)
     check_approval(estimate, args.max_cost, args.approval)  # before any folder or paid call
+    quota = check_daily_quota(len(questions), args.rpd_limit, args.rpd_used_today)
 
     checks = [{"at": "start", **jc.verify_model()}]  # free; refuses a changed model
     git = git_state()
@@ -547,7 +614,7 @@ def main(argv: list[str] | None = None) -> None:
         "version_check_every": VERSION_CHECK_EVERY, "estimated_cost_usd": estimate,
         "max_cost_usd": args.max_cost,
         "owner_approval": args.approval.strip() if args.approval else None,
-        "rerun_reason": args.rerun_reason,
+        "rerun_reason": args.rerun_reason, "daily_quota_check": quota,
     }  # fmt: skip
     (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     key = {q["pmid"]: q["key"] for q in questions}

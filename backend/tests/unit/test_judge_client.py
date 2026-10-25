@@ -135,3 +135,29 @@ def test_dropped_connection_is_a_retryable_judge_error(monkeypatch, error):
     monkeypatch.setattr(jc.urllib.request, "urlopen", urlopen)
     with pytest.raises(jc.JudgeAPIError):
         jc.model_metadata("gemini-test-model")
+
+
+PER_DAY = json.dumps({"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "details": [
+    {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [
+        {"quotaId": "GenerateRequestsPerDayPerProjectPerModel"}]}]}})  # fmt: skip
+PER_MINUTE = json.dumps({"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "details": [
+    {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [
+        {"quotaId": "GenerateRequestsPerMinutePerProjectPerModel"}]},
+    {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "37s"}]}})  # fmt: skip
+
+
+@pytest.mark.parametrize(
+    "code,body,kind,retry_after",
+    [
+        (429, PER_DAY, jc.JudgeQuotaExhausted, None),
+        (429, PER_MINUTE, jc.JudgeAPIError, 37.0),
+        (402, '{"error": {"message": "Your prepayment credits are depleted."}}',
+         jc.JudgeBillingOrAccess, None),
+        (404, '{"error": {"message": "no longer available"}}', jc.JudgeModelChanged, None),
+        (503, "overloaded", jc.JudgeAPIError, None),
+    ],
+)  # fmt: skip
+def test_http_errors_are_classified_retryable_or_run_stopping(code, body, kind, retry_after):
+    error = jc.classify_http_error(code, body)
+    assert type(error) is kind and error.retry_after_s == retry_after
+    assert isinstance(error, jc.JudgeStop) == (kind is not jc.JudgeAPIError)

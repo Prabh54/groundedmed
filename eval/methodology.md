@@ -93,6 +93,19 @@ is reported per group and per system, with counts and Wilson intervals (ADR-033)
   question is judged exactly once. The resume (time, approval, questions done, the void record, code
   commit) is recorded in `run_config.json` and `summary.json`; the cap covers the whole run.
 - Void judgments are never read before scoring, whether or not the run is later resumed.
+- **Daily request quota (owner instruction 2026-10-25):** Gemini counts requests per model per day,
+  resetting at midnight Pacific time; Google offers no API for the remaining quota. Before starting
+  (or resuming), the runner takes the limit and today's usage as shown in AI Studio
+  (`--rpd-limit`, `--rpd-used-today`), uses our own logged requests for today instead if they are
+  higher, and refuses unless the remaining requests cover every question still to judge plus 10%
+  for re-asks and retries. The check is saved with the run.
+- **Rate limits and stopping errors:** a per-minute rate limit (HTTP 429) is retried, waiting at
+  least as long as Google asks (up to 5 minutes, 4 tries). A daily-quota 429, a billing or access
+  error (HTTP 400/401/402/403) or an unavailable model (404) is not retried: the run stops at once
+  and is void. After a quota or billing stop it may be resumed only with the owner's fresh typed
+  approval; an unavailable model follows the contingency below (re-judge everything).
+- Second test judge run `judge-test-20261025-225605-00b81f4`: void after 5 questions, every call
+  refused with HTTP 402 (prepaid credit used up); $0 spent.
 - Defects found in the first test judge run (`judge-test-20261025-213638-cc3f2f7`, void after 118/197
   questions, $4.8673): a dropped connection was not retried; model-check records were not saved on a
   crash; the fresh-approval rule existed for system runs but not for the judge. All three fixed with

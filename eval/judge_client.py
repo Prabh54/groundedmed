@@ -36,11 +36,50 @@ FLOATING_MARKERS = ("latest", "exp")  # aliases that move by design
 
 
 class JudgeAPIError(RuntimeError):
-    pass
+    """A failed request that may succeed if retried (network, 5xx, a per-minute rate limit).
+    `retry_after_s` carries Google's suggested wait when it gives one."""
+
+    retry_after_s: float | None = None
 
 
-class JudgeModelChanged(JudgeAPIError):
-    """Google reports a different model version than the pinned one (methodology contingency)."""
+class JudgeStop(JudgeAPIError):
+    """Retrying cannot help: the judge run must stop (it becomes void)."""
+
+
+class JudgeQuotaExhausted(JudgeStop):
+    """The daily request quota is used up (resets at midnight Pacific time)."""
+
+
+class JudgeBillingOrAccess(JudgeStop):
+    """Billing, key or request rejected (HTTP 400/401/402/403), e.g. prepaid credit used up."""
+
+
+class JudgeModelChanged(JudgeStop):
+    """Google reports a different model version than the pinned one, or no longer serves the model
+    (HTTP 404) — methodology contingency."""
+
+
+def classify_http_error(code: int, text: str) -> JudgeAPIError:
+    """Map a Gemini HTTP error to retryable (JudgeAPIError) or run-stopping (JudgeStop)."""
+    message = f"HTTP {code}: {redact(text)[:800]}"
+    try:
+        details = json.loads(text)["error"].get("details", [])
+    except (ValueError, KeyError, TypeError, AttributeError):
+        details = []
+    if code == 429:
+        quota_ids = [v.get("quotaId", "") for d in details for v in d.get("violations", []) or []]
+        if any("perday" in q.lower() for q in quota_ids) or "per day" in text.lower():
+            return JudgeQuotaExhausted(message)
+        error = JudgeAPIError(message)
+        delays = [d["retryDelay"] for d in details if isinstance(d.get("retryDelay"), str)]
+        if delays:
+            error.retry_after_s = float(delays[0].rstrip("s") or 0)
+        return error
+    if code == 404:
+        return JudgeModelChanged(message)
+    if code in (400, 401, 402, 403):
+        return JudgeBillingOrAccess(message)
+    return JudgeAPIError(message)
 
 
 def check_pinned(model: str) -> None:
@@ -62,8 +101,7 @@ def _request(path: str, body: dict | None = None, timeout: float = 120) -> dict:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.load(resp)
     except urllib.error.HTTPError as exc:
-        detail = redact(exc.read().decode(errors="replace"))[:800]
-        raise JudgeAPIError(f"HTTP {exc.code}: {detail}") from None
+        raise classify_http_error(exc.code, exc.read().decode(errors="replace")) from None
     except (OSError, http.client.HTTPException, ValueError) as exc:
         # URLError, timeouts, a connection dropped or reset mid-response (RemoteDisconnected,
         # IncompleteRead) and a truncated JSON body are all retryable failures of one request:
