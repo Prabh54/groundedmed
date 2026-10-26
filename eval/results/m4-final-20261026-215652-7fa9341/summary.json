@@ -1,0 +1,508 @@
+{
+  "split": "test",
+  "n_questions": 200,
+  "rules": {
+    "overall_accuracy": "refusals and error rows count as incorrect",
+    "coverage": "always shown beside answered-only accuracy",
+    "proportions": "Wilson 95%",
+    "latency_cost": "bootstrap 95%",
+    "differences": "paired bootstrap 95% over the same question IDs",
+    "resamples": 2000,
+    "seed": 20261024
+  },
+  "majority_class_reference": {
+    "count": 110,
+    "n": 200,
+    "value": 0.55,
+    "wilson95": [
+      0.48075488574571107,
+      0.6173605136624569
+    ]
+  },
+  "systems": {
+    "baseline": {
+      "n_questions": 200,
+      "accuracy": {
+        "count": 153,
+        "n": 200,
+        "value": 0.765,
+        "wilson95": [
+          0.7015850701327535,
+          0.8184265467305365
+        ]
+      },
+      "coverage": {
+        "count": 195,
+        "n": 200,
+        "value": 0.975,
+        "wilson95": [
+          0.9428208558483829,
+          0.9892754385292123
+        ]
+      },
+      "answered_only_accuracy": {
+        "count": 153,
+        "n": 195,
+        "value": 0.7846153846153846,
+        "wilson95": [
+          0.7217129409304774,
+          0.8365203462689819
+        ]
+      },
+      "refusals_by_reason": {
+        "model_abstained": 2,
+        "weak_evidence": 3
+      },
+      "errors": 0,
+      "hit_at_1": {
+        "count": 197,
+        "n": 200,
+        "value": 0.985,
+        "wilson95": [
+          0.9568335194437211,
+          0.9948858548155076
+        ]
+      },
+      "hit_at_5": {
+        "count": 200,
+        "n": 200,
+        "value": 1.0,
+        "wilson95": [
+          0.9811539940816791,
+          1.0
+        ]
+      },
+      "latency_ms": {
+        "p50": {
+          "estimate": 4230.6,
+          "ci95": [
+            4149.5,
+            4412.5
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "p95": {
+          "estimate": 6212.15,
+          "ci95": [
+            5715.205,
+            6973.350625000001
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "stages": {
+          "retrieval": {
+            "n": 200,
+            "p50": 513.6,
+            "p95": 648.535
+          },
+          "synthesis": {
+            "n": 197,
+            "p50": 3744.3,
+            "p95": 5612.0
+          }
+        },
+        "measured_from": "developer machine, one question at a time, not production load"
+      },
+      "cost_usd_per_query": {
+        "mean": {
+          "estimate": 0.0131283061,
+          "ci95": [
+            0.012811451473749999,
+            0.01340463911375
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "median": {
+          "estimate": 0.01325599,
+          "ci95": [
+            0.01303031,
+            0.01341532
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "total": 2.62566122,
+        "includes": "Anthropic LLM tokens at list price; Voyage embedding and rerank not included (inside the free allocation)"
+      }
+    },
+    "agent": {
+      "n_questions": 200,
+      "accuracy": {
+        "count": 148,
+        "n": 200,
+        "value": 0.74,
+        "wilson95": [
+          0.6750912860870691,
+          0.795862631072137
+        ]
+      },
+      "coverage": {
+        "count": 190,
+        "n": 200,
+        "value": 0.95,
+        "wilson95": [
+          0.9104209437021562,
+          0.9726176509713551
+        ]
+      },
+      "answered_only_accuracy": {
+        "count": 148,
+        "n": 190,
+        "value": 0.7789473684210526,
+        "wilson95": [
+          0.7147417627099888,
+          0.8320964804741366
+        ]
+      },
+      "refusals_by_reason": {
+        "model_abstained": 2,
+        "no_supported_claims": 5,
+        "weak_evidence": 3
+      },
+      "errors": 0,
+      "hit_at_1": {
+        "count": 197,
+        "n": 200,
+        "value": 0.985,
+        "wilson95": [
+          0.9568335194437211,
+          0.9948858548155076
+        ]
+      },
+      "hit_at_5": {
+        "count": 200,
+        "n": 200,
+        "value": 1.0,
+        "wilson95": [
+          0.9811539940816791,
+          1.0
+        ]
+      },
+      "latency_ms": {
+        "p50": {
+          "estimate": 11792.9,
+          "ci95": [
+            11482.65,
+            12082.6
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "p95": {
+          "estimate": 15831.725,
+          "ci95": [
+            14478.4,
+            17920.674375
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "stages": {
+          "planner": {
+            "n": 200,
+            "p50": 2444.25,
+            "p95": 3061.49
+          },
+          "retriever": {
+            "n": 200,
+            "p50": 1180.75,
+            "p95": 1501.445
+          },
+          "gate": {
+            "n": 200,
+            "p50": 0.0,
+            "p95": 0.0
+          },
+          "synthesizer": {
+            "n": 197,
+            "p50": 3680.4,
+            "p95": 5149.32
+          },
+          "critic": {
+            "n": 197,
+            "p50": 4173.4,
+            "p95": 7012.54
+          },
+          "validator": {
+            "n": 200,
+            "p50": 0.3,
+            "p95": 0.4
+          }
+        },
+        "measured_from": "developer machine, one question at a time, not production load"
+      },
+      "cost_usd_per_query": {
+        "mean": {
+          "estimate": 0.0287108132,
+          "ci95": [
+            0.027987131311249996,
+            0.02942664350375
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "median": {
+          "estimate": 0.028662785,
+          "ci95": [
+            0.028087803749999994,
+            0.029576190000000002
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "total": 5.74216264,
+        "includes": "Anthropic LLM tokens at list price; Voyage embedding and rerank not included (inside the free allocation)"
+      },
+      "planner_added_evidence": {
+        "questions_with_added_papers": 43,
+        "of_questions": 200
+      }
+    },
+    "closed_book": {
+      "n_questions": 200,
+      "accuracy": {
+        "count": 108,
+        "n": 200,
+        "value": 0.54,
+        "wilson95": [
+          0.4708216309361468,
+          0.6076706885903875
+        ]
+      },
+      "coverage": {
+        "count": 200,
+        "n": 200,
+        "value": 1.0,
+        "wilson95": [
+          0.9811539940816791,
+          1.0
+        ]
+      },
+      "answered_only_accuracy": {
+        "count": 108,
+        "n": 200,
+        "value": 0.54,
+        "wilson95": [
+          0.4708216309361468,
+          0.6076706885903875
+        ]
+      },
+      "refusals_by_reason": {},
+      "errors": 0,
+      "hit_at_1": "not applicable",
+      "hit_at_5": "not applicable",
+      "latency_ms": {
+        "p50": {
+          "estimate": 1003.4,
+          "ci95": [
+            969.85,
+            1027.45
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "p95": {
+          "estimate": 1647.505,
+          "ci95": [
+            1554.2,
+            1988.9
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "stages": {},
+        "measured_from": "developer machine, one question at a time, not production load"
+      },
+      "cost_usd_per_query": {
+        "mean": {
+          "estimate": 0.00105449,
+          "ci95": [
+            0.00105166975,
+            0.00105747025
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "median": {
+          "estimate": 0.001052,
+          "ci95": [
+            0.0010470000000000002,
+            0.001056
+          ],
+          "resamples_used": 2000,
+          "resamples": 2000,
+          "seed": 20261024
+        },
+        "total": 0.210898,
+        "includes": "Anthropic LLM tokens at list price; Voyage embedding and rerank not included (inside the free allocation)"
+      }
+    }
+  },
+  "comparisons": {
+    "agent_minus_baseline": {
+      "accuracy": {
+        "estimate": -0.025000000000000022,
+        "ci95": [
+          -0.050000000000000044,
+          -0.0050000000000000044
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "coverage": {
+        "estimate": -0.025000000000000022,
+        "ci95": [
+          -0.04500000000000004,
+          -0.0050000000000000044
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "answered_only_accuracy": {
+        "estimate": -0.005668016194331993,
+        "ci95": [
+          -0.02108668669752533,
+          0.006599912986088199
+        ],
+        "includes_zero": true,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "hit_at_1": {
+        "estimate": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "includes_zero": true,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "hit_at_5": {
+        "estimate": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "includes_zero": true,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "latency_p50_ms": {
+        "estimate": 7562.299999999999,
+        "ci95": [
+          7223.27375,
+          7841.407499999999
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "cost_mean_usd": {
+        "estimate": 0.0155825071,
+        "ci95": [
+          0.015093366447499998,
+          0.016088458215
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      }
+    },
+    "baseline_minus_closed_book": {
+      "accuracy": {
+        "estimate": 0.22499999999999998,
+        "ci95": [
+          0.15000000000000002,
+          0.29500000000000004
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "coverage": {
+        "estimate": -0.025000000000000022,
+        "ci95": [
+          -0.050000000000000044,
+          -0.0050000000000000044
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "answered_only_accuracy": {
+        "estimate": 0.24461538461538457,
+        "ci95": [
+          0.16883678756476686,
+          0.31512820512820516
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      }
+    },
+    "agent_minus_closed_book": {
+      "accuracy": {
+        "estimate": 0.19999999999999996,
+        "ci95": [
+          0.125,
+          0.27
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "coverage": {
+        "estimate": -0.050000000000000044,
+        "ci95": [
+          -0.08499999999999996,
+          -0.020000000000000018
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      },
+      "answered_only_accuracy": {
+        "estimate": 0.23894736842105258,
+        "ci95": [
+          0.16519663775625135,
+          0.30820251784298175
+        ],
+        "includes_zero": false,
+        "resamples_used": 2000,
+        "resamples": 2000,
+        "seed": 20261024
+      }
+    },
+    "how_to_read": "an interval that includes 0 means no clear difference"
+  },
+  "claim_support": "HELD until the owner's audit worksheet is filled in (owner instruction 2026-10-26); computed in claim_support.HELD-until-audit.json"
+}
