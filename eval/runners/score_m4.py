@@ -137,7 +137,7 @@ def answer_metrics(system: str, rows: list[dict]) -> dict:
     if system == "agent":
         ok = [r for r in rows if r["error"] is None]
         out["planner_added_evidence"] = {
-            "questions_with_added_papers": sum(r.get("planner_added_evidence", 0) > 0 for r in ok),
+            "questions_with_added_papers": sum(r["planner_added_evidence"] > 0 for r in ok),
             "of_questions": len(ok),
         }
     return out
@@ -145,7 +145,8 @@ def answer_metrics(system: str, rows: list[dict]) -> dict:
 
 def stage_latency(rows: list[dict], stage: str) -> dict:
     """p50/p95 over the questions where the stage ran (gate refusals skip later stages)."""
-    values = [r["timings_ms"][stage] for r in rows if r["timings_ms"].get(stage) is not None]
+    # the runs store 0.0 (or nothing) for a stage that did not run, e.g. after a gate refusal
+    values = [r["timings_ms"][stage] for r in rows if (r["timings_ms"].get(stage) or 0) > 0]
     return {"n": len(values), "p50": quantile(values, 50), "p95": quantile(values, 95)}
 
 
@@ -186,7 +187,7 @@ def comparisons(rows: dict) -> dict:
     }  # fmt: skip
 
 
-def join_judgments(rows: dict, judgments: list[dict]) -> dict:
+def join_judgments(rows: dict, judgments: list[dict], blinding: dict) -> dict:
     """judgments per system, checked one-to-one against the items each system showed."""
     by_system = {}
     for system in JUDGED:
@@ -195,8 +196,14 @@ def join_judgments(rows: dict, judgments: list[dict]) -> dict:
         keys = [(j["pmid"], j["item_id"]) for j in judged]
         if len(keys) != len(set(keys)) or set(keys) != set(shown):
             raise SystemExit(f"{system}: judgments do not match the items shown; refusing.")
-        if any(j["text"] != shown[(j["pmid"], j["item_id"])]["text"] for j in judged):
-            raise SystemExit(f"{system}: a judged item's text differs from the run; refusing.")
+        for j in judged:
+            it = shown[(j["pmid"], j["item_id"])]
+            if (j["text"], j["kind"], j["citation_ids"]) != (it["text"], it["kind"],
+                                                             it["citation_ids"]):  # fmt: skip
+                raise SystemExit(f"{system}: a judged item differs from the run; refusing.")
+            if blinding[j["pmid"]][f"SYSTEM_{j['blind_id'][0]}"] != system:
+                raise SystemExit(f"{system}: blind ID {j['blind_id']} contradicts the blinding "
+                                 "key; refusing.")  # fmt: skip
         by_system[system] = judged
     return by_system
 
@@ -298,10 +305,10 @@ def results_section(summary: dict) -> str:
                        ("Hit@1", "hit_at_1"), ("Hit@5", "hit_at_5")):  # fmt: skip
         lines.append(f"| {label} | " + " | ".join(fmt_pct(s[x][key]) for x in SYSTEMS) + " |")
     for label, key in (("Latency p50, s", "p50"), ("Latency p95, s", "p95")):
-        cells = [fmt_ci(s[x]["latency_ms"][key], 1 / 1000, digits=1) for x in SYSTEMS]
+        cells = [fmt_ci(s[x]["latency_ms"][key], 1 / 1000, digits=2) for x in SYSTEMS]
         lines.append(f"| {label} | " + " | ".join(cells) + " |")
     for label, key in (("Cost per query, mean $", "mean"), ("Cost per query, median $", "median")):
-        cells = [fmt_ci(s[x]["cost_usd_per_query"][key], digits=4) for x in SYSTEMS]
+        cells = [fmt_ci(s[x]["cost_usd_per_query"][key], digits=5) for x in SYSTEMS]
         lines.append(f"| {label} | " + " | ".join(cells) + " |")
     majority = fmt_pct(summary["majority_class_reference"])
     lines.append(f"| Majority-class reference (always yes) | {majority} | | |")
@@ -353,7 +360,8 @@ def raw_row(system: str, r: dict) -> dict:
                        for c in r["claims"]],
             "limitations": [{"id": c["id"], "text": c["text"], "citation_ids": c["citation_ids"]}
                             for c in r["limitations"]],
-            "timings_ms": r["timings_ms"], "cost_usd": r["cost_usd"]}  # fmt: skip
+            "timings_ms": r["timings_ms"], "usage": r["usage"],
+            "cost_usd": r["cost_usd"]}  # fmt: skip
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -385,7 +393,8 @@ def main(argv: list[str] | None = None) -> None:
     judged_pmids = check_judge_run(judge_dir, args, ids, rows)
     judgments = [json.loads(line)
                  for line in (judge_dir / "judgments.jsonl").open(encoding="utf-8")]  # fmt: skip
-    by_system = join_judgments(rows, judgments)
+    blinding = json.loads((judge_dir / "blinding_key.json").read_text(encoding="utf-8"))
+    by_system = join_judgments(rows, judgments, blinding)
 
     systems = {s: answer_metrics(s, rows[s]) for s in SYSTEMS}
     mismatches = [

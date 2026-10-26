@@ -32,6 +32,7 @@ def make_row(system, pmid, total_ms, cost):
     items = ITEMS.get(system, {})
     mk = lambda i: {"id": i, "text": f"{system} {pmid} {i}", "citation_ids": [f"PMID:{pmid}"]}  # noqa: E731
     evidence = [] if system == "closed_book" else EVIDENCE[pmid]
+    extra = {"planner_added_evidence": int(pmid == "1")} if system == "agent" else {}
     return {
         "pmid": pmid, "question": f"Q{pmid}?", "gold_label": GOLD[pmid], "verdict": verdict,
         "correct": verdict == GOLD[pmid], "abstained": verdict == IE,
@@ -42,8 +43,9 @@ def make_row(system, pmid, total_ms, cost):
                        "removed_limitations": [], "downgraded_to_insufficient": False},
         "evidence_pmids": evidence, "gate_passed": verdict != IE, "rerank_skipped": False,
         "gold_final_rank": evidence.index(pmid) + 1 if pmid in evidence else None,
-        "error": None, "timings_ms": {"total": total_ms, "retrieval": 100.0},
-        "usage": [{"input_tokens": 10, "output_tokens": 5}], "cost_usd": cost,
+        "error": None, "timings_ms": {"total": total_ms, "retrieval": 100.0,
+                                      "synthesis": 0.0 if verdict == IE else 500.0 + total_ms},
+        "usage": [{"input_tokens": 10, "output_tokens": 5}], "cost_usd": cost, **extra,
     }  # fmt: skip
 
 
@@ -71,10 +73,13 @@ def env(tmp_path, monkeypatch):
     (d / "run_config.json").write_text(json.dumps({
         "baseline_run": RUNS["baseline"], "agent_run": RUNS["agent"], "setup_check": None,
         "question_ids": ["1", "2", "4"]}))  # fmt: skip
-    judgments = [{"pmid": p, "item_id": i, "system": s, "kind":
+    letter = {"baseline": "A", "agent": "B"}
+    judgments = [{"pmid": p, "item_id": i, "blind_id": f"{letter[s]}.{i}", "system": s, "kind":
                   "claim" if i.startswith("c") else "limitation", "text": f"{s} {p} {i}",
-                  "label": label} for s, items in ITEMS.items()
-                 for (p, i), label in items.items()]  # fmt: skip
+                  "citation_ids": [f"PMID:{p}"], "label": label}
+                 for s, items in ITEMS.items() for (p, i), label in items.items()]  # fmt: skip
+    key = {p: {"SYSTEM_A": "baseline", "SYSTEM_B": "agent"} for p in ("1", "2", "4")}
+    (d / "blinding_key.json").write_text(json.dumps(key))
     (d / "judgments.jsonl").write_text("".join(json.dumps(j) + "\n" for j in judgments))
     (d / "summary.json").write_text("{}")
     return results
@@ -107,6 +112,11 @@ def test_answer_metrics_match_hand_computed_values(env):
     assert b["cost_usd_per_query"]["mean"]["estimate"] == pytest.approx(0.025)
     assert b["cost_usd_per_query"]["median"]["estimate"] == pytest.approx(0.025)
     assert b["accuracy"]["wilson95"] == pytest.approx([0.1500, 0.8500], abs=5e-4)
+    # a stage that did not run (0.0 after a refusal) is left out of its latency figures
+    assert b["latency_ms"]["stages"]["synthesis"]["n"] == 3  # q3 refused
+    assert b["latency_ms"]["stages"]["synthesis"]["p50"] == 2500.0  # 1500, 2500, 4500
+    assert b["latency_ms"]["stages"]["retrieval"]["n"] == 4
+    assert a["planner_added_evidence"] == {"questions_with_added_papers": 1, "of_questions": 4}
 
 
 def test_comparisons_are_paired_and_cover_the_planned_pairs(env):
@@ -155,6 +165,24 @@ def test_refuses_judgments_that_do_not_match_the_items_shown(env):
     with pytest.raises(SystemExit, match="judgments do not match"):
         run(env)
     assert not any(d.name.startswith("m4-final-") for d in env.iterdir())
+
+
+def test_refuses_judgments_whose_blind_id_contradicts_the_blinding_key(env):
+    path = env / JUDGE / "blinding_key.json"
+    key = json.loads(path.read_text())
+    key["2"] = {"SYSTEM_A": "agent", "SYSTEM_B": "baseline"}
+    path.write_text(json.dumps(key))
+    with pytest.raises(SystemExit, match="contradicts the blinding key"):
+        run(env)
+
+
+def test_refuses_a_judged_item_whose_citations_differ_from_the_run(env):
+    path = env / JUDGE / "judgments.jsonl"
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    rows[0]["citation_ids"] = ["PMID:999"]
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    with pytest.raises(SystemExit, match="differs from the run"):
+        run(env)
 
 
 def test_refuses_a_void_judge_run_a_dirty_tree_and_wrong_gold(env, monkeypatch):
