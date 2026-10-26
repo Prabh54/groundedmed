@@ -128,6 +128,21 @@ def test_refuses_missing_or_unknown_answers(env, bad):
         run()
 
 
+def test_a_failed_run_leaves_no_merged_csv_behind(env):
+    write_answers(env, lambda item: "Supported")
+    (env["results"] / SCORING / "claim_support.HELD-until-audit.json").unlink()
+    with pytest.raises(FileNotFoundError):
+        run()
+    assert not (env["audits"] / f"{RUN}-second-ai-crosscheck.csv").exists()
+
+
+def test_refuses_an_answer_file_with_wrong_columns(env):
+    path = write_answers(env, lambda item: "Supported")
+    path.write_text(path.read_text().replace("row,answer,note", "row,answer", 1))
+    with pytest.raises(SystemExit, match="exactly the columns"):
+        run()
+
+
 def test_refuses_duplicate_rows_uncommitted_answers_and_overwrite(env, monkeypatch):
     path = write_answers(env, lambda item: "Supported")
     good = path.read_text()

@@ -62,6 +62,8 @@ def check_sheet(sheet: list[dict], rebuilt: list[dict]) -> None:
 
 
 def check_answers(answers: list[dict], n: int) -> dict[int, dict]:
+    if not answers or set(answers[0]) != {"row", "answer", "note"}:
+        raise SystemExit("The answer file must have exactly the columns row, answer, note.")
     rows = [int(a["row"]) for a in answers]
     if sorted(rows) != list(range(1, n + 1)):
         raise SystemExit(f"Answers must cover rows 1..{n} exactly once; refusing.")
@@ -99,6 +101,9 @@ def agreement(merged: list[dict]) -> dict:
         cell = table.setdefault(r["system"], {}).setdefault(r["judge_label"], {})
         cell[r["second_ai_label"]] = cell.get(r["second_ai_label"], 0) + 1
     out["judge_label_by_second_ai_answer"] = table
+    out["exact_three_label_agreement"] = (
+        "not measurable: the second AI answered Supported / Not supported / Unsure (ADR-036)"
+    )
     out["rule"] = (
         "binary: judge 'supported' agrees with Supported; judge 'partially_supported' or "
         "'unsupported' agrees with Not supported; Unsure excluded and counted"
@@ -147,8 +152,8 @@ def report(claims: dict, agree: dict, config: dict) -> str:
         "",
     ]
     for key, d in claims["agent_minus_baseline"].items():
-        ci = "n/a" if d["ci95"] is None else f"{d['ci95'][0]:+.3f} to {d['ci95'][1]:+.3f}"
-        lines.append(f"- {key}: {d['estimate']:+.3f} ({ci})")
+        ci = "n/a" if d["ci95"] is None else f"{d['ci95'][0]:+.4f} to {d['ci95'][1]:+.4f}"
+        lines.append(f"- {key}: {d['estimate']:+.4f} ({ci})")
     lines += ["", "## Second-AI cross-check: does a second AI agree with the judge?", "",
               "Stratified 30-claim sample (rubric v2 §7): per system up to 5 judge-rejected and "
               "the rest judge-accepted. Agreement is reported separately for each group; the "
@@ -158,7 +163,8 @@ def report(claims: dict, agree: dict, config: dict) -> str:
         g = agree[group]
         lines.append(f"| {group} | {pct(g['baseline'])} | {pct(g['agent'])} | {pct(g['pooled'])} |")
     unsure = sum(agree[g]["pooled"]["unsure"] for g in GROUPS)
-    lines += ["", f"Unsure answers (excluded): {unsure}. Rule: {agree['rule']}.", "",
+    lines += ["", f"Unsure answers (excluded): {unsure}. Rule: {agree['rule']}. Exact three-label "
+              f"agreement: {agree['exact_three_label_agreement']}.", "",
               "Limitations: no person checked these claims. Agreement shows whether two AI "
               "models from different providers read the claims the same way; shared blind spots "
               "are possible, so agreement does not prove the judge is right. How the second AI "
@@ -205,23 +211,23 @@ def main(argv: list[str] | None = None) -> None:
             "second_ai_note": a["note"], "system": item["system"], "judge_label": item["label"],
             "judge_quote": item["evidence_quote"], "judge_reason": item["reason"],
         })  # fmt: skip
-    with out_csv.open("w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=COLUMNS)
-        writer.writeheader()
-        writer.writerows(merged)
-
     agree = agreement(merged)
     claims = json.loads((scoring_dir / HELD_FILE).read_text(encoding="utf-8"))
     created = datetime.now(UTC)
     run_id = f"m4-crosscheck-{created:%Y%m%d-%H%M%S}-{git['git_commit'][:7]}"
     out = RESULTS_DIR / run_id
-    out.mkdir(parents=True, exist_ok=False)
+    out.mkdir(parents=True, exist_ok=False)  # every input read and checked before any write
+    with out_csv.open("w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=COLUMNS)
+        writer.writeheader()
+        writer.writerows(merged)
     sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()  # noqa: E731
     config = {"run_id": run_id, "created_utc": created.isoformat(timespec="seconds"), **git,
               "name": NAME, "second_ai": SECOND_AI, "decision": "ADR-037",
               "inputs": {"judge_run": args.judge_run, "scoring_run": args.scoring_run,
                          "sheet": sheet_path.name, "answers": answers_path.name},
               "answers_sha256": sha(answers_path), "sheet_sha256": sha(sheet_path),
+              "held_claim_support_sha256": sha(scoring_dir / HELD_FILE),
               "merged_csv": out_csv.name}  # fmt: skip
     (out / "run_config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     (out / "agreement.json").write_text(json.dumps(agree, indent=2) + "\n", encoding="utf-8")
