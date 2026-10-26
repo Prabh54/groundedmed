@@ -1,0 +1,19 @@
+{
+  "run_id": "m4-crosscheck-20261026-233927-865624f",
+  "created_utc": "2026-10-26T23:39:27+00:00",
+  "git_commit": "865624fbfee1428b8703f59f5b3df9e95e6ef8ed",
+  "git_dirty": false,
+  "git_diff_sha256": null,
+  "name": "second-AI cross-check",
+  "second_ai": "ChatGPT (OpenAI), model as reported by the owner: GPT-6 Sol",
+  "decision": "ADR-037",
+  "inputs": {
+    "judge_run": "judge-test-20261026-091111-06b80ea",
+    "scoring_run": "m4-final-20261026-222211-498b76a",
+    "sheet": "judge-test-20261026-091111-06b80ea-owner-worksheet.csv",
+    "answers": "judge-test-20261026-091111-06b80ea-second-ai-answers.csv"
+  },
+  "answers_sha256": "c6a310a4a79b343094296ccbca658d3b19bdd307f68934359c40a092a16977b8",
+  "sheet_sha256": "9c952506007dba4420f9e050f9b746b67073874f77ed43a0fb45a0177bb46d5d",
+  "merged_csv": "judge-test-20261026-091111-06b80ea-second-ai-crosscheck.csv"
+}

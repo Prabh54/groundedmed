@@ -1,0 +1,205 @@
+{
+  "name": "Independent-judge estimated claim support",
+  "caveat": "The two systems show different numbers of claims (the agent's critic removes some, and it abstains more), so the denominators differ.",
+  "systems": {
+    "baseline": {
+      "label_counts": {
+        "claim": {
+          "partially_supported": 32,
+          "supported": 455,
+          "unsupported": 1
+        },
+        "limitation": {
+          "partially_supported": 53,
+          "supported": 344,
+          "unsupported": 2
+        }
+      },
+      "claim_strict": {
+        "count": 455,
+        "n": 488,
+        "value": 0.9323770491803278,
+        "wilson95": [
+          0.9065529252257943,
+          0.9514468860955742
+        ],
+        "question_bootstrap95": [
+          0.9074400029207503,
+          0.9547348340811723
+        ]
+      },
+      "claim_lenient": {
+        "count": 487,
+        "n": 488,
+        "value": 0.9979508196721312,
+        "wilson95": [
+          0.9884848184235956,
+          0.9996381870318197
+        ],
+        "question_bootstrap95": [
+          0.9936842105263158,
+          1.0
+        ]
+      },
+      "limitation_strict": {
+        "count": 344,
+        "n": 399,
+        "value": 0.8621553884711779,
+        "wilson95": [
+          0.8248602546860169,
+          0.8925433103876994
+        ],
+        "question_bootstrap95": [
+          0.8254364089775562,
+          0.8960460212687936
+        ]
+      },
+      "limitation_lenient": {
+        "count": 397,
+        "n": 399,
+        "value": 0.9949874686716792,
+        "wilson95": [
+          0.9819099505226396,
+          0.9986243339206751
+        ],
+        "question_bootstrap95": [
+          0.9875,
+          1.0
+        ]
+      },
+      "questions_with_a_not_supported_item": {
+        "count": 70,
+        "n": 197,
+        "value": 0.3553299492385787,
+        "wilson95": [
+          0.29184603413962606,
+          0.42434822043711506
+        ]
+      },
+      "not_judged": 0,
+      "incomplete": false
+    },
+    "agent": {
+      "label_counts": {
+        "claim": {
+          "partially_supported": 22,
+          "supported": 421
+        },
+        "limitation": {
+          "partially_supported": 28,
+          "supported": 306,
+          "unsupported": 1
+        }
+      },
+      "claim_strict": {
+        "count": 421,
+        "n": 443,
+        "value": 0.9503386004514672,
+        "wilson95": [
+          0.9259550539834132,
+          0.9669788178852758
+        ],
+        "question_bootstrap95": [
+          0.9268866656522622,
+          0.9717696536558549
+        ]
+      },
+      "claim_lenient": {
+        "count": 443,
+        "n": 443,
+        "value": 1.0,
+        "wilson95": [
+          0.9914027700196222,
+          1.0
+        ],
+        "question_bootstrap95": [
+          1.0,
+          1.0
+        ]
+      },
+      "limitation_strict": {
+        "count": 306,
+        "n": 335,
+        "value": 0.9134328358208955,
+        "wilson95": [
+          0.8784394549137192,
+          0.9390516677819593
+        ],
+        "question_bootstrap95": [
+          0.8814589665653495,
+          0.9439564667729347
+        ]
+      },
+      "limitation_lenient": {
+        "count": 334,
+        "n": 335,
+        "value": 0.9970149253731343,
+        "wilson95": [
+          0.9832872060257485,
+          0.9994728801029913
+        ],
+        "question_bootstrap95": [
+          0.9903981804245069,
+          1.0
+        ]
+      },
+      "questions_with_a_not_supported_item": {
+        "count": 40,
+        "n": 192,
+        "value": 0.20833333333333334,
+        "wilson95": [
+          0.1568883166511515,
+          0.27122093082231685
+        ]
+      },
+      "not_judged": 0,
+      "incomplete": false
+    }
+  },
+  "agent_minus_baseline": {
+    "claim_strict": {
+      "estimate": 0.01796155127113941,
+      "ci95": [
+        -0.00042807029314956003,
+        0.036577594991917275
+      ],
+      "includes_zero": true,
+      "resamples_used": 2000,
+      "resamples": 2000,
+      "seed": 20261024
+    },
+    "claim_lenient": {
+      "estimate": 0.002049180327868827,
+      "ci95": [
+        0.0,
+        0.006329113924050667
+      ],
+      "includes_zero": true,
+      "resamples_used": 2000,
+      "resamples": 2000,
+      "seed": 20261024
+    },
+    "limitation_strict": {
+      "estimate": 0.05127744734971762,
+      "ci95": [
+        0.018176927589808982,
+        0.0862301131043435
+      ],
+      "includes_zero": false,
+      "resamples_used": 2000,
+      "resamples": 2000,
+      "seed": 20261024
+    },
+    "limitation_lenient": {
+      "estimate": 0.0020274567014550993,
+      "ci95": [
+        -0.006448979230511747,
+        0.010152284263959421
+      ],
+      "includes_zero": true,
+      "resamples_used": 2000,
+      "resamples": 2000,
+      "seed": 20261024
+    }
+  }
+}

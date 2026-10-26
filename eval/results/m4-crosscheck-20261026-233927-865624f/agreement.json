@@ -1,0 +1,101 @@
+{
+  "judge_supported": {
+    "baseline": {
+      "rows": 10,
+      "unsure": 0,
+      "compared": 10,
+      "agree": 8,
+      "agreement": 0.8,
+      "wilson95": [
+        0.49015684672072335,
+        0.9433190520193067
+      ],
+      "measurable": true
+    },
+    "agent": {
+      "rows": 10,
+      "unsure": 0,
+      "compared": 10,
+      "agree": 6,
+      "agreement": 0.6,
+      "wilson95": [
+        0.3126695474501864,
+        0.8318224187964902
+      ],
+      "measurable": true
+    },
+    "pooled": {
+      "rows": 20,
+      "unsure": 0,
+      "compared": 20,
+      "agree": 14,
+      "agreement": 0.7,
+      "wilson95": [
+        0.4810232237710206,
+        0.854524726031006
+      ],
+      "measurable": true
+    }
+  },
+  "judge_rejected": {
+    "baseline": {
+      "rows": 5,
+      "unsure": 0,
+      "compared": 5,
+      "agree": 4,
+      "agreement": 0.8,
+      "wilson95": [
+        0.3755282641185388,
+        0.9637768390302125
+      ],
+      "measurable": true
+    },
+    "agent": {
+      "rows": 5,
+      "unsure": 0,
+      "compared": 5,
+      "agree": 4,
+      "agreement": 0.8,
+      "wilson95": [
+        0.3755282641185388,
+        0.9637768390302125
+      ],
+      "measurable": true
+    },
+    "pooled": {
+      "rows": 10,
+      "unsure": 0,
+      "compared": 10,
+      "agree": 8,
+      "agreement": 0.8,
+      "wilson95": [
+        0.49015684672072335,
+        0.9433190520193067
+      ],
+      "measurable": true
+    }
+  },
+  "judge_label_by_second_ai_answer": {
+    "baseline": {
+      "supported": {
+        "Supported": 8,
+        "Not supported": 2
+      },
+      "partially_supported": {
+        "Not supported": 4,
+        "Supported": 1
+      }
+    },
+    "agent": {
+      "supported": {
+        "Not supported": 4,
+        "Supported": 6
+      },
+      "partially_supported": {
+        "Not supported": 4,
+        "Supported": 1
+      }
+    }
+  },
+  "rule": "binary: judge 'supported' agrees with Supported; judge 'partially_supported' or 'unsupported' agrees with Not supported; Unsure excluded and counted"
+}
