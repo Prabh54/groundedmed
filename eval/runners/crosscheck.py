@@ -14,7 +14,7 @@ The second AI (ChatGPT, OpenAI) answered the blind 30-row sheet (ADR-036). This 
    pooled within each group, with Wilson 95% intervals; Unsure excluded and counted;
 6. writes `eval/results/m4-crosscheck-<time>-<commit>/` with agreement.json, claim_support.json
    (copied unchanged from the scoring run's held file) and report.md.
-It is always a "second-AI cross-check", never a manual or human audit."""
+It is always called the "second-AI cross-check"; no person checked these claims."""
 
 import argparse
 import csv
@@ -36,7 +36,7 @@ SECOND_AI = "ChatGPT (OpenAI), model as reported by the owner: GPT-6 Sol"
 NAME = "second-AI cross-check"
 PURPOSE = (
     "SECOND-AI CROSS-CHECK ONLY - stratified sample, NOT an estimate of claim support, "
-    "NOT a human audit"
+    "no person checked these claims"
 )
 COLUMNS = ["audit_row", "sample_purpose", "sample_group", "question_pmid", "claim_id",
            "claim_text", "cited_passages", "second_ai_label", "second_ai_note", "system",
@@ -159,10 +159,10 @@ def report(claims: dict, agree: dict, config: dict) -> str:
         lines.append(f"| {group} | {pct(g['baseline'])} | {pct(g['agent'])} | {pct(g['pooled'])} |")
     unsure = sum(agree[g]["pooled"]["unsure"] for g in GROUPS)
     lines += ["", f"Unsure answers (excluded): {unsure}. Rule: {agree['rule']}.", "",
-              "Limitations: this is NOT a human audit. Agreement shows whether two AI models from "
-              "different providers read the claims the same way; shared blind spots are possible, "
-              "so agreement does not prove the judge is right. How the second AI was run is as "
-              "reported by the owner (ADR-037)."]  # fmt: skip
+              "Limitations: no person checked these claims. Agreement shows whether two AI "
+              "models from different providers read the claims the same way; shared blind spots "
+              "are possible, so agreement does not prove the judge is right. How the second AI "
+              "was run is as reported by the owner (ADR-037)."]  # fmt: skip
     return "\n".join(lines) + "\n"
 
 

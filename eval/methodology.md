@@ -51,8 +51,16 @@ are shown as SYSTEM_A / SYSTEM_B, assigned by a seeded coin per question; the ju
 is which, nor the verdict, gold label or reference conclusion. Each claim is judged only against the
 passages it cites.
 
-## Manual audit — limitation, stated up front
-`eval/audits/<run-id>-manual-sample.csv` holds about 30 claims (15 per system) for the owner to label.
+## Second-AI cross-check — limitation, stated up front
+**Changed 2026-10-26 (ADR-037), after the claim-support figures were computed and held, before anyone
+saw them:** the 30-claim check was planned to be answered by the owner; the owner chose instead to have
+ChatGPT (OpenAI, a third provider) answer the same blind sheet. It is called the second-AI cross-check.
+No person checked these claims; agreement shows whether two AI models read the claims the same way,
+not that the judge is right. Files: `eval/audits/<judge-run>-owner-worksheet.csv` (blind sheet),
+`-second-ai-answers.csv` (answers, committed before the join), `-second-ai-crosscheck.csv` (joined).
+The original plan text follows, with "the owner" now meaning the second AI.
+
+The sample holds about 30 claims (15 per system) for the owner to label.
 **It is a stratified sample** (up to 5 judge-rejected claims per system, the rest judge-supported), chosen
 to test whether the judge's rejections and acceptances hold up. **The share of audit claims the owner
 finds supported is NOT an estimate of claim support** and is never reported as one; every CSV row says
@@ -131,7 +139,7 @@ Google does not reflect in the metadata version cannot be detected.
   systems in full and is reported beside the original, never replacing it.
 - **System runs are never re-run because of a judge change.** The baseline, agent and closed-book
   answers are fixed files; the judge only reads them, so the frozen test set is not used again.
-- **Manual audit:** the owner's labels do not depend on the judge and are kept. If the judge changes,
+- **Second-AI cross-check:** the second AI's labels do not depend on the judge and are kept. If the judge changes,
   agreement is recomputed on the same audit claims against the new judge's labels, noting that the
   sample groups were drawn from the earlier judge's labels.
 - **Cost of re-judging everything:** about $11.28 estimated (test call $0.02 + dev setup check $0.58 +
@@ -150,6 +158,6 @@ Google does not reflect in the metadata version cannot be detected.
 - One run per system: the runtime model has no fixed seed and Voyage embeddings drift slightly between
   calls, so a rerun would differ a little. Small differences between systems may be noise; the paired
   intervals show how much.
-- One model judge, blinding imperfect (the systems differ in style). The manual audit checks it on ~30
-  claims only.
+- One model judge, blinding imperfect (the systems differ in style). The second-AI cross-check
+  (ADR-037) compares it with another AI on ~30 claims only; no person checked the claims.
 - Latency measured sequentially on a developer machine, not under production load.

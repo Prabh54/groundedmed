@@ -101,8 +101,8 @@ def test_agreement_is_binary_per_group_and_hand_checked(env):
     assert list(merged[0]) == crosscheck.COLUMNS and len(merged) == 30
     assert all(m["sample_purpose"].startswith("SECOND-AI CROSS-CHECK ONLY") for m in merged)
     text = (out / "report.md").read_text()
-    assert "second-AI cross-check" in text and "NOT a human audit" in text
-    assert "manual audit" not in text.lower()
+    assert "second-AI cross-check" in text and "no person checked" in text
+    assert "manual" not in text.lower() and "human audit" not in text.lower()
 
 
 def test_refuses_if_the_committed_sheet_differs_from_the_rebuilt_draw(env):

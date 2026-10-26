@@ -53,7 +53,7 @@ groundedmed/
 │   ├── runners/                       # retrieval.py (dev Hit@k, M1), run_system.py, judge.py
 │   ├── metrics/                       # hit_at_k, accuracy, wilson, bootstrap, paired_bootstrap
 │   ├── rubric/                        # judge_v1.md (frozen before test scoring)
-│   ├── audits/                        # <run-id>-manual-sample.csv
+│   ├── audits/                        # <judge-run>-owner-worksheet / -second-ai-answers / -second-ai-crosscheck.csv
 │   └── results/<run-id>/              # raw.jsonl, summary.json, methodology.md, run_config.json
 ├── scripts/
 │   ├── prepare_dataset.py             # HF → manifests + corpus.jsonl (allowed fields only)
@@ -317,7 +317,7 @@ data/manifests/{dev,test}.json  (frozen; hash-checked)
   -> eval/runners/judge.py  (Gemini; blinded SYSTEM_A/SYSTEM_B; rubric eval/rubric/judge_v1.md)
        adds per-claim support judgments
   -> eval/metrics/*  -> summary.json  (+ Wilson CIs, bootstrap CIs, paired-bootstrap deltas)
-  -> methodology.md, audits/<run-id>-manual-sample.csv
+  -> methodology.md, audits/<judge-run>-second-ai-crosscheck.csv (second-AI cross-check, ADR-037)
   -> eval/results/published.json points the frontend at the run to display
 ```
 Guards (also tested):
