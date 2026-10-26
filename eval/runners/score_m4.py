@@ -35,6 +35,7 @@ STAGES = {
     "agent": ("planner", "retriever", "gate", "synthesizer", "critic", "validator"),
     "closed_book": (),
 }
+POST_GATE = {"synthesis", "synthesizer", "critic"}
 HELD_FILE = "claim_support.HELD-until-audit.json"
 CLAIM_SUPPORT_NAME = "Independent-judge estimated claim support"
 NOT_JUDGED_LIMIT = 0.02  # rubric v2 §5: above this share a system's claim support is incomplete
@@ -145,8 +146,10 @@ def answer_metrics(system: str, rows: list[dict]) -> dict:
 
 def stage_latency(rows: list[dict], stage: str) -> dict:
     """p50/p95 over the questions where the stage ran (gate refusals skip later stages)."""
-    # the runs store 0.0 (or nothing) for a stage that did not run, e.g. after a gate refusal
-    values = [r["timings_ms"][stage] for r in rows if (r["timings_ms"].get(stage) or 0) > 0]
+    # stages after the evidence gate do not run on a gate refusal or error row (stored as 0.0);
+    # fast stages that did run may also round to 0.0, so the rule is the gate, not the value
+    values = [r["timings_ms"][stage] for r in rows if stage in r["timings_ms"]
+              and (stage not in POST_GATE or r["gate_passed"])]  # fmt: skip
     return {"n": len(values), "p50": quantile(values, 50), "p95": quantile(values, 95)}
 
 

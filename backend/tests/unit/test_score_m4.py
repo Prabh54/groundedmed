@@ -43,7 +43,7 @@ def make_row(system, pmid, total_ms, cost):
                        "removed_limitations": [], "downgraded_to_insufficient": False},
         "evidence_pmids": evidence, "gate_passed": verdict != IE, "rerank_skipped": False,
         "gold_final_rank": evidence.index(pmid) + 1 if pmid in evidence else None,
-        "error": None, "timings_ms": {"total": total_ms, "retrieval": 100.0,
+        "error": None, "timings_ms": {"total": total_ms, "retrieval": 100.0, "gate": 0.0,
                                       "synthesis": 0.0 if verdict == IE else 500.0 + total_ms},
         "usage": [{"input_tokens": 10, "output_tokens": 5}], "cost_usd": cost, **extra,
     }  # fmt: skip
@@ -116,6 +116,7 @@ def test_answer_metrics_match_hand_computed_values(env):
     assert b["latency_ms"]["stages"]["synthesis"]["n"] == 3  # q3 refused
     assert b["latency_ms"]["stages"]["synthesis"]["p50"] == 2500.0  # 1500, 2500, 4500
     assert b["latency_ms"]["stages"]["retrieval"]["n"] == 4
+    assert score_m4.stage_latency([make_row("agent", p, 1.0, 0) for p in GOLD], "gate")["n"] == 4
     assert a["planner_added_evidence"] == {"questions_with_added_papers": 1, "of_questions": 4}
 
 
