@@ -128,7 +128,7 @@ def answer_metrics(system: str, rows: list[dict]) -> dict:
             "stages": {s: stage_latency(rows, s) for s in STAGES[system]},
             "measured_from": "developer machine, one question at a time, not production load",
         },
-        "cost_usd_per_query": {
+        "llm_cost_only_usd_per_query": {
             "mean": bootstrap_ci(rows, cost_mean),
             "median": bootstrap_ci(rows, cost_median),
             "total": sum(r["cost_usd"] for r in rows),
@@ -162,7 +162,7 @@ def cross_check(system: str, metrics: dict, stored: dict) -> list[str]:
          stored["answered_only_accuracy"]),
         ("latency p50", metrics["latency_ms"]["p50"]["estimate"], stored["latency_ms"]["p50"]),
         ("latency p95", metrics["latency_ms"]["p95"]["estimate"], stored["latency_ms"]["p95"]),
-        ("cost total", round(metrics["cost_usd_per_query"]["total"], 4),
+        ("cost total", round(metrics["llm_cost_only_usd_per_query"]["total"], 4),
          stored["cost_usd"]["total"]),
         ("errors", metrics["errors"], stored["errors"]),
     ]  # fmt: skip
@@ -177,7 +177,7 @@ def comparisons(rows: dict) -> dict:
     """Paired bootstrap differences, `later minus earlier` system in each name."""
     answer_stats = {"accuracy": acc, "coverage": cov, "answered_only_accuracy": answered_acc}
     retrieval_stats = {"hit_at_1": hit1, "hit_at_5": hit5, "latency_p50_ms": latency_p50,
-                       "cost_mean_usd": cost_mean}  # fmt: skip
+                       "llm_cost_only_mean_usd": cost_mean}  # fmt: skip
     b, a, c = rows["baseline"], rows["agent"], rows["closed_book"]
     return {
         "agent_minus_baseline": {name: paired_bootstrap_ci(b, a, f)
@@ -310,13 +310,15 @@ def results_section(summary: dict) -> str:
     for label, key in (("Latency p50, s", "p50"), ("Latency p95, s", "p95")):
         cells = [fmt_ci(s[x]["latency_ms"][key], 1 / 1000, digits=2) for x in SYSTEMS]
         lines.append(f"| {label} | " + " | ".join(cells) + " |")
-    for label, key in (("Cost per query, mean $", "mean"), ("Cost per query, median $", "median")):
-        cells = [fmt_ci(s[x]["cost_usd_per_query"][key], digits=5) for x in SYSTEMS]
+    for label, key in (("LLM cost only, per query, mean $", "mean"),
+                       ("LLM cost only, per query, median $", "median")):  # fmt: skip
+        cells = [fmt_ci(s[x]["llm_cost_only_usd_per_query"][key], digits=5) for x in SYSTEMS]
         lines.append(f"| {label} | " + " | ".join(cells) + " |")
     majority = fmt_pct(summary["majority_class_reference"])
     lines.append(f"| Majority-class reference (always yes) | {majority} | | |")
-    lines += ["", "Paired differences (bootstrap 95%; an interval that includes 0 = no clear "
-              "difference):", "", "| Comparison | Metric | Difference | 95% interval |",
+    lines += ["", "Main comparison — paired differences (the planned paired bootstrap, 95%; an "
+              "interval that includes 0 = no clear difference):", "",
+              "| Comparison | Metric | Difference | 95% interval |",
               "|---|---|---|---|"]  # fmt: skip
     for comp, metrics in summary["comparisons"].items():
         if not isinstance(metrics, dict):
@@ -340,7 +342,7 @@ def write_methodology(out, summary: dict, config: dict) -> None:
         "(`docs/reviews/m4-t4-compute-plan.md`).\n\nInputs (complete runs, never edited):\n"
         f"{runs}\n\n## Results (test split, 200 questions per system)\n\n"
         f"{results_section(summary)}\n\n"
-        f"Cost covers {COST_NOTE}. Latency was {summary['systems']['baseline']['latency_ms']['measured_from']}.\n\n"  # noqa: E501
+        f"LLM cost only: {COST_NOTE}. Latency was {summary['systems']['baseline']['latency_ms']['measured_from']}.\n\n"  # noqa: E501
         f"## {CLAIM_SUPPORT_NAME}\n\nHELD until the owner has filled in the audit worksheet "
         "(owner instruction 2026-10-26). Computed by this run and stored separately; reported here "
         "after the audit.\n\n## Changes made after test results were seen\n\nNone.\n\n---\n\n"

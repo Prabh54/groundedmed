@@ -109,8 +109,8 @@ def test_answer_metrics_match_hand_computed_values(env):
     assert c["hit_at_1"] == c["hit_at_5"] == "not applicable"
     # totals 1000..4000 ms: inclusive median 2500; costs 0.01..0.04: mean and median 0.025
     assert b["latency_ms"]["p50"]["estimate"] == 2500
-    assert b["cost_usd_per_query"]["mean"]["estimate"] == pytest.approx(0.025)
-    assert b["cost_usd_per_query"]["median"]["estimate"] == pytest.approx(0.025)
+    assert b["llm_cost_only_usd_per_query"]["mean"]["estimate"] == pytest.approx(0.025)
+    assert b["llm_cost_only_usd_per_query"]["median"]["estimate"] == pytest.approx(0.025)
     assert b["accuracy"]["wilson95"] == pytest.approx([0.1500, 0.8500], abs=5e-4)
     # a stage that did not run (0.0 after a refusal) is left out of its latency figures
     assert b["latency_ms"]["stages"]["synthesis"]["n"] == 3  # q3 refused
@@ -128,7 +128,7 @@ def test_comparisons_are_paired_and_cover_the_planned_pairs(env):
                                                        "answered_only_accuracy"}  # fmt: skip
     assert comp["agent_minus_closed_book"]["coverage"]["estimate"] == pytest.approx(-0.5)
     assert set(comp["agent_minus_baseline"]) >= {"hit_at_1", "hit_at_5", "latency_p50_ms",
-                                                 "cost_mean_usd"}  # fmt: skip
+                                                 "llm_cost_only_mean_usd"}  # fmt: skip
 
 
 def test_claim_support_is_held_and_hand_checked(env):
