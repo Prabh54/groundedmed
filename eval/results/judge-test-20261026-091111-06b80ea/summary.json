@@ -1,0 +1,92 @@
+{
+  "run_id": "judge-test-20261026-091111-06b80ea",
+  "complete": true,
+  "judge_model": "gemini-3.1-pro-preview",
+  "model_versions_reported": [
+    "gemini-3.1-pro-preview"
+  ],
+  "version_checks": [
+    "3.1-pro-preview-01-2026",
+    "3.1-pro-preview-01-2026",
+    "3.1-pro-preview-01-2026",
+    "3.1-pro-preview-01-2026",
+    "3.1-pro-preview-01-2026",
+    "3.1-pro-preview-01-2026",
+    "3.1-pro-preview-01-2026",
+    "3.1-pro-preview-01-2026",
+    "3.1-pro-preview-01-2026"
+  ],
+  "rubric_file_sha256": {
+    "judge_v2.md": "05a92c8a32359428eea00323a957f452c33855aeb9a7da026bcc4d1b9384d7d0",
+    "judge_v1_prompt.txt": "b240c38ad57deceb651f1357112ceb362848afd392a53d9932d473d537b27a95",
+    "judge_v1_schema.json": "5d35d697c96b13a639920588ab37e5018c0bbbb66483e52dd9bdeeec71342915"
+  },
+  "resumes": [],
+  "questions_judged": 197,
+  "items": 1665,
+  "not_judged": 0,
+  "labels": {
+    "agent": {
+      "claim": {
+        "supported": 421,
+        "partially_supported": 22
+      },
+      "limitation": {
+        "supported": 306,
+        "partially_supported": 28,
+        "unsupported": 1
+      }
+    },
+    "baseline": {
+      "claim": {
+        "supported": 455,
+        "partially_supported": 32,
+        "unsupported": 1
+      },
+      "limitation": {
+        "supported": 344,
+        "partially_supported": 53,
+        "unsupported": 2
+      }
+    }
+  },
+  "malformed_questions": [],
+  "reasked_questions": [],
+  "api_retry_questions": [],
+  "failed_questions": [],
+  "tokens_per_question": {
+    "input_tokens": {
+      "median": 4169.0,
+      "p95": 6845.4,
+      "max": 10108,
+      "mean": 4283.923857868021
+    },
+    "output_tokens": {
+      "median": 952.0,
+      "p95": 1355.2,
+      "max": 1841,
+      "mean": 947.4670050761422
+    },
+    "thinking_tokens": {
+      "median": 1331.0,
+      "p95": 4282.4,
+      "max": 6814,
+      "mean": 1807.4365482233502
+    }
+  },
+  "cost_per_question_usd": {
+    "median": 0.037078,
+    "p95": 0.0735692,
+    "max": 0.109792,
+    "mean": 0.04162669035532995
+  },
+  "latency_per_question_s": {
+    "median": 18.3266,
+    "p95": 43.8829,
+    "max": 113.3597,
+    "mean": 22.25878578680203
+  },
+  "cost_usd_total": 8.200458,
+  "wall_clock_s": 4386.9,
+  "wall_clock_s_note": "whole run"
+}

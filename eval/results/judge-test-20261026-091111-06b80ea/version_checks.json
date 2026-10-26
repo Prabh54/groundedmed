@@ -1,0 +1,65 @@
+[
+  {
+    "at": "start",
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  },
+  {
+    "at": "after 25 questions",
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  },
+  {
+    "at": "after 50 questions",
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  },
+  {
+    "at": "after 75 questions",
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  },
+  {
+    "at": "after 100 questions",
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  },
+  {
+    "at": "after 125 questions",
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  },
+  {
+    "at": "after 150 questions",
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  },
+  {
+    "at": "after 175 questions",
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  },
+  {
+    "at": "end",
+    "name": "models/gemini-3.1-pro-preview",
+    "version": "3.1-pro-preview-01-2026",
+    "displayName": "Gemini 3.1 Pro Preview",
+    "description": "Gemini 3.1 Pro Preview"
+  }
+]
