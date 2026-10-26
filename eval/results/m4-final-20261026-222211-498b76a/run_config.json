@@ -1,0 +1,20 @@
+{
+  "run_id": "m4-final-20261026-222211-498b76a",
+  "created_utc": "2026-10-26T22:22:11+00:00",
+  "git_commit": "498b76a615422e88def981d09fa98f6d7e328eff",
+  "git_dirty": false,
+  "git_diff_sha256": null,
+  "inputs": {
+    "baseline": "test-baseline-20261025-194639-4ebd38d",
+    "agent": "test-agent-20261025-200618-1f1e727",
+    "closed_book": "test-closed_book-20261025-211502-6eecb38",
+    "judge": "judge-test-20261026-091111-06b80ea"
+  },
+  "judged_questions": 197,
+  "plan": "docs/reviews/m4-t4-compute-plan.md (owner OK 2026-10-26)",
+  "resamples": 2000,
+  "seed": 20261024,
+  "held_files": [
+    "claim_support.HELD-until-audit.json"
+  ]
+}
