@@ -22,6 +22,8 @@ venv/
 # Node
 node_modules/
 .next/
+next-env.d.ts
+*.tsbuildinfo
 
 # Local data caches (manifests in data/manifests/ ARE committed)
 data/raw/
