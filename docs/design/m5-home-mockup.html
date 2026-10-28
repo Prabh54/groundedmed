@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GroundedMed mockup</title>
+<!-- M5 design mockup for owner approval (session 9, round 2). Static page, not the real app. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFF8EE;
+    --navy: #1E2A47;
+    --navy-soft: #4A5672;
+    --blue: #4F86E8;
+    --blue-dark: #3A6CC6;
+    --blue-btn-edge: #2C559F;
+    --blue-tint: #E6EFFD;
+    --mint: #CDEFDF;
+    --mint-ink: #1F6B4A;
+    --peach: #FFE0D2;
+    --peach-ink: #9A4A2C;
+    --card: #FFFFFF;
+    --line: #EADFCF;
+    --input-line: #9C8E7A;
+    --shadow: 0 6px 20px rgba(30, 42, 71, 0.08);
+    --radius: 22px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--navy);
+    font: 16px/1.55 Inter, system-ui, sans-serif;
+  }
+  h1, h2, h3, .logo, .btn, .chip, .bubble { font-family: Fredoka, "Arial Rounded MT Bold", system-ui, sans-serif; }
+  .mock-note {
+    background: var(--navy); color: #fff; text-align: center;
+    font-size: 13px; padding: 6px 16px; letter-spacing: .02em;
+  }
+  .disclaimer {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--blue-tint); border-bottom: 1px solid #CFDDF6;
+    text-align: center; font-size: 14px; padding: 8px 16px; color: var(--navy);
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; gap: 12px; }
+  .logo { font-size: 26px; font-weight: 600; }
+  .logo span { color: var(--blue); }
+  .nav-pill {
+    font-weight: 600; font-size: 15px; color: var(--navy); text-decoration: none;
+    background: var(--card); border: 2px solid var(--line); border-radius: 999px; padding: 8px 16px;
+  }
+  .hero {
+    display: grid; grid-template-columns: 300px 1fr; gap: 28px; align-items: center;
+    background: var(--card); border-radius: 28px; box-shadow: var(--shadow); padding: 32px;
+  }
+  .becky-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .bubble {
+    position: relative; background: var(--blue-tint); border-radius: 18px; padding: 12px 16px;
+    font-size: 16px; font-weight: 500; text-align: center; max-width: 260px;
+  }
+  .bubble::after {
+    content: ""; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
+    border: 10px solid transparent; border-top-color: var(--blue-tint); border-bottom: 0;
+  }
+  h1 { font-size: 36px; line-height: 1.15; margin: 0 0 8px; font-weight: 600; }
+  .lede { color: var(--navy-soft); margin: 0 0 20px; font-size: 17px; }
+  .field-label { display: block; margin: 0 0 8px; font-weight: 600; font-size: 15px; }
+  textarea {
+    width: 100%; min-height: 96px; resize: vertical; font: inherit; color: var(--navy);
+    border: 2px solid var(--input-line); border-radius: 18px; padding: 14px 16px; background: #FFFDF9;
+  }
+  textarea::placeholder { color: #6B7080; }
+  textarea:focus { outline: 3px solid var(--blue-tint); border-color: var(--blue); }
+  .ask-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+  .btn {
+    font-size: 18px; font-weight: 600; color: #fff; background: var(--blue-dark); border: 0;
+    border-radius: 16px; padding: 14px 32px; cursor: pointer;
+    box-shadow: 0 5px 0 var(--blue-btn-edge); transition: transform .08s, box-shadow .08s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--blue-btn-edge); }
+  .try { margin-top: 22px; font-weight: 600; font-size: 15px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .chip {
+    font-size: 15px; font-weight: 500; color: var(--navy); background: var(--card); text-align: left;
+    border: 2px solid #C9BBA5; border-bottom: 4px solid var(--input-line); border-radius: 14px; padding: 8px 14px; cursor: pointer;
+  }
+  .chip:hover { border-color: #C9D9F6; background: #F7FAFF; }
+  .scope { margin: 24px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .scope div { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; }
+  .scope h3 { margin: 0 0 2px; font-size: 18px; font-weight: 600; }
+  .scope p { margin: 0; color: var(--navy-soft); font-size: 15px; }
+  .section-title { font-size: 24px; font-weight: 600; margin: 48px 0 4px; }
+  .section-sub { margin: 0 0 18px; color: var(--navy-soft); }
+  .poses { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .pose { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .pose h3 { margin: 6px 0 2px; font-size: 19px; font-weight: 600; }
+  .pose .where { margin: 0 0 12px; font-size: 14px; color: var(--navy-soft); }
+  .timeline { list-style: none; padding: 0; margin: 4px 0 0; width: 100%; text-align: left; font-size: 15px; }
+  .timeline li { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .dot { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; }
+  .dot.done { background: var(--mint); color: var(--mint-ink); }
+  .dot.now { background: var(--blue); box-shadow: 0 0 0 4px var(--blue-tint); }
+  .dot.todo { background: #F1ECE3; }
+  .timeline .meta { color: var(--navy-soft); font-size: 13px; }
+  .refusal { background: var(--peach); color: var(--peach-ink); border-radius: 16px; padding: 12px 14px; font-size: 14px; text-align: left; width: 100%; }
+  .refusal strong { display: block; font-family: Fredoka, sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  footer { margin: 48px 0 32px; font-size: 13px; color: var(--navy-soft); text-align: center; }
+
+  /* Becky motion: gentle bob (body only, shadow stays on the floor) and a page flip while reading. */
+  .bob { animation: bob 2.6s ease-in-out infinite; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  .floor-shadow { animation: shadow 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.9); opacity: .75; } }
+  .read-bob { animation: readbob 3.2s ease-in-out infinite; }
+  @keyframes readbob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-2px) rotate(-1deg); } }
+  .flip-page { transform-box: view-box; transform-origin: 110px 0; animation: flip 3.2s ease-in-out infinite; }
+  @keyframes flip {
+    0%   { transform: scaleX(1);  opacity: 0; }
+    10%  { transform: scaleX(1);  opacity: 1; }
+    30%  { transform: scaleX(1);  opacity: 1; }
+    60%  { transform: scaleX(-1); opacity: 1; }
+    80%  { transform: scaleX(-1); opacity: 1; }
+    92%  { transform: scaleX(-1); opacity: 0; }
+    100% { transform: scaleX(-1); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bob, .floor-shadow, .read-bob { animation: none; }
+    .flip-page { animation: none; display: none; }
+  }
+
+  @media (max-width: 780px) {
+    .hero { grid-template-columns: 1fr; padding: 22px; }
+    .becky-col { flex-direction: row; gap: 4px; }
+    .becky-col svg { width: 116px; height: auto; flex: none; order: -1; }
+    .becky-col .bubble { font-size: 15px; }
+    .becky-col .bubble::after { display: none; }
+    h1 { font-size: 28px; }
+    .scope, .poses { grid-template-columns: 1fr; }
+    .ask-row .btn { width: 100%; }
+    .disc-more { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Shared Becky parts: gradients, ears, body, head, eyes. Each pose adds its own arms, props and face. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="g-fur" cx="35%" cy="28%" r="80%">
+      <stop offset="0" stop-color="#FFF3E2"/><stop offset=".55" stop-color="#F4D5AF"/><stop offset="1" stop-color="#DCAE84"/>
+    </radialGradient>
+    <linearGradient id="g-ear" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FCE6CB"/><stop offset="1" stop-color="#E2B78E"/>
+    </linearGradient>
+    <linearGradient id="g-inner-ear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBC4B4"/><stop offset="1" stop-color="#EE9C8A"/>
+    </linearGradient>
+    <radialGradient id="g-coat" cx="35%" cy="20%" r="90%">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#F3F6FB"/><stop offset="1" stop-color="#D6DFEE"/>
+    </radialGradient>
+    <radialGradient id="g-eye" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#3E4F7A"/><stop offset="1" stop-color="#111A30"/>
+    </radialGradient>
+    <radialGradient id="g-blush" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#F59A92" stop-opacity=".85"/><stop offset="1" stop-color="#F59A92" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g-floor" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#1E2A47" stop-opacity=".22"/><stop offset="1" stop-color="#1E2A47" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="g-bow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7FA8F5"/><stop offset="1" stop-color="#3A6CC6"/>
+    </linearGradient>
+    <linearGradient id="g-book-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#78A2F3"/><stop offset="1" stop-color="#3A6CC6"/>
+    </linearGradient>
+    <linearGradient id="g-book-mint" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#93DDBC"/><stop offset="1" stop-color="#49A882"/>
+    </linearGradient>
+    <linearGradient id="g-book-peach" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC5AD"/><stop offset="1" stop-color="#E58C69"/>
+    </linearGradient>
+    <linearGradient id="g-page" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#EDE5D8"/><stop offset=".35" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F7F2EA"/>
+    </linearGradient>
+    <linearGradient id="g-page-r" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#F7F2EA"/><stop offset=".65" stop-color="#FFFFFF"/><stop offset="1" stop-color="#EDE5D8"/>
+    </linearGradient>
+
+    <g id="becky-ears">
+      <ellipse cx="84" cy="50" rx="20" ry="44" transform="rotate(-14 84 50)" fill="url(#g-ear)"/>
+      <ellipse cx="85" cy="55" rx="10" ry="31" transform="rotate(-14 85 55)" fill="url(#g-inner-ear)"/>
+      <ellipse cx="136" cy="50" rx="20" ry="44" transform="rotate(14 136 50)" fill="url(#g-ear)"/>
+      <ellipse cx="135" cy="55" rx="10" ry="31" transform="rotate(14 135 55)" fill="url(#g-inner-ear)"/>
+    </g>
+    <g id="becky-body">
+      <ellipse cx="88" cy="223" rx="21" ry="11" fill="url(#g-fur)"/>
+      <ellipse cx="132" cy="223" rx="21" ry="11" fill="url(#g-fur)"/>
+      <!-- lab coat -->
+      <path d="M76 132 C61 148 56 180 58 206 C59 218 66 224 78 224 L142 224 C154 224 161 218 162 206 C164 180 159 148 144 132 Z" fill="url(#g-coat)"/>
+      <path d="M96 132 L110 156 L124 132 Z" fill="#A9C6FF"/>
+      <path d="M93 134 L110 172 L127 134" fill="none" stroke="#C3CEE2" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="110" cy="188" r="3.2" fill="#C3CEE2"/><circle cx="110" cy="204" r="3.2" fill="#C3CEE2"/>
+      <rect x="133" y="167" width="5" height="13" rx="2.5" fill="#4F86E8"/>
+      <rect x="128" y="175" width="21" height="16" rx="5" fill="#F4F7FC" stroke="#D2DBEA" stroke-width="2"/>
+    </g>
+    <g id="becky-head">
+      <ellipse cx="110" cy="96" rx="60" ry="51" fill="url(#g-fur)"/>
+      <ellipse cx="86" cy="68" rx="24" ry="12" transform="rotate(-22 86 68)" fill="#FFFFFF" opacity=".38"/>
+      <ellipse cx="80" cy="114" rx="13" ry="8" fill="url(#g-blush)"/>
+      <ellipse cx="140" cy="114" rx="13" ry="8" fill="url(#g-blush)"/>
+      <ellipse cx="110" cy="115" rx="17" ry="12" fill="#FFF3E4" opacity=".9"/>
+      <path d="M103 107 Q110 103 117 107 Q114 114 110 115 Q106 114 103 107 Z" fill="#EE8A88"/>
+      <ellipse cx="108" cy="107.5" rx="2.6" ry="1.4" fill="#FFFFFF" opacity=".7"/>
+    </g>
+    <!-- hair bow on the right ear -->
+    <g id="becky-bow">
+      <ellipse cx="129" cy="51" rx="10" ry="7.5" transform="rotate(-25 129 51)" fill="url(#g-bow)"/>
+      <ellipse cx="148" cy="51" rx="10" ry="7.5" transform="rotate(25 148 51)" fill="url(#g-bow)"/>
+      <circle cx="138.5" cy="54" r="5" fill="#3A6CC6"/>
+      <ellipse cx="126" cy="48" rx="3.5" ry="2" fill="#FFFFFF" opacity=".55"/>
+    </g>
+    <g id="becky-eyes-open">
+      <ellipse cx="88" cy="94" rx="11.5" ry="13.5" fill="url(#g-eye)"/>
+      <circle cx="92.5" cy="88.5" r="4.6" fill="#fff"/><circle cx="84.5" cy="99.5" r="2" fill="#fff" opacity=".85"/>
+      <ellipse cx="132" cy="94" rx="11.5" ry="13.5" fill="url(#g-eye)"/>
+      <circle cx="136.5" cy="88.5" r="4.6" fill="#fff"/><circle cx="128.5" cy="99.5" r="2" fill="#fff" opacity=".85"/>
+      <path d="M77 86 l-6 -4 M77.5 91 l-7 -1 M143 86 l6 -4 M142.5 91 l7 -1" stroke="#1E2A47" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+    <g id="becky-smile">
+      <path d="M110 115 Q110 121 103 121 M110 115 Q110 121 117 121" fill="none" stroke="#1E2A47" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+    <g id="becky-floor">
+      <ellipse class="floor-shadow" cx="110" cy="232" rx="62" ry="9" fill="url(#g-floor)"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="mock-note">MOCKUP for approval — static picture, not the real app.</div>
+<div class="disclaimer"><strong>Research demo, not medical advice.</strong><span class="disc-more"> Answers summarise published study abstracts. They are not guidance about anyone's health.</span></div>
+
+<div class="wrap">
+  <header>
+    <div class="logo">Grounded<span>Med</span></div>
+    <a class="nav-pill" href="#">How well does it work? →</a>
+  </header>
+
+  <section class="hero">
+    <div class="becky-col">
+      <div class="bubble">Hi, I'm Becky! I read research abstracts and link every finding to the study it's based on.</div>
+      <svg width="230" height="252" viewBox="0 0 220 242" role="img" aria-label="Becky, a bunny in a lab coat, holding a stack of books">
+        <ellipse class="floor-shadow" cx="110" cy="232" rx="62" ry="9" fill="url(#g-floor)"/>
+        <g class="bob">
+          <use href="#becky-ears"/>
+          <use href="#becky-body"/>
+          <!-- sleeves down to the books -->
+          <path d="M80 148 L80 186" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" transform="translate(1.5 2)"/>
+          <path d="M80 148 L80 186" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round"/>
+          <path d="M140 148 L140 186" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" transform="translate(1.5 2)"/>
+          <path d="M140 148 L140 186" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round"/>
+          <!-- stack of books -->
+          <g>
+            <rect x="80" y="191" width="62" height="15" rx="4" fill="url(#g-book-blue)"/>
+            <rect x="134" y="193" width="6" height="11" rx="1.5" fill="#FBF6EE"/>
+            <g transform="rotate(-4 110 184)">
+              <rect x="84" y="177" width="56" height="14" rx="4" fill="url(#g-book-mint)"/>
+              <rect x="86" y="179" width="6" height="10" rx="1.5" fill="#FBF6EE"/>
+            </g>
+            <g transform="rotate(3 110 170)">
+              <rect x="82" y="163" width="58" height="14" rx="4" fill="url(#g-book-peach)"/>
+              <rect x="132" y="165" width="6" height="10" rx="1.5" fill="#FBF6EE"/>
+              <rect x="96" y="167.5" width="22" height="3" rx="1.5" fill="#FFFFFF" opacity=".55"/>
+            </g>
+          </g>
+          <circle cx="79" cy="190" r="10" fill="url(#g-fur)"/>
+          <circle cx="141" cy="190" r="10" fill="url(#g-fur)"/>
+          <use href="#becky-head"/>
+          <use href="#becky-bow"/>
+          <use href="#becky-eyes-open"/>
+          <use href="#becky-smile"/>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <h1>Ask a research question</h1>
+      <p class="lede">GroundedMed answers from a fixed set of medical research abstracts, and every finding links to the study it's based on, so you can check it yourself.</p>
+      <label for="q" class="field-label">Your question</label>
+      <textarea id="q" placeholder="e.g. Does keyhole surgery hurt newborns less than open surgery?"></textarea>
+      <div class="ask-row"><button class="btn" type="button">Ask Becky</button></div>
+      <div class="try">Not sure what to ask? Try one of these:</div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </section>
+
+  <section class="scope" aria-label="What GroundedMed covers">
+    <div><h3>What she's read</h3><p>2,500 PubMed study abstracts.</p></div>
+    <div><h3>Best questions</h3><p>Yes / no / maybe questions about a study.</p></div>
+    <div><h3>No guessing</h3><p>If the evidence is thin, Becky says so.</p></div>
+  </section>
+
+  <h2 class="section-title">Becky's three poses</h2>
+  <p class="section-sub">Where each one appears in the real app.</p>
+
+  <section class="poses">
+    <div class="pose">
+      <svg width="170" height="187" viewBox="0 0 220 242" role="img" aria-label="Becky holding a stack of books">
+        <use href="#becky-floor"/>
+        <g class="bob">
+          <use href="#becky-ears"/>
+          <use href="#becky-body"/>
+          <path d="M80 148 L80 186" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" transform="translate(1.5 2)"/>
+          <path d="M80 148 L80 186" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round"/>
+          <path d="M140 148 L140 186" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" transform="translate(1.5 2)"/>
+          <path d="M140 148 L140 186" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round"/>
+          <rect x="80" y="191" width="62" height="15" rx="4" fill="url(#g-book-blue)"/>
+          <rect x="134" y="193" width="6" height="11" rx="1.5" fill="#FBF6EE"/>
+          <g transform="rotate(-4 110 184)">
+            <rect x="84" y="177" width="56" height="14" rx="4" fill="url(#g-book-mint)"/>
+            <rect x="86" y="179" width="6" height="10" rx="1.5" fill="#FBF6EE"/>
+          </g>
+          <g transform="rotate(3 110 170)">
+            <rect x="82" y="163" width="58" height="14" rx="4" fill="url(#g-book-peach)"/>
+            <rect x="132" y="165" width="6" height="10" rx="1.5" fill="#FBF6EE"/>
+            <rect x="96" y="167.5" width="22" height="3" rx="1.5" fill="#FFFFFF" opacity=".55"/>
+          </g>
+          <circle cx="79" cy="190" r="10" fill="url(#g-fur)"/>
+          <circle cx="141" cy="190" r="10" fill="url(#g-fur)"/>
+          <use href="#becky-head"/>
+          <use href="#becky-bow"/>
+          <use href="#becky-eyes-open"/>
+          <use href="#becky-smile"/>
+        </g>
+      </svg>
+      <h3>1 · Normal</h3>
+      <p class="where">Home page, next to the question box.</p>
+    </div>
+
+    <div class="pose">
+      <svg width="170" height="187" viewBox="0 0 220 242" role="img" aria-label="Becky reading an open book">
+        <use href="#becky-floor"/>
+        <g class="read-bob">
+          <use href="#becky-ears"/>
+          <use href="#becky-body"/>
+          <use href="#becky-head"/>
+          <use href="#becky-bow"/>
+          <!-- eyes looking down at the page -->
+          <g transform="translate(0 5)"><use href="#becky-eyes-open"/></g>
+          <path d="M104 119 Q110 123 116 119" fill="none" stroke="#1E2A47" stroke-width="2.6" stroke-linecap="round"/>
+          <!-- sleeves out to the book -->
+          <path d="M80 150 L72 172" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" transform="translate(1.5 2)"/>
+          <path d="M80 150 L72 172" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round"/>
+          <path d="M140 150 L148 172" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" transform="translate(1.5 2)"/>
+          <path d="M140 150 L148 172" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round"/>
+          <!-- open book: cover, two pages, text lines -->
+          <path d="M110 190 Q90 180 64 184 L64 150 Q90 146 110 156 Q130 146 156 150 L156 184 Q130 180 110 190 Z" fill="url(#g-book-blue)"/>
+          <path d="M110 185 Q91 175 68 179 L68 147 Q91 143 110 153 Z" fill="url(#g-page)"/>
+          <path d="M110 185 Q129 175 152 179 L152 147 Q129 143 110 153 Z" fill="url(#g-page-r)"/>
+          <path d="M76 155 Q90 152 102 158 M76 162 Q90 159 102 165 M76 169 Q88 166 98 171 M118 158 Q130 152 144 155 M118 165 Q130 159 144 162 M122 171 Q132 166 144 169" fill="none" stroke="#C9C1B3" stroke-width="2" stroke-linecap="round"/>
+          <!-- turning page: flips from right to left around the spine (x = 110) -->
+          <path class="flip-page" d="M110 185 Q129 175 152 179 L152 147 Q129 143 110 153 Z" fill="url(#g-page-r)" stroke="#E4DACB" stroke-width="1"/>
+          <path d="M110 153 L110 185" stroke="#D8CDBB" stroke-width="2"/>
+          <circle cx="68" cy="172" r="10" fill="url(#g-fur)"/>
+          <circle cx="152" cy="172" r="10" fill="url(#g-fur)"/>
+        </g>
+      </svg>
+      <h3>2 · Working</h3>
+      <p class="where">While the four steps run (the counts below are examples).</p>
+      <ul class="timeline">
+        <li><span class="dot done">✓</span><span>Planning <span class="meta">· 3 searches planned</span></span></li>
+        <li><span class="dot done">✓</span><span>Retrieving <span class="meta">· 5 passages selected</span></span></li>
+        <li aria-current="step"><span class="dot now"></span><span>Synthesizing<span class="sr-only"> (in progress)</span></span></li>
+        <li><span class="dot todo"></span><span>Checking claims</span></li>
+      </ul>
+    </div>
+
+    <div class="pose">
+      <svg width="170" height="187" viewBox="0 0 220 242" role="img" aria-label="Becky shrugging with an apologetic smile">
+        <use href="#becky-floor"/>
+        <g class="bob">
+          <use href="#becky-body"/>
+          <!-- arms out, palms up -->
+          <path d="M78 148 L56 166 L44 150" fill="none" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.5 2)"/>
+          <path d="M78 148 L56 166 L44 150" fill="none" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M142 148 L164 166 L176 150" fill="none" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.5 2)"/>
+          <path d="M142 148 L164 166 L176 150" fill="none" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="42" cy="144" r="10" fill="url(#g-fur)"/>
+          <circle cx="178" cy="144" r="10" fill="url(#g-fur)"/>
+          <g transform="rotate(-7 110 140)">
+            <use href="#becky-ears"/>
+            <use href="#becky-head"/>
+            <use href="#becky-bow"/>
+            <!-- smiling closed eyes, brows raised in the middle: "sorry!" rather than sad -->
+            <path d="M78 96 Q88 86 98 96 M122 96 Q132 86 142 96" fill="none" stroke="#1E2A47" stroke-width="4" stroke-linecap="round"/>
+            <path d="M76 76 Q86 74 96 68 M124 68 Q134 74 144 76" fill="none" stroke="#B8875E" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M102 119 Q110 125 118 119" fill="none" stroke="#1E2A47" stroke-width="2.8" stroke-linecap="round"/>
+          </g>
+        </g>
+      </svg>
+      <h3>3 · No answer</h3>
+      <p class="where">When there isn't enough evidence.</p>
+      <div class="refusal"><strong>Not enough evidence</strong>The abstracts Becky found don't answer this clearly, so she won't guess. Try rephrasing, or pick an example question.</div>
+    </div>
+  </section>
+
+  <footer>GroundedMed · research demo, not medical advice · mascot "Becky" is an original design</footer>
+</div>
+
+<script>
+  // Real example questions: short rewordings of DEV questions (never test), each checked by running
+  // the agent (docs/design/example-questions-check.json). The first three are also the buttons.
+  const EXAMPLES = [
+    "Does keyhole surgery hurt newborns less than open surgery?",
+    "Can the brain's right half learn to read on its own?",
+    "Do recorded lectures make medical students skip class?",
+    "Is paying pregnant smokers to quit worth the cost?",
+    "Does a baby's sex affect asthma ER visits during pregnancy?",
+    "Can adults with mild intellectual disabilities get better at reading comprehension?",
+    "Does a stroke patient's sex change how well the clot-busting drug rt-PA works?",
+  ];
+  const box = document.getElementById("q");
+  const chips = document.getElementById("chips");
+  for (const text of EXAMPLES.slice(0, 3)) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.textContent = text;
+    chip.addEventListener("click", () => { box.value = text; box.focus(); });
+    chips.append(chip);
+  }
+  // Rotate the placeholder every 4 s; pause while the box is focused or has text; off for reduced motion.
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let i = 0;
+  setInterval(() => {
+    if (reduceMotion.matches || document.activeElement === box || box.value) return;
+    i = (i + 1) % EXAMPLES.length;
+    box.placeholder = "e.g. " + EXAMPLES[i];
+  }, 4000);
+</script>
+</body>
+</html>

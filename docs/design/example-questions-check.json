@@ -1,0 +1,163 @@
+{
+  "spent_usd": 0.23142,
+  "cap_usd": 1.0,
+  "results": [
+    {
+      "pmid": "26370095",
+      "question": "Is paying pregnant smokers to quit worth the cost?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:26370095"
+      ],
+      "claims": [
+        "A cost-effectiveness analysis of a Glasgow RCT of up to \u00a3400 in incentives for pregnant smokers found an incremental cost of \u00a31127 per cotinine-validated quitter at 34-38 weeks, and a lifetime model ICER of \u00a3482/QALY, well below a \u00a330,000/QALY willingness-to-pay threshold.",
+        "The cost per quitter was similar to a standard look-up value from published ICER tables (\u00a31390 per quitter), supporting the plausibility of the estimate."
+      ],
+      "cost_usd": 0.03121,
+      "total_ms": 17168,
+      "keep": true
+    },
+    {
+      "pmid": "21123461",
+      "question": "Are body measurements like waist size linked to height?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 3,
+      "cited": [
+        "PMID:11473073",
+        "PMID:21123461",
+        "PMID:9130028"
+      ],
+      "claims": [
+        "In NHANES III adults, waist circumference scaled to height after adjustment for age and race, with powers of 0.76 in men and 0.80 in women (both P<0.001), corresponding to roughly 0.2 to 0.5 cm increase in circumference per cm of height.",
+        "Waist circumference/height and hip circumference/height ratios scaled negatively to height in both sexes, so these ratios are not height-independent. WC/HC scaled negatively to height in women only.",
+        "Other studies also link height with waist size: in Glasgow, residents of the most deprived neighbourhood were shorter and had larger waist circumferences, and in Manchester lower height and greater waist girth were independently related to plasma glucose."
+      ],
+      "cost_usd": 0.03185,
+      "total_ms": 12669,
+      "keep": true
+    },
+    {
+      "pmid": "17910536",
+      "question": "Can adults with mild intellectual disabilities get better at reading comprehension?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:17910536"
+      ],
+      "claims": [
+        "In a study of 38 adults with mild intellectual disability, a 15-week text comprehension strategy program (summarizing, questioning, clarifying, predicting) produced a substantial transfer effect on general text comprehension that was well maintained at follow-up.",
+        "Direct effects on the taught strategy tests were substantial except for the questioning strategy, and there was no significant difference between individual and small-group (reciprocal teaching) instruction."
+      ],
+      "cost_usd": 0.02595,
+      "total_ms": 9395,
+      "keep": true
+    },
+    {
+      "pmid": "25819796",
+      "question": "Can the brain's right half learn to read on its own?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 3,
+      "cited": [
+        "PMID:25819796"
+      ],
+      "claims": [
+        "In seven individuals who had left cerebral hemispherectomy, so reading depended on the right hemisphere, about 60% developed average-range word and paragraph reading.",
+        "Phonological processing, measured by phonological awareness and nonword reading, was unexpectedly spared in most of these participants, and phonological awareness correlated strongly with word reading.",
+        "Verbal memory and receptive vocabulary correlated positively with reading levels, similar to relationships reported in average readers, and later seizure onset was associated with better reading."
+      ],
+      "cost_usd": 0.03295,
+      "total_ms": 13533,
+      "keep": true
+    },
+    {
+      "pmid": "21194998",
+      "question": "Does keyhole surgery hurt newborns less than open surgery?",
+      "gold_label": "no",
+      "verdict": "no",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:21194998"
+      ],
+      "claims": [
+        "In a retrospective matched cohort of neonates having thoracoscopic minimal access surgery versus conventional surgery for esophageal atresia or congenital diaphragmatic hernia, cumulative opioid doses did not differ significantly at 12 h, 24 h, 48 h or 7 days.",
+        "Postoperative pain scores were also similar between the minimal access and conventional groups, so this study found no evidence that keyhole surgery reduced pain in newborns."
+      ],
+      "cost_usd": 0.02734,
+      "total_ms": 9747,
+      "keep": true
+    },
+    {
+      "pmid": "16809243",
+      "question": "Does a baby's sex affect asthma ER visits during pregnancy?",
+      "gold_label": "no",
+      "verdict": "no",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:16809243"
+      ],
+      "claims": [
+        "Fetal gender was not associated with the risk of an ED visit for asthma during pregnancy (OR 1.01, 95% CI 0.85-1.19) in a linked administrative-data study of 109,173 live singleton deliveries, 530 of whom had an asthma ED visit.",
+        "Among women who had an asthma ED visit during pregnancy, fetal gender also did not significantly predict adverse pregnancy outcomes (low birth weight, preterm delivery, Caesarian delivery)."
+      ],
+      "cost_usd": 0.02613,
+      "total_ms": 11143,
+      "keep": true
+    },
+    {
+      "pmid": "28027677",
+      "question": "Do recorded lectures make medical students skip class?",
+      "gold_label": "no",
+      "verdict": "no",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:28027677"
+      ],
+      "claims": [
+        "Providing prerecorded lecture VODcasts to first-year graduate-entry medical students did not appear to reduce live lecture attendance: 84.3% attended all 21 Physiology lectures and only 4% missed more than one lecture in each lecture series.",
+        "Most students (79%) indicated that VODcasts should not replace live lectures."
+      ],
+      "cost_usd": 0.02237,
+      "total_ms": 11448,
+      "keep": true
+    },
+    {
+      "pmid": "24669960",
+      "question": "Does a stroke patient's sex change how well the clot-busting drug rt-PA works?",
+      "gold_label": "no",
+      "verdict": "no",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:24172579",
+        "PMID:24669960"
+      ],
+      "claims": [
+        "In a multicenter series of 369 rt-PA-treated stroke patients monitored with transcranial Doppler, men and women did not differ in complete, partial or no recanalization, time to recanalization, or 3-month outcome, including after adjustment for covariates.",
+        "In a large register of 45,079 alteplase-treated patients, women had worse unadjusted functional independence and mortality, but after adjustment there was no sex difference in functional outcome (OR 1.03, 95% CI 0.97-1.09)."
+      ],
+      "cost_usd": 0.03363,
+      "total_ms": 12869,
+      "keep": true
+    }
+  ]
+}
