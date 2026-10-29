@@ -1,6 +1,8 @@
 """Live checks of the loaded `documents` table and the read-only runtime role (PLAN.md M1-T2).
 
-Needs DATABASE_URL and DATABASE_ADMIN_URL (local .env); skipped where they are absent, e.g. CI.
+Needs DATABASE_URL (read-only runtime role): local .env, and a GitHub Actions secret so CI runs
+them too.
+The one test that inspects other roles also needs DATABASE_ADMIN_URL, which is never given to CI.
 """
 
 import json
@@ -12,9 +14,9 @@ import pytest
 from backend.app.retrieval.vector_search import open_connection
 from scripts.ingest import CORPUS_MANIFEST, DOCUMENT_COLUMNS, READER_ROLE, SUPABASE_API_ROLES
 
-pytestmark = pytest.mark.skipif(
-    not (os.environ.get("DATABASE_URL") and os.environ.get("DATABASE_ADMIN_URL")),
-    reason="database URLs not set",
+pytestmark = pytest.mark.skipif(not os.environ.get("DATABASE_URL"), reason="DATABASE_URL not set")
+needs_admin = pytest.mark.skipif(
+    not os.environ.get("DATABASE_ADMIN_URL"), reason="DATABASE_ADMIN_URL not set (never set in CI)"
 )
 
 
@@ -102,6 +104,7 @@ def test_runtime_role_cannot_write_even_outside_read_only_mode():
             )
 
 
+@needs_admin
 def test_supabase_api_roles_cannot_read_documents(admin):
     for role in SUPABASE_API_ROLES:
         if admin.execute("select 1 from pg_roles where rolname = %s", (role,)).fetchone():

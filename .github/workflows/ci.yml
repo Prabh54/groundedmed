@@ -1,4 +1,4 @@
-# M0-T5: lint + unit/leakage tests on every push. No secrets needed.
+# M0-T5: lint + unit/leakage tests on every push. One secret: DATABASE_URL (read-only DB role) for the live-DB checks.
 name: CI
 
 on:
@@ -38,7 +38,12 @@ jobs:
           git status --porcelain --untracked-files=all -- data
           test -z "$(git status --porcelain --untracked-files=all -- data)"
 
+      # DATABASE_URL = the read-only runtime role (repository secret): runs the live-database integrity and
+      # read-only checks in backend/tests/integration/test_database.py. Empty (tests skip) where the secret is
+      # unavailable, e.g. pull requests from forks. No admin URL or API keys are given to CI.
       - name: Tests (unit + leakage)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: uv run pytest -v
 
   # M5: frontend type check, unit tests and production build (no secrets; the API URL is a placeholder).
