@@ -66,6 +66,12 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # Fonts are self-hosted (M6-F3); block Google Fonts so a build that downloads them fails here.
+      - name: Block Google Fonts
+        run: |
+          echo "0.0.0.0 fonts.googleapis.com fonts.gstatic.com" | sudo tee -a /etc/hosts
+          ! curl -sS -m 5 -o /dev/null https://fonts.googleapis.com
+
       - name: Production build
         run: npm run build
         env:

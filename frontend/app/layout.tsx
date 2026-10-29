@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { Fredoka, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const heading = Fredoka({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-heading" });
-const body = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" });
+// Self-hosted so builds never download from Google Fonts (CI flaked on that, PLAN.md M6-F3).
+// Latin variable files as served by Google Fonts (Fredoka v17, Inter v20); licences: app/fonts/*-OFL.txt.
+const heading = localFont({ src: "./fonts/Fredoka-latin-variable.woff2", weight: "300 700", variable: "--font-heading" });
+const body = localFont({ src: "./fonts/Inter-latin-variable.woff2", weight: "100 900", variable: "--font-body" });
 
 export const metadata: Metadata = {
   title: "GroundedMed",
