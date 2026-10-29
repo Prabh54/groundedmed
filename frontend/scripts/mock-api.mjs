@@ -12,7 +12,8 @@
 import http from "node:http";
 
 const PORT = Number(process.env.MOCK_PORT || 8001);
-const ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"];
+// MOCK_ORIGINS (comma-separated) lets the Playwright run (e2e/, its own ports) use the same mock.
+const ORIGINS = process.env.MOCK_ORIGINS ? process.env.MOCK_ORIGINS.split(",") : ["http://localhost:3000", "http://127.0.0.1:3000"];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sse = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 

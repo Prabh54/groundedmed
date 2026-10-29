@@ -22,6 +22,8 @@ venv/
 # Node
 node_modules/
 .next/
+.next-e2e/
+test-results/
 next-env.d.ts
 *.tsbuildinfo
 

@@ -16,11 +16,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${heading.variable} ${body.variable}`}>
       <body>
-        <div className="disclaimer" role="note">
-          <strong>Research demo, not medical advice.</strong>
-          <span className="disc-more"> Answers summarise published study abstracts. They are not guidance about anyone&apos;s health.</span>
-        </div>
         {children}
+        {/* The site's disclaimer (owner, M5-T6: replaces the sticky top bar; the home page card repeats it). */}
+        <footer className="site-footer">
+          GroundedMed is a portfolio <strong>research demo</strong> · not medical advice
+        </footer>
       </body>
     </html>
   );

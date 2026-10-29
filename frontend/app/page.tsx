@@ -27,6 +27,15 @@ export default function Home() {
           <h3>No guessing</h3>
           <p>If the evidence is thin, Becky says so.</p>
         </div>
+        <div className="cant">
+          <h3>What she can&apos;t do</h3>
+          <ul>
+            <li>No new research: she only knows this fixed set of abstracts.</li>
+            <li>She can be wrong: check the sources she links.</li>
+            <li>Not medical advice: ask a doctor about your own health.</li>
+          </ul>
+          <Link href="/eval#h-limits">Full limitations →</Link>
+        </div>
       </section>
     </main>
   );

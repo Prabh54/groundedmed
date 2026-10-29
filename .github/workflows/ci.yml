@@ -46,10 +46,11 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: uv run pytest -v
 
-  # M5: frontend type check, unit tests and production build (no secrets; the API URL is a placeholder).
+  # M5: frontend type check, unit tests, production build, /eval number check and browser tests
+  # (no secrets; the API URL is a placeholder; the browser tests use the fake API only).
   frontend:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -85,3 +86,11 @@ jobs:
       # M5-T5: every number on the built /eval page equals its stored result-file value (ADR-016).
       - name: Check /eval numbers against the result files
         run: npm run check:eval
+
+      # M5-T6: browser tests (Playwright, e2e/) against the fake API only (scripts/mock-api.mjs): no paid calls.
+      # They build their own copy of the app into .next-e2e (playwright.config.ts).
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests (fake API, $0)
+        run: npm run test:e2e

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Becky from "./Becky";
 import Sources from "./Sources";
 import Timeline from "./Timeline";
-import { BUTTON_COUNT, EXAMPLES, ROTATE_MS, nextExample } from "@/lib/examples";
+import { BUTTON_COUNT, CORPUS_ABSTRACTS, EXAMPLES, ROTATE_MS, nextExample } from "@/lib/examples";
 import { AskError, askStream, type Claim, type QueryResponse, type StageEvent } from "@/lib/stream";
 import { anchorId, countText, sourceViews } from "@/lib/sources";
 import { applyStage, failSteps, finishSteps, hasProgress, initialSteps, type Step } from "@/lib/timeline";
@@ -69,6 +69,14 @@ export default function Ask() {
   const trimmed = question.trim();
   const tooShort = trimmed.length < MIN_CHARS;
 
+  // An example button fills the box (never sends it) and brings the box into view.
+  const pick = (text: string, block: ScrollLogicalPosition) => {
+    setQuestion(text);
+    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    box.current?.focus({ preventScroll: true });
+    box.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block });
+  };
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (tooShort || working) return;
@@ -130,23 +138,7 @@ export default function Ask() {
               {working ? "Becky is reading…" : "Ask Becky"}
             </button>
           </div>
-          <div className="try" id="try-label">Not sure what to ask? Try one of these:</div>
-          <div className="chips" role="group" aria-labelledby="try-label">
-            {EXAMPLES.slice(0, BUTTON_COUNT).map(({ question: text }) => (
-              <button
-                key={text}
-                type="button"
-                className="chip"
-                disabled={working}
-                onClick={() => {
-                  setQuestion(text);
-                  box.current?.focus();
-                }}
-              >
-                {text}
-              </button>
-            ))}
-          </div>
+          <ExampleChips id="try-label" label="Not sure what to ask? Try one of these:" disabled={working} onPick={(t) => pick(t, "nearest")} />
         </form>
       </section>
 
@@ -174,7 +166,27 @@ export default function Ask() {
             </div>
           </section>
         )}
-        {state.kind === "done" && <Answer result={state.result} steps={steps} headingRef={answerHeading} />}
+        {state.kind === "done" && (
+          <Answer result={state.result} steps={steps} headingRef={answerHeading} onPick={(t) => pick(t, "center")} />
+        )}
+      </div>
+    </>
+  );
+}
+
+// The first BUTTON_COUNT examples as buttons, under the question box and again after a refusal.
+function ExampleChips({ id, label, disabled, onPick }: { id: string; label: string; disabled: boolean; onPick: (text: string) => void }) {
+  return (
+    <>
+      <div className="try" id={id}>
+        {label}
+      </div>
+      <div className="chips" role="group" aria-labelledby={id}>
+        {EXAMPLES.slice(0, BUTTON_COUNT).map(({ question: text }) => (
+          <button key={text} type="button" className="chip" disabled={disabled} onClick={() => onPick(text)}>
+            {text}
+          </button>
+        ))}
       </div>
     </>
   );
@@ -186,9 +198,14 @@ function nowText(steps: Step[]): string {
   return now ? `${now.label}${now.meta ? `: ${now.meta}` : ""}` : "Starting";
 }
 
-type AnswerProps = { result: QueryResponse; steps: Step[]; headingRef: React.Ref<HTMLHeadingElement> };
+type AnswerProps = {
+  result: QueryResponse;
+  steps: Step[];
+  headingRef: React.Ref<HTMLHeadingElement>;
+  onPick: (text: string) => void;
+};
 
-function Answer({ result, steps, headingRef }: AnswerProps) {
+function Answer({ result, steps, headingRef, onPick }: AnswerProps) {
   const views = sourceViews(result);
   const numberOf = new Map(views.map((v) => [v.id, v.n]));
   const [open, setOpen] = useState<Set<number>>(() => new Set());
@@ -280,6 +297,16 @@ function Answer({ result, steps, headingRef }: AnswerProps) {
             </h2>
             {NO_ANSWER_TEXT[result.abstain_reason ?? ""] ?? NO_ANSWER_FALLBACK}
           </div>
+        </div>
+        <div className="try-instead">
+          <h3>Try this instead</h3>
+          <ul>
+            <li>Ask a yes / no question about what a study found.</li>
+            <li>
+              Becky has only read {CORPUS_ABSTRACTS.toLocaleString("en-US")} PubMed abstracts, so many topics aren&apos;t there.
+            </li>
+          </ul>
+          <ExampleChips id="retry-label" label="Or try one she can answer:" disabled={false} onPick={onPick} />
         </div>
         {result.claims.length + result.limitations.length > 0 && (
           <>
