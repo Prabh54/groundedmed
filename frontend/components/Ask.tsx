@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Becky from "./Becky";
+import { BUTTON_COUNT, EXAMPLES, ROTATE_MS, nextExample } from "@/lib/examples";
 import { AskError, askStream, type Claim, type QueryResponse, type StageEvent } from "@/lib/stream";
 
 // Set at build time; next.config.ts refuses a production build without it.
@@ -28,11 +29,23 @@ const NO_ANSWER_FALLBACK = "The abstracts Becky found don't answer this clearly,
 export default function Ask() {
   const [question, setQuestion] = useState("");
   const [state, setState] = useState<State>({ kind: "idle" });
+  const [example, setExample] = useState(0);
+  const box = useRef<HTMLTextAreaElement>(null);
   const controller = useRef<AbortController | null>(null);
   const results = useRef<HTMLDivElement>(null);
   const answerHeading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => () => controller.current?.abort(), []);
+
+  // Rotate the placeholder through the examples; pauses while the visitor is in the box or has typed.
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const timer = setInterval(() => {
+      const paused = { focused: document.activeElement === box.current, hasText: !!box.current?.value, reducedMotion: reduce.matches };
+      setExample((i) => nextExample(i, paused));
+    }, ROTATE_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   // Bring Becky's progress into view when a question starts (it is below the fold on phones).
   const startedWorking = state.kind === "working" && state.stage === null;
@@ -87,6 +100,7 @@ export default function Ask() {
           <label htmlFor="q" className="field-label">Your question</label>
           <textarea
             id="q"
+            ref={box}
             value={question}
             maxLength={MAX_CHARS}
             aria-describedby="q-hint"
@@ -97,7 +111,7 @@ export default function Ask() {
                 e.currentTarget.form?.requestSubmit();
               }
             }}
-            placeholder="e.g. Does keyhole surgery hurt newborns less than open surgery?"
+            placeholder={`e.g. ${EXAMPLES[example].question}`}
           />
           <div className="ask-row">
             <span className="char-count" id="q-hint">
@@ -107,6 +121,23 @@ export default function Ask() {
             <button className="btn" type="submit" disabled={tooShort || working} aria-describedby="q-hint">
               {working ? "Becky is reading…" : "Ask Becky"}
             </button>
+          </div>
+          <div className="try" id="try-label">Not sure what to ask? Try one of these:</div>
+          <div className="chips" role="group" aria-labelledby="try-label">
+            {EXAMPLES.slice(0, BUTTON_COUNT).map(({ question: text }) => (
+              <button
+                key={text}
+                type="button"
+                className="chip"
+                disabled={working}
+                onClick={() => {
+                  setQuestion(text);
+                  box.current?.focus();
+                }}
+              >
+                {text}
+              </button>
+            ))}
           </div>
         </form>
       </section>

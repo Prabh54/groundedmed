@@ -111,7 +111,21 @@ textarea:focus { outline: 3px solid var(--blue-tint); border-color: var(--blue);
   .becky-flip { animation: none; display: none; }
 }
 
+.try { margin-top: 22px; font-weight: 600; font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.chip {
+  font: 500 15px/1.4 var(--heading); color: var(--navy); background: var(--card); text-align: left;
+  border: 2px solid #C9BBA5; border-bottom: 4px solid var(--input-line); border-radius: 14px; padding: 8px 14px; cursor: pointer;
+}
+.chip:hover:enabled { border-color: #C9D9F6; background: #F7FAFF; }
+.chip:disabled { opacity: .55; cursor: not-allowed; }
+.scope { margin: 24px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.scope div { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; }
+.scope h3 { margin: 0 0 2px; font-size: 18px; font-weight: 600; }
+.scope p { margin: 0; color: var(--navy-soft); font-size: 15px; }
+
 @media (max-width: 780px) {
+  .scope { grid-template-columns: 1fr; }
   .hero { grid-template-columns: 1fr; padding: 22px; }
   .becky-col { flex-direction: row; gap: 4px; }
   .becky-col svg { width: 116px; height: auto; flex: none; order: -1; }
