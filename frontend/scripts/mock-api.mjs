@@ -16,26 +16,36 @@ const ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sse = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 
+// Like the real corpus: several labelled, conclusion-free sections of realistic length (median ~1,300 chars).
+const MOCK_SENTENCE = "MOCK text for testing the page, not from a real study. ";
 const citation = (pmid) => ({
   id: `PMID:${pmid}`,
   pmid,
   passage: `MOCK passage text for PMID ${pmid}.`,
-  sections: [{ label: "RESULTS", text: `MOCK passage text for PMID ${pmid}.` }],
-  pubmed_url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+  sections: [
+    { label: "BACKGROUND", text: `MOCK background for PMID ${pmid}. ${MOCK_SENTENCE.repeat(3)}` },
+    { label: "METHODS", text: `MOCK methods for PMID ${pmid}. ${MOCK_SENTENCE.repeat(5)}` },
+    { label: "RESULTS", text: `MOCK results for PMID ${pmid}. ${MOCK_SENTENCE.repeat(8)}` },
+  ],
+  // Deliberately NOT PubMed: these PMIDs are made up, and real PubMed pages for them are unrelated papers.
+  pubmed_url: `http://localhost:${PORT}/fake-source/${pmid}`,
   rerank_score: 0.9,
 });
+// The real API's `citations` = every selected evidence passage (validator.py _final), cited or not,
+// including on a weak-evidence refusal; the page must count them, not assume they are all cited.
+const UNCITED = ["44444444", "55555555", "66666666"].map(citation);
 
 function result(question, kind) {
   const base = { request_id: "mock", mode: "agent", rerank_skipped: false, stages: [], timing_ms: {}, estimated_cost_usd: 0, prompt_versions: {} };
   if (kind === "weak") {
-    return { ...base, verdict: "insufficient_evidence", answer: "MOCK: The retrieved evidence scored below the relevance threshold.", claims: [], citations: [], limitations: [], abstained: true, abstain_reason: "weak_evidence" };
+    return { ...base, verdict: "insufficient_evidence", answer: "MOCK: The retrieved evidence scored below the relevance threshold.", claims: [], citations: [citation("11111111"), citation("22222222"), ...UNCITED], limitations: [], abstained: true, abstain_reason: "weak_evidence" };
   }
   if (kind === "abstain") {
     // validator.py keeps validated claims when the model itself answers insufficient_evidence
     return {
       ...base, verdict: "insufficient_evidence", answer: "MOCK claim text joined", abstained: true, abstain_reason: "model_abstained",
       claims: [{ id: "c1", text: "MOCK: the study measured something related, not the question asked.", citation_ids: ["PMID:33333333"] }],
-      citations: [citation("33333333")], limitations: [],
+      citations: [citation("33333333"), ...UNCITED], limitations: [],
     };
   }
   return {
@@ -46,7 +56,7 @@ function result(question, kind) {
       { id: "c1", text: `MOCK finding one for: ${question}`, citation_ids: ["PMID:11111111"] },
       { id: "c2", text: "MOCK finding two, supported by two sources.", citation_ids: ["PMID:11111111", "PMID:22222222"] },
     ],
-    citations: [citation("11111111"), citation("22222222")],
+    citations: [citation("22222222"), citation("11111111"), ...UNCITED], // evidence order, not citation order (as on the real API)
     limitations: [{ id: "l1", text: "MOCK limitation: small sample.", citation_ids: ["PMID:22222222"] }],
     abstained: false,
     abstain_reason: null,
@@ -84,6 +94,15 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return res.writeHead(204).end();
   if (req.method === "GET" && req.url === "/health") {
     return res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ status: "ok", version: "mock" }));
+  }
+  if (req.method === "GET" && /^\/fake-source\/\d+$/.test(req.url)) {
+    const pmid = req.url.split("/").pop();
+    return res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }).end(
+      `<!doctype html><meta charset="utf-8"><title>FAKE source ${pmid}</title>` +
+        `<body style="font:18px system-ui;max-width:40em;margin:3em auto;padding:0 1em">` +
+        `<h1>Fake source (test server)</h1><p>PMID ${pmid} is made up by the mock API for testing the page. ` +
+        `It is not a real paper. On the real server this link opens the paper on PubMed.</p></body>`,
+    );
   }
   if (req.method !== "POST" || req.url !== "/query/stream") return res.writeHead(404).end();
 

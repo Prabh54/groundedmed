@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Source cards mockup</title>
+<!-- M5-T4 source-card mockup for owner approval (session 12). Static page, not the real app.
+     Answer text = the recorded agent answer for this example (docs/design/example-questions-check.json);
+     source text = PMID 26370095's conclusion-free sections from data/corpus.jsonl. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFF8EE; --navy: #1E2A47; --navy-soft: #4A5672; --blue: #4F86E8; --blue-dark: #3A6CC6;
+    --blue-tint: #E6EFFD; --mint: #CDEFDF; --mint-ink: #1F6B4A; --card: #FFFFFF; --line: #EADFCF;
+    --shadow: 0 6px 20px rgba(30, 42, 71, 0.08); --radius: 22px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--cream); color: var(--navy); font: 16px/1.55 Inter, system-ui, sans-serif; }
+  h1, h2, h3, .verdict, .num { font-family: Fredoka, "Arial Rounded MT Bold", system-ui, sans-serif; }
+  .mock-note { background: var(--navy); color: #fff; text-align: center; font-size: 13px; padding: 6px 16px; }
+  .disclaimer { position: sticky; top: 0; z-index: 5; background: var(--blue-tint); border-bottom: 1px solid #CFDDF6; text-align: center; font-size: 14px; padding: 8px 16px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px 48px; }
+  .state-title { font-size: 22px; font-weight: 600; margin: 36px 0 4px; }
+  .state-sub { margin: 0 0 4px; color: var(--navy-soft); }
+  .result { margin-top: 16px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px 28px; }
+  .result h2 { margin: 0 0 12px; font-size: 22px; font-weight: 600; }
+  .trail { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; padding: 0 0 12px; margin: 0 0 14px; font-size: 14px; color: var(--navy-soft); border-bottom: 1px solid var(--line); }
+  .trail li { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; background: var(--mint); color: var(--mint-ink); }
+  .verdict { display: inline-block; font-size: 18px; font-weight: 600; border-radius: 999px; padding: 4px 16px; background: var(--mint); color: var(--mint-ink); margin-bottom: 12px; }
+  .findings { margin: 0; padding-left: 20px; }
+  .findings li { margin: 8px 0; }
+
+  /* NEW: citation numbers are links to their card */
+  .cite-link {
+    font: 600 13px/1 Inter, system-ui, sans-serif; color: var(--blue-dark); background: var(--blue-tint);
+    border-radius: 8px; padding: 3px 7px; margin-left: 4px; text-decoration: none; white-space: nowrap;
+  }
+  .cite-link:hover { background: #D3E2FB; }
+  .cite-link:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  /* NEW: sources block */
+  .sources-head { margin: 22px 0 2px; font-size: 18px; font-weight: 600; }
+  .sources-count { margin: 0 0 12px; color: var(--navy-soft); font-size: 14px; }
+  .source-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .source {
+    border: 2px solid var(--line); border-radius: 18px; padding: 14px 16px; background: #fff;
+    scroll-margin-top: 64px; transition: border-color .3s;
+  }
+  .source.glow { animation: glow 2.2s ease-out; border-color: var(--blue); }
+  @keyframes glow {
+    0% { box-shadow: 0 0 0 0 rgba(79, 134, 232, 0); }
+    15% { box-shadow: 0 0 0 6px rgba(79, 134, 232, .35); }
+    100% { box-shadow: 0 0 0 0 rgba(79, 134, 232, 0); }
+  }
+  .source-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .num { display: inline-grid; place-items: center; min-width: 30px; height: 30px; border-radius: 10px; background: var(--blue-tint); color: var(--blue-dark); font-weight: 600; font-size: 16px; }
+  .pmid { font-weight: 600; }
+  .pubmed { margin-left: auto; color: var(--blue-dark); font-weight: 500; font-size: 14px; }
+  .uses { margin: 6px 0 0; font-size: 14px; color: var(--navy-soft); }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+  .pills li { font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--navy-soft); background: #F6F1E8; border-radius: 999px; padding: 2px 9px; }
+  .preview { margin: 10px 0 0; color: var(--navy); font-size: 15px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .preview b, .full b { font-size: 12px; letter-spacing: .04em; color: var(--navy-soft); }
+  .full { margin: 10px 0 0; font-size: 15px; }
+  .full p { margin: 0 0 8px; }
+  .full-note { font-size: 13px; color: var(--navy-soft); margin: 4px 0 0; }
+  .toggle {
+    margin-top: 10px; font: 600 14px/1 Inter, system-ui, sans-serif; color: var(--blue-dark); background: none;
+    border: 2px solid #C9D9F6; border-radius: 12px; padding: 8px 12px; cursor: pointer;
+  }
+  .toggle:hover { background: #F7FAFF; }
+  .placeholder-line { height: 10px; border-radius: 6px; background: #F1ECE3; margin: 8px 0; }
+  .callout { background: #FFFBE6; border: 1px dashed #D9C27A; border-radius: 14px; padding: 10px 14px; font-size: 14px; margin-top: 12px; }
+  footer { margin: 40px 0 0; font-size: 13px; color: var(--navy-soft); text-align: center; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) {
+    .source.glow { animation: none; }   /* border still turns blue, so the card is still marked */
+  }
+  @media (max-width: 780px) {
+    .result { padding: 20px; }
+    .pubmed { margin-left: 0; flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="mock-note">MOCKUP for approval: source cards (M5-T4). Click a [1] or a "Show full text" button to try it.</div>
+<div class="disclaimer"><strong>Research demo, not medical advice.</strong> Answers summarise published study abstracts.</div>
+<main class="wrap">
+
+  <h2 class="state-title">1. The answer as it first appears</h2>
+  <p class="state-sub">Real recorded answer for "Is paying pregnant smokers to quit worth the cost?" and the real text of its source.
+    Cards start as a 3-line preview. Try clicking <strong>[1]</strong> in a finding.</p>
+
+  <section class="result">
+    <ul class="trail" aria-label="Steps">
+      <li><span class="dot">✓</span>Planning</li><li><span class="dot">✓</span>Retrieving</li>
+      <li><span class="dot">✓</span>Synthesizing</li><li><span class="dot">✓</span>Checking claims</li>
+    </ul>
+    <h2>Becky's answer</h2>
+    <div class="verdict">Yes</div>
+    <ol class="findings">
+      <li>A cost-effectiveness analysis of a Glasgow RCT of up to £400 in incentives for pregnant smokers found an incremental cost of £1127 per cotinine-validated quitter at 34-38 weeks, and a lifetime model ICER of £482/QALY, well below a £30,000/QALY willingness-to-pay threshold.<a class="cite-link" href="#src-a-1" data-target="src-a-1" aria-label="Source 1">[1]</a></li>
+      <li>The cost per quitter was similar to a standard look-up value from published ICER tables (£1390 per quitter), supporting the plausibility of the estimate.<a class="cite-link" href="#src-a-1" data-target="src-a-1" aria-label="Source 1">[1]</a></li>
+    </ol>
+
+    <h3 class="sources-head">Sources</h3>
+    <p class="sources-count">Becky read 5 abstracts and used 1 of them.</p>
+    <ol class="source-list">
+      <li class="source" id="src-a-1" tabindex="-1">
+        <div class="source-top">
+          <span class="num" aria-hidden="true">1</span>
+          <span class="pmid">PMID 26370095</span>
+          <a class="pubmed" href="https://pubmed.ncbi.nlm.nih.gov/26370095/" target="_blank" rel="noopener noreferrer">View on PubMed ↗</a>
+        </div>
+        <p class="uses">Supports findings 1–2</p>
+        <ul class="pills" aria-label="Sections">
+          <li>AIMS</li><li>DESIGN</li><li>SETTING</li><li>PARTICIPANTS</li><li>MEASUREMENTS</li><li>FINDINGS</li>
+        </ul>
+        <p class="preview"><b>AIMS</b> To investigate the cost-effectiveness of up to £400 worth of financial incentives for smoking cessation in pregnancy as an adjunct to routine health care. <b>DESIGN</b> Cost-effectiveness analysis based on a Phase II randomized controlled trial (RCT) and a cost-utility analysis using a life-time Markov model. <b>SETTING</b> The RCT was undertaken in Glasgow, Scotland.</p>
+        <div class="full" hidden>
+          <p><b>AIMS</b><br>To investigate the cost-effectiveness of up to £400 worth of financial incentives for smoking cessation in pregnancy as an adjunct to routine health care.</p>
+          <p><b>DESIGN</b><br>Cost-effectiveness analysis based on a Phase II randomized controlled trial (RCT) and a cost-utility analysis using a life-time Markov model.</p>
+          <p><b>SETTING</b><br>The RCT was undertaken in Glasgow, Scotland. The economic analysis was undertaken from the UK National Health Service (NHS) perspective.</p>
+          <p><b>PARTICIPANTS</b><br>A total of 612 pregnant women randomized to receive usual cessation support plus or minus financial incentives of up to £400 vouchers (US $609), contingent upon smoking cessation.</p>
+          <p><b>MEASUREMENTS</b><br>Comparison of usual support and incentive interventions in terms of cotinine-validated quitters, quality-adjusted life years (QALYs) and direct costs to the NHS.</p>
+          <p><b>FINDINGS</b><br>The incremental cost per quitter at 34-38 weeks pregnant was £1127 ($1716).This is similar to the standard look-up value derived from Stapleton&amp;West's published ICER tables, £1390 per quitter, by looking up the Cessation in Pregnancy Incentives Trial (CIPT) incremental cost (£157) and incremental 6-month quit outcome (0.14). The life-time model resulted in an incremental cost of £17 [95% confidence interval (CI) = -£93, £107] and a gain of 0.04 QALYs (95% CI = -0.058, 0.145), giving an ICER of £482/QALY ($734/QALY). Probabilistic sensitivity analysis indicates uncertainty in these results, particularly regarding relapse after birth. The expected value of perfect information was £30 million (at a willingness to pay of £30 000/QALY), so given current uncertainty, additional research is potentially worthwhile.</p>
+          <p class="full-note">This is the part of the abstract Becky read. The authors' own conclusion is left out on purpose, so Becky has to work from the study details. PubMed has the full abstract.</p>
+        </div>
+        <button class="toggle" type="button" aria-expanded="false">Show full text ▾</button>
+      </li>
+    </ol>
+  </section>
+
+  <h2 class="state-title">2. Layout when an answer uses two sources</h2>
+  <p class="state-sub">Grey bars are placeholders (no second real source for this answer). Numbers follow the order the answer first uses them.</p>
+  <section class="result">
+    <h3 class="sources-head" style="margin-top:0">Sources</h3>
+    <p class="sources-count">Becky read 5 abstracts and used 2 of them.</p>
+    <ol class="source-list">
+      <li class="source">
+        <div class="source-top"><span class="num">1</span><span class="pmid">PMID ········</span><span class="pubmed">View on PubMed ↗</span></div>
+        <p class="uses">Supports findings 1–2</p>
+        <ul class="pills"><li>BACKGROUND</li><li>METHODS</li><li>RESULTS</li></ul>
+        <div class="placeholder-line"></div><div class="placeholder-line"></div><div class="placeholder-line" style="width:70%"></div>
+        <button class="toggle" type="button" disabled>Show full text ▾</button>
+      </li>
+      <li class="source">
+        <div class="source-top"><span class="num">2</span><span class="pmid">PMID ········</span><span class="pubmed">View on PubMed ↗</span></div>
+        <p class="uses">Supports finding 2 and limitation 1</p>
+        <ul class="pills"><li>OBJECTIVE</li><li>METHODS</li><li>RESULTS</li></ul>
+        <div class="placeholder-line"></div><div class="placeholder-line"></div><div class="placeholder-line" style="width:55%"></div>
+        <button class="toggle" type="button" disabled>Show full text ▾</button>
+      </li>
+    </ol>
+    <div class="callout"><strong>Not enough evidence:</strong> same cards under "What the abstracts do say" when Becky keeps some cited findings.
+      When she has none (weak evidence), there are no cards and no count line.</div>
+  </section>
+
+  <footer>Mockup only. Clicking [1]: scrolls to the card, opens it, card glows blue for ~2 s (no glow with reduced motion; the blue border stays).</footer>
+</main>
+<script>
+  function setOpen(card, open) {
+    card.querySelector(".full").hidden = !open;
+    card.querySelector(".preview").hidden = open;
+    const btn = card.querySelector(".toggle");
+    btn.setAttribute("aria-expanded", String(open));
+    btn.textContent = open ? "Show less ▴" : "Show full text ▾";
+  }
+  document.querySelectorAll("#src-a-1 .toggle").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const card = btn.closest(".source");
+      setOpen(card, card.querySelector(".full").hidden);
+    }),
+  );
+  document.querySelectorAll(".cite-link").forEach((a) =>
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const card = document.getElementById(a.dataset.target);
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setOpen(card, true);
+      card.classList.remove("glow");
+      void card.offsetWidth; // restart the glow
+      card.classList.add("glow");
+      card.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      card.focus({ preventScroll: true });
+    }),
+  );
+</script>
+</body>
+</html>

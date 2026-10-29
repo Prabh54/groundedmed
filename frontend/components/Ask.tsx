@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Becky from "./Becky";
+import Sources from "./Sources";
 import Timeline from "./Timeline";
 import { BUTTON_COUNT, EXAMPLES, ROTATE_MS, nextExample } from "@/lib/examples";
 import { AskError, askStream, type Claim, type QueryResponse, type StageEvent } from "@/lib/stream";
+import { anchorId, countText, sourceViews } from "@/lib/sources";
 import { applyStage, failSteps, finishSteps, hasProgress, initialSteps, type Step } from "@/lib/timeline";
 
 // Set at build time; next.config.ts refuses a production build without it.
@@ -187,21 +189,63 @@ function nowText(steps: Step[]): string {
 type AnswerProps = { result: QueryResponse; steps: Step[]; headingRef: React.Ref<HTMLHeadingElement> };
 
 function Answer({ result, steps, headingRef }: AnswerProps) {
-  // Number sources in order of first citation, so [1] is the first source the answer uses.
-  const order: string[] = [];
-  for (const item of [...result.claims, ...result.limitations]) {
-    for (const id of item.citation_ids) if (!order.includes(id)) order.push(id);
-  }
-  const byId = new Map(result.citations.map((c) => [c.id, c]));
+  const views = sourceViews(result);
+  const numberOf = new Map(views.map((v) => [v.id, v.n]));
+  const [open, setOpen] = useState<Set<number>>(() => new Set());
+  const [jump, setJump] = useState<{ n: number; at: number } | null>(null);
+
+  // A clicked [n]: scroll to its card, focus it and play the glow (skipped with reduced motion; the blue border stays).
+  useEffect(() => {
+    if (!jump) return;
+    const card = document.getElementById(anchorId(jump.n));
+    if (!card) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    card.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    card.focus({ preventScroll: true });
+    if (!reduce && typeof card.animate === "function") {
+      card.animate(
+        [{ boxShadow: "0 0 0 0 rgba(79,134,232,0)" }, { boxShadow: "0 0 0 6px rgba(79,134,232,.35)", offset: 0.15 }, { boxShadow: "0 0 0 0 rgba(79,134,232,0)" }],
+        { duration: 2200, easing: "ease-out" },
+      );
+    }
+  }, [jump]);
+
+  const openSource = (n: number) => {
+    setOpen((s) => new Set(s).add(n));
+    setJump({ n, at: Date.now() });
+  };
+  const toggle = (n: number) =>
+    setOpen((s) => {
+      const next = new Set(s);
+      if (!next.delete(n)) next.add(n);
+      return next;
+    });
+
   const list = (items: Claim[]) => (
-    <ul className="findings">
+    <ol className="findings">
       {items.map((c) => (
         <li key={c.id}>
           {c.text}
-          <span className="cite"> {c.citation_ids.map((id) => `[${order.indexOf(id) + 1}]`).join("")}</span>
+          {[...new Set(c.citation_ids)].map((id) => {
+            const n = numberOf.get(id)!;
+            return (
+              <a
+                key={id}
+                className="cite-link"
+                href={`#${anchorId(n)}`}
+                aria-label={`Source ${n}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  openSource(n);
+                }}
+              >
+                [{n}]
+              </a>
+            );
+          })}
         </li>
       ))}
-    </ul>
+    </ol>
   );
   const findings = (
     <>
@@ -212,25 +256,14 @@ function Answer({ result, steps, headingRef }: AnswerProps) {
           {list(result.limitations)}
         </>
       )}
-      {order.length > 0 && (
-        <ol className="sources" aria-label="Sources">
-          {order.map((id, i) => {
-            const c = byId.get(id);
-            return (
-              <li key={id}>
-                [{i + 1}] PMID {c?.pmid ?? id.replace("PMID:", "")}
-                {c && (
-                  <>
-                    {" · "}
-                    <a href={c.pubmed_url} target="_blank" rel="noopener noreferrer">
-                      PubMed
-                    </a>
-                  </>
-                )}
-              </li>
-            );
-          })}
-        </ol>
+      {views.length > 0 && (
+        <Sources
+          views={views}
+          open={open}
+          marked={jump?.n ?? null}
+          onToggle={toggle}
+          countLine={countText(result.citations.length, views.filter((v) => v.citation).length)}
+        />
       )}
     </>
   );
