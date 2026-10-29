@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Ask from "@/components/Ask";
 import { CORPUS_ABSTRACTS } from "@/lib/examples";
 
@@ -8,6 +9,9 @@ export default function Home() {
         <div className="logo">
           Grounded<span>Med</span>
         </div>
+        <Link className="nav-pill" href="/eval">
+          How well does it work? →
+        </Link>
       </header>
       <Ask />
       <section className="scope" aria-label="What GroundedMed covers">

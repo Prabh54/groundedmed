@@ -81,3 +81,7 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+
+      # M5-T5: every number on the built /eval page equals its stored result-file value (ADR-016).
+      - name: Check /eval numbers against the result files
+        run: npm run check:eval

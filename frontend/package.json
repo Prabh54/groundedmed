@@ -9,7 +9,8 @@
     "start": "NEXT_TELEMETRY_DISABLED=1 next start",
     "typecheck": "tsc --noEmit",
     "test": "node --test lib/*.test.ts",
-    "mock-api": "node scripts/mock-api.mjs"
+    "mock-api": "node scripts/mock-api.mjs",
+    "check:eval": "node scripts/check-eval-page.ts"
   },
   "dependencies": {
     "next": "16.4.1",
