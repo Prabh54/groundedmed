@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Becky from "./Becky";
+import Timeline from "./Timeline";
 import { BUTTON_COUNT, EXAMPLES, ROTATE_MS, nextExample } from "@/lib/examples";
 import { AskError, askStream, type Claim, type QueryResponse, type StageEvent } from "@/lib/stream";
+import { applyStage, failSteps, finishSteps, hasProgress, initialSteps, type Step } from "@/lib/timeline";
 
 // Set at build time; next.config.ts refuses a production build without it.
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/$/, "");
@@ -12,7 +14,7 @@ const MAX_CHARS = 500;
 
 type State =
   | { kind: "idle" }
-  | { kind: "working"; stage: StageEvent | null }
+  | { kind: "working" }
   | { kind: "done"; result: QueryResponse }
   | { kind: "failed"; message: string };
 
@@ -29,6 +31,7 @@ const NO_ANSWER_FALLBACK = "The abstracts Becky found don't answer this clearly,
 export default function Ask() {
   const [question, setQuestion] = useState("");
   const [state, setState] = useState<State>({ kind: "idle" });
+  const [steps, setSteps] = useState<Step[]>(initialSteps);
   const [example, setExample] = useState(0);
   const box = useRef<HTMLTextAreaElement>(null);
   const controller = useRef<AbortController | null>(null);
@@ -48,12 +51,12 @@ export default function Ask() {
   }, []);
 
   // Bring Becky's progress into view when a question starts (it is below the fold on phones).
-  const startedWorking = state.kind === "working" && state.stage === null;
+  const working = state.kind === "working";
   useEffect(() => {
-    if (!startedWorking) return;
+    if (!working) return;
     const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     results.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "nearest" });
-  }, [startedWorking]);
+  }, [working]);
 
   // When the answer arrives, move focus to it so screen readers start reading there.
   const finished = state.kind === "done";
@@ -63,7 +66,6 @@ export default function Ask() {
 
   const trimmed = question.trim();
   const tooShort = trimmed.length < MIN_CHARS;
-  const working = state.kind === "working";
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -71,15 +73,19 @@ export default function Ask() {
     controller.current?.abort();
     const ctrl = new AbortController();
     controller.current = ctrl;
-    setState({ kind: "working", stage: null });
+    setState({ kind: "working" });
+    setSteps(initialSteps());
     try {
+      // Functional updates: several events can arrive in one chunk and must all apply.
       const onStage = (stage: StageEvent) => {
-        if (stage.message) setState({ kind: "working", stage }); // keep the last message if one is empty
+        if (!ctrl.signal.aborted) setSteps((s) => applyStage(s, stage));
       };
       const result = await askStream(API_BASE, trimmed, onStage, ctrl.signal);
+      setSteps(finishSteps);
       setState({ kind: "done", result });
     } catch (err) {
       if (ctrl.signal.aborted) return;
+      setSteps(failSteps);
       setState({ kind: "failed", message: err instanceof AskError ? err.message : "Something went wrong while answering, please try again later." });
     }
   }
@@ -146,28 +152,41 @@ export default function Ask() {
         {state.kind === "working" && (
           <section className="result working">
             <Becky pose="working" width={140} />
-            <div>
+            <div className="steps-col">
               <h2>Becky is reading the abstracts…</h2>
-              <p className="stage-now" role="status">
-                {state.stage?.message || "Starting"}
+              <Timeline steps={steps} variant="list" />
+              <p className="sr-only" role="status">
+                {nowText(steps)}
               </p>
             </div>
           </section>
         )}
         {state.kind === "failed" && (
-          <section className="result">
-            <div className="error-box" role="alert">
-              {state.message}
+          <section className={hasProgress(steps) ? "result working" : "result"}>
+            {hasProgress(steps) && <Becky pose="noAnswer" width={140} />}
+            <div className="steps-col">
+              {hasProgress(steps) && <Timeline steps={steps} variant="list" />}
+              <div className="error-box" role="alert">
+                {state.message}
+              </div>
             </div>
           </section>
         )}
-        {state.kind === "done" && <Answer result={state.result} headingRef={answerHeading} />}
+        {state.kind === "done" && <Answer result={state.result} steps={steps} headingRef={answerHeading} />}
       </div>
     </>
   );
 }
 
-function Answer({ result, headingRef }: { result: QueryResponse; headingRef: React.Ref<HTMLHeadingElement> }) {
+// Live-region text: the step in progress and its server message, e.g. "Synthesizing: writing a cited answer…".
+function nowText(steps: Step[]): string {
+  const now = steps.find((s) => s.status === "running");
+  return now ? `${now.label}${now.meta ? `: ${now.meta}` : ""}` : "Starting";
+}
+
+type AnswerProps = { result: QueryResponse; steps: Step[]; headingRef: React.Ref<HTMLHeadingElement> };
+
+function Answer({ result, steps, headingRef }: AnswerProps) {
   // Number sources in order of first citation, so [1] is the first source the answer uses.
   const order: string[] = [];
   for (const item of [...result.claims, ...result.limitations]) {
@@ -219,6 +238,7 @@ function Answer({ result, headingRef }: { result: QueryResponse; headingRef: Rea
   if (result.abstained) {
     return (
       <section className="result">
+        <Timeline steps={steps} variant="trail" />
         <div className="no-answer">
           <Becky pose="noAnswer" width={140} />
           <div className="refusal">
@@ -239,6 +259,7 @@ function Answer({ result, headingRef }: { result: QueryResponse; headingRef: Rea
   }
   return (
     <section className="result">
+      <Timeline steps={steps} variant="trail" />
       <h2 ref={headingRef} tabIndex={-1}>
         Becky&apos;s answer
       </h2>

@@ -2,8 +2,13 @@
 // Mirrors POST /query/stream from backend/app/main.py. Every answer is labelled MOCK.
 // Run: npm run mock-api   (port 8001; start the app with NEXT_PUBLIC_API_BASE_URL=http://localhost:8001)
 // Trigger tokens in the question (never natural words): __weak__ -> evidence gate refusal,
-// __abstain__ -> model abstains but keeps cited claims, __crash__ -> error event,
-// __limit__ -> HTTP 429, __slow__ -> 3 s per stage.
+// __abstain__ -> model abstains but keeps cited claims, __limit__ -> HTTP 429,
+// __crash_planner__ / __crash_retriever__ / __crash_synthesizer__ / __crash_critic__ -> that step fails
+// (same event order as the real server; __crash__ = synthesizer), __cut__ -> stream stops mid-answer with
+// no error event, __down__ -> error event before any stage (database unreachable at the start),
+// __norerank__ -> retriever message with the reranker-unavailable note,
+// __slow__ -> 3 s per stage, __fast__ -> every event and the result in one chunk.
+// Planner/retriever counts vary with the question length, so the page must take them from the events.
 import http from "node:http";
 
 const PORT = Number(process.env.MOCK_PORT || 8001);
@@ -48,15 +53,26 @@ function result(question, kind) {
   };
 }
 
-// [name, started message, done message] — same wording style as backend/app/agents/pipeline.py
-const STAGES = [
-  ["planner", "Planning evidence needs", "Planned 3 search queries"],
-  ["retriever", "Searching the corpus", "Retrieved 36 candidate passages; selected 5 evidence passages"],
-  ["gate", "Checking evidence relevance", "Evidence passed the relevance threshold"],
-  ["synthesizer", "Writing a cited answer", "Drafted 2 claims and 1 limitations"],
-  ["critic", "Checking 3 claims and limitations", "Checked 3 claims and limitations"],
-  ["validator", "Validating citations", "Kept 2 cited claims; removed 0 unsupported items"],
-];
+// [name, started message, done message] — same wording as backend/app/agents/pipeline.py
+function stages(question) {
+  const queries = 1 + (question.length % 3);
+  return [
+    ["planner", "Planning evidence needs", `Planned ${queries} search queries`],
+    ["retriever", "Searching the corpus",
+      `Retrieved ${queries * 12} candidate passages; selected 5 evidence passages${question.includes("__norerank__") ? " (reranker unavailable: similarity order)" : ""}`],
+    ["gate", "Checking evidence relevance", "Evidence passed the relevance threshold"],
+    ["synthesizer", "Writing a cited answer", "Drafted 2 claims and 1 limitations"],
+    ["critic", "Checking 3 claims and limitations", "Checked 3 claims and limitations"],
+    ["validator", "Validating citations", "Kept 2 cited claims; removed 0 unsupported items"],
+  ];
+}
+
+const UNAVAILABLE = "The service is temporarily unavailable, please try again later."; // backend main.py
+
+function crashAt(question) {
+  if (question.includes("__crash__")) return "synthesizer";
+  return ["planner", "retriever", "synthesizer", "critic"].find((n) => question.includes(`__crash_${n}__`)) ?? null;
+}
 
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin;
@@ -84,26 +100,43 @@ const server = http.createServer(async (req, res) => {
   if (question.includes("__limit__")) return json(429, { detail: "Demo limit reached, please try again later." });
 
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" });
-  const delay = question.includes("__slow__") ? 3000 : 500;
-  for (const [i, [name, startMessage, message]] of STAGES.entries()) {
-    res.write(sse("stage", { name, status: "started", message: startMessage, ms: 0 }));
-    await sleep(delay);
-    if (question.includes("__crash__") && i === 3) {
-      res.write(sse("error", { message: "The service is temporarily unavailable, please try again later." }));
-      return res.end();
+  const fast = question.includes("__fast__");
+  const delay = fast ? 0 : question.includes("__slow__") ? 3000 : 500;
+  const chunks = [];
+  const send = (event, data) => (fast ? chunks.push(sse(event, data)) : res.write(sse(event, data)));
+  const finish = () => res.end(chunks.join(""));
+  const crash = crashAt(question);
+  if (question.includes("__down__")) {
+    send("error", { message: UNAVAILABLE });
+    return finish();
+  }
+  for (const [name, startMessage, message] of stages(question)) {
+    send("stage", { name, status: "started", message: startMessage, ms: 0 });
+    if (delay) await sleep(delay);
+    if (crash === name) {
+      // real server (pipeline.py _announced inside graph.py _guarded): the node reports failed; after an
+      // AI-service failure the graph still runs the validator; a retrieval failure propagates at once
+      send("stage", { name, status: "failed", message: "This step failed", ms: delay });
+      if (name !== "retriever") {
+        send("stage", { name: "validator", status: "started", message: "Validating citations", ms: 0 });
+        send("stage", { name: "validator", status: "done", message: "No answer: a processing step failed", ms: 1 });
+      }
+      send("error", { message: UNAVAILABLE });
+      return finish();
     }
+    if (question.includes("__cut__") && name === "synthesizer") return finish(); // connection lost, no error event
     if (question.includes("__weak__") && name === "gate") {
       // real graph: failed gate goes straight to the validator (no synthesizer/critic)
-      res.write(sse("stage", { name, status: "done", message: "Evidence scored below the relevance threshold", ms: delay }));
-      res.write(sse("stage", { name: "validator", status: "started", message: "Validating citations", ms: 0 }));
-      res.write(sse("stage", { name: "validator", status: "done", message: "No answer: the evidence scored below the relevance threshold", ms: 1 }));
-      res.write(sse("result", result(question, "weak")));
-      return res.end();
+      send("stage", { name, status: "done", message: "Evidence scored below the relevance threshold", ms: delay });
+      send("stage", { name: "validator", status: "started", message: "Validating citations", ms: 0 });
+      send("stage", { name: "validator", status: "done", message: "No answer: the evidence scored below the relevance threshold", ms: 1 });
+      send("result", result(question, "weak"));
+      return finish();
     }
-    res.write(sse("stage", { name, status: "done", message, ms: delay }));
+    send("stage", { name, status: "done", message, ms: delay });
   }
-  res.write(sse("result", result(question, question.includes("__abstain__") ? "abstain" : "answer")));
-  res.end();
+  send("result", result(question, question.includes("__abstain__") ? "abstain" : "answer"));
+  finish();
 });
 
 server.listen(PORT, () => console.log(`MOCK GroundedMed API on http://localhost:${PORT}`));

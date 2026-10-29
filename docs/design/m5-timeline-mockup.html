@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timeline mockup</title>
+<!-- M5-T3 timeline mockup for owner approval (session 11). Static page, not the real app. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FFF8EE;
+    --navy: #1E2A47;
+    --navy-soft: #4A5672;
+    --blue: #4F86E8;
+    --blue-dark: #3A6CC6;
+    --blue-btn-edge: #2C559F;
+    --blue-tint: #E6EFFD;
+    --mint: #CDEFDF;
+    --mint-ink: #1F6B4A;
+    --peach: #FFE0D2;
+    --peach-ink: #9A4A2C;
+    --card: #FFFFFF;
+    --line: #EADFCF;
+    --input-line: #9C8E7A;
+    --shadow: 0 6px 20px rgba(30, 42, 71, 0.08);
+    --radius: 22px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--navy);
+    font: 16px/1.55 Inter, system-ui, sans-serif;
+  }
+  h1, h2, h3, .logo, .btn, .chip, .bubble { font-family: Fredoka, "Arial Rounded MT Bold", system-ui, sans-serif; }
+  .mock-note {
+    background: var(--navy); color: #fff; text-align: center;
+    font-size: 13px; padding: 6px 16px; letter-spacing: .02em;
+  }
+  .disclaimer {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--blue-tint); border-bottom: 1px solid #CFDDF6;
+    text-align: center; font-size: 14px; padding: 8px 16px; color: var(--navy);
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; gap: 12px; }
+  .logo { font-size: 26px; font-weight: 600; }
+  .logo span { color: var(--blue); }
+  .nav-pill {
+    font-weight: 600; font-size: 15px; color: var(--navy); text-decoration: none;
+    background: var(--card); border: 2px solid var(--line); border-radius: 999px; padding: 8px 16px;
+  }
+  .hero {
+    display: grid; grid-template-columns: 300px 1fr; gap: 28px; align-items: center;
+    background: var(--card); border-radius: 28px; box-shadow: var(--shadow); padding: 32px;
+  }
+  .becky-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .bubble {
+    position: relative; background: var(--blue-tint); border-radius: 18px; padding: 12px 16px;
+    font-size: 16px; font-weight: 500; text-align: center; max-width: 260px;
+  }
+  .bubble::after {
+    content: ""; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
+    border: 10px solid transparent; border-top-color: var(--blue-tint); border-bottom: 0;
+  }
+  h1 { font-size: 36px; line-height: 1.15; margin: 0 0 8px; font-weight: 600; }
+  .lede { color: var(--navy-soft); margin: 0 0 20px; font-size: 17px; }
+  .field-label { display: block; margin: 0 0 8px; font-weight: 600; font-size: 15px; }
+  textarea {
+    width: 100%; min-height: 96px; resize: vertical; font: inherit; color: var(--navy);
+    border: 2px solid var(--input-line); border-radius: 18px; padding: 14px 16px; background: #FFFDF9;
+  }
+  textarea::placeholder { color: #6B7080; }
+  textarea:focus { outline: 3px solid var(--blue-tint); border-color: var(--blue); }
+  .ask-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+  .btn {
+    font-size: 18px; font-weight: 600; color: #fff; background: var(--blue-dark); border: 0;
+    border-radius: 16px; padding: 14px 32px; cursor: pointer;
+    box-shadow: 0 5px 0 var(--blue-btn-edge); transition: transform .08s, box-shadow .08s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--blue-btn-edge); }
+  .try { margin-top: 22px; font-weight: 600; font-size: 15px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .chip {
+    font-size: 15px; font-weight: 500; color: var(--navy); background: var(--card); text-align: left;
+    border: 2px solid #C9BBA5; border-bottom: 4px solid var(--input-line); border-radius: 14px; padding: 8px 14px; cursor: pointer;
+  }
+  .chip:hover { border-color: #C9D9F6; background: #F7FAFF; }
+  .scope { margin: 24px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .scope div { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; }
+  .scope h3 { margin: 0 0 2px; font-size: 18px; font-weight: 600; }
+  .scope p { margin: 0; color: var(--navy-soft); font-size: 15px; }
+  .section-title { font-size: 24px; font-weight: 600; margin: 48px 0 4px; }
+  .section-sub { margin: 0 0 18px; color: var(--navy-soft); }
+  .poses { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .pose { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .pose h3 { margin: 6px 0 2px; font-size: 19px; font-weight: 600; }
+  .pose .where { margin: 0 0 12px; font-size: 14px; color: var(--navy-soft); }
+  .timeline { list-style: none; padding: 0; margin: 4px 0 0; width: 100%; text-align: left; font-size: 15px; }
+  .timeline li { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .dot { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; }
+  .dot.done { background: var(--mint); color: var(--mint-ink); }
+  .dot.now { background: var(--blue); box-shadow: 0 0 0 4px var(--blue-tint); }
+  .dot.todo { background: #F1ECE3; }
+  .timeline .meta { color: var(--navy-soft); font-size: 13px; }
+  .refusal { background: var(--peach); color: var(--peach-ink); border-radius: 16px; padding: 12px 14px; font-size: 14px; text-align: left; width: 100%; }
+  .refusal strong { display: block; font-family: Fredoka, sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  footer { margin: 48px 0 32px; font-size: 13px; color: var(--navy-soft); text-align: center; }
+
+  /* Becky motion: gentle bob (body only, shadow stays on the floor) and a page flip while reading. */
+  .bob { animation: bob 2.6s ease-in-out infinite; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  .floor-shadow { animation: shadow 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.9); opacity: .75; } }
+  .read-bob { animation: readbob 3.2s ease-in-out infinite; }
+  @keyframes readbob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-2px) rotate(-1deg); } }
+  .flip-page { transform-box: view-box; transform-origin: 110px 0; animation: flip 3.2s ease-in-out infinite; }
+  @keyframes flip {
+    0%   { transform: scaleX(1);  opacity: 0; }
+    10%  { transform: scaleX(1);  opacity: 1; }
+    30%  { transform: scaleX(1);  opacity: 1; }
+    60%  { transform: scaleX(-1); opacity: 1; }
+    80%  { transform: scaleX(-1); opacity: 1; }
+    92%  { transform: scaleX(-1); opacity: 0; }
+    100% { transform: scaleX(-1); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bob, .floor-shadow, .read-bob { animation: none; }
+    .flip-page { animation: none; display: none; }
+  }
+
+  @media (max-width: 780px) {
+    .hero { grid-template-columns: 1fr; padding: 22px; }
+    .becky-col { flex-direction: row; gap: 4px; }
+    .becky-col svg { width: 116px; height: auto; flex: none; order: -1; }
+    .becky-col .bubble { font-size: 15px; }
+    .becky-col .bubble::after { display: none; }
+    h1 { font-size: 28px; }
+    .scope, .poses { grid-template-columns: 1fr; }
+    .ask-row .btn { width: 100%; }
+    .disc-more { display: none; }
+  }
+  /* M5-T3 timeline states */
+  .state-title { font-size: 22px; font-weight: 600; margin: 40px 0 4px; }
+  .state-sub { margin: 0 0 12px; color: var(--navy-soft); }
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px 28px; }
+  .work { display: flex; align-items: center; gap: 24px; }
+  .work h2 { margin: 0 0 6px; font-size: 22px; font-weight: 600; }
+  .timeline .label { font-weight: 500; }
+  .dot.skip { background: #F1ECE3; color: var(--navy-soft); }
+  .dot.fail { background: #FFF1F0; color: #8A2A22; box-shadow: 0 0 0 2px #F3C2BC inset; }
+  .timeline li.todo .label, .timeline li.skip .label { color: var(--navy-soft); }
+  .error-box { background: #FFF1F0; color: #8A2A22; border-radius: 16px; padding: 12px 14px; margin-top: 10px; font-size: 15px; }
+  .refusal { margin-top: 10px; }
+  .trail { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--navy-soft); margin: 0 0 14px; padding: 0 0 12px; border-bottom: 1px solid var(--line); list-style: none; }
+  .trail li { display: flex; align-items: center; gap: 6px; }
+  .trail .dot { width: 18px; height: 18px; font-size: 11px; }
+  .verdict { display: inline-block; font-family: Fredoka, sans-serif; font-size: 18px; font-weight: 600; border-radius: 999px; padding: 4px 16px; background: var(--mint); color: var(--mint-ink); margin-bottom: 8px; }
+  .faint { color: var(--navy-soft); font-size: 15px; margin: 0; }
+  @media (max-width: 780px) { .work { flex-direction: column; text-align: center; } .card { padding: 20px; } }
+
+</style>
+</head>
+<body>
+<!-- Shared Becky parts: gradients, ears, body, head, eyes. Each pose adds its own arms, props and face. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="g-fur" cx="35%" cy="28%" r="80%">
+      <stop offset="0" stop-color="#FFF3E2"/><stop offset=".55" stop-color="#F4D5AF"/><stop offset="1" stop-color="#DCAE84"/>
+    </radialGradient>
+    <linearGradient id="g-ear" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FCE6CB"/><stop offset="1" stop-color="#E2B78E"/>
+    </linearGradient>
+    <linearGradient id="g-inner-ear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBC4B4"/><stop offset="1" stop-color="#EE9C8A"/>
+    </linearGradient>
+    <radialGradient id="g-coat" cx="35%" cy="20%" r="90%">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#F3F6FB"/><stop offset="1" stop-color="#D6DFEE"/>
+    </radialGradient>
+    <radialGradient id="g-eye" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#3E4F7A"/><stop offset="1" stop-color="#111A30"/>
+    </radialGradient>
+    <radialGradient id="g-blush" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#F59A92" stop-opacity=".85"/><stop offset="1" stop-color="#F59A92" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g-floor" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#1E2A47" stop-opacity=".22"/><stop offset="1" stop-color="#1E2A47" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="g-bow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7FA8F5"/><stop offset="1" stop-color="#3A6CC6"/>
+    </linearGradient>
+    <linearGradient id="g-book-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#78A2F3"/><stop offset="1" stop-color="#3A6CC6"/>
+    </linearGradient>
+    <linearGradient id="g-book-mint" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#93DDBC"/><stop offset="1" stop-color="#49A882"/>
+    </linearGradient>
+    <linearGradient id="g-book-peach" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC5AD"/><stop offset="1" stop-color="#E58C69"/>
+    </linearGradient>
+    <linearGradient id="g-page" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#EDE5D8"/><stop offset=".35" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F7F2EA"/>
+    </linearGradient>
+    <linearGradient id="g-page-r" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#F7F2EA"/><stop offset=".65" stop-color="#FFFFFF"/><stop offset="1" stop-color="#EDE5D8"/>
+    </linearGradient>
+
+    <g id="becky-ears">
+      <ellipse cx="84" cy="50" rx="20" ry="44" transform="rotate(-14 84 50)" fill="url(#g-ear)"/>
+      <ellipse cx="85" cy="55" rx="10" ry="31" transform="rotate(-14 85 55)" fill="url(#g-inner-ear)"/>
+      <ellipse cx="136" cy="50" rx="20" ry="44" transform="rotate(14 136 50)" fill="url(#g-ear)"/>
+      <ellipse cx="135" cy="55" rx="10" ry="31" transform="rotate(14 135 55)" fill="url(#g-inner-ear)"/>
+    </g>
+    <g id="becky-body">
+      <ellipse cx="88" cy="223" rx="21" ry="11" fill="url(#g-fur)"/>
+      <ellipse cx="132" cy="223" rx="21" ry="11" fill="url(#g-fur)"/>
+      <!-- lab coat -->
+      <path d="M76 132 C61 148 56 180 58 206 C59 218 66 224 78 224 L142 224 C154 224 161 218 162 206 C164 180 159 148 144 132 Z" fill="url(#g-coat)"/>
+      <path d="M96 132 L110 156 L124 132 Z" fill="#A9C6FF"/>
+      <path d="M93 134 L110 172 L127 134" fill="none" stroke="#C3CEE2" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="110" cy="188" r="3.2" fill="#C3CEE2"/><circle cx="110" cy="204" r="3.2" fill="#C3CEE2"/>
+      <rect x="133" y="167" width="5" height="13" rx="2.5" fill="#4F86E8"/>
+      <rect x="128" y="175" width="21" height="16" rx="5" fill="#F4F7FC" stroke="#D2DBEA" stroke-width="2"/>
+    </g>
+    <g id="becky-head">
+      <ellipse cx="110" cy="96" rx="60" ry="51" fill="url(#g-fur)"/>
+      <ellipse cx="86" cy="68" rx="24" ry="12" transform="rotate(-22 86 68)" fill="#FFFFFF" opacity=".38"/>
+      <ellipse cx="80" cy="114" rx="13" ry="8" fill="url(#g-blush)"/>
+      <ellipse cx="140" cy="114" rx="13" ry="8" fill="url(#g-blush)"/>
+      <ellipse cx="110" cy="115" rx="17" ry="12" fill="#FFF3E4" opacity=".9"/>
+      <path d="M103 107 Q110 103 117 107 Q114 114 110 115 Q106 114 103 107 Z" fill="#EE8A88"/>
+      <ellipse cx="108" cy="107.5" rx="2.6" ry="1.4" fill="#FFFFFF" opacity=".7"/>
+    </g>
+    <!-- hair bow on the right ear -->
+    <g id="becky-bow">
+      <ellipse cx="129" cy="51" rx="10" ry="7.5" transform="rotate(-25 129 51)" fill="url(#g-bow)"/>
+      <ellipse cx="148" cy="51" rx="10" ry="7.5" transform="rotate(25 148 51)" fill="url(#g-bow)"/>
+      <circle cx="138.5" cy="54" r="5" fill="#3A6CC6"/>
+      <ellipse cx="126" cy="48" rx="3.5" ry="2" fill="#FFFFFF" opacity=".55"/>
+    </g>
+    <g id="becky-eyes-open">
+      <ellipse cx="88" cy="94" rx="11.5" ry="13.5" fill="url(#g-eye)"/>
+      <circle cx="92.5" cy="88.5" r="4.6" fill="#fff"/><circle cx="84.5" cy="99.5" r="2" fill="#fff" opacity=".85"/>
+      <ellipse cx="132" cy="94" rx="11.5" ry="13.5" fill="url(#g-eye)"/>
+      <circle cx="136.5" cy="88.5" r="4.6" fill="#fff"/><circle cx="128.5" cy="99.5" r="2" fill="#fff" opacity=".85"/>
+      <path d="M77 86 l-6 -4 M77.5 91 l-7 -1 M143 86 l6 -4 M142.5 91 l7 -1" stroke="#1E2A47" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+    <g id="becky-smile">
+      <path d="M110 115 Q110 121 103 121 M110 115 Q110 121 117 121" fill="none" stroke="#1E2A47" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+    <g id="becky-floor">
+      <ellipse class="floor-shadow" cx="110" cy="232" rx="62" ry="9" fill="url(#g-floor)"/>
+    </g>
+  </defs>
+</svg>
+<div class="mock-note">MOCKUP for approval — static picture of M5-T3, not the real app. Counts are examples.</div>
+<div class="wrap">
+  <header><div class="logo">Grounded<span>Med</span></div></header>
+
+  <h2 class="state-title">1 · While Becky works</h2>
+  <p class="state-sub">Replaces today's single status line. Becky reads her book (page flip, gentle bob) next to the four steps.
+    Each tick appears the moment that step really finishes; the small grey text is a count from the server, never the AI's reasoning.</p>
+  <div class="card work">
+      <svg width="170" height="187" viewBox="0 0 220 242" role="img" aria-label="Becky reading an open book">
+        <use href="#becky-floor"/>
+        <g class="read-bob">
+          <use href="#becky-ears"/>
+          <use href="#becky-body"/>
+          <use href="#becky-head"/>
+          <use href="#becky-bow"/>
+          <!-- eyes looking down at the page -->
+          <g transform="translate(0 5)"><use href="#becky-eyes-open"/></g>
+          <path d="M104 119 Q110 123 116 119" fill="none" stroke="#1E2A47" stroke-width="2.6" stroke-linecap="round"/>
+          <!-- sleeves out to the book -->
+          <path d="M80 150 L72 172" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" transform="translate(1.5 2)"/>
+          <path d="M80 150 L72 172" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round"/>
+          <path d="M140 150 L148 172" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" transform="translate(1.5 2)"/>
+          <path d="M140 150 L148 172" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round"/>
+          <!-- open book: cover, two pages, text lines -->
+          <path d="M110 190 Q90 180 64 184 L64 150 Q90 146 110 156 Q130 146 156 150 L156 184 Q130 180 110 190 Z" fill="url(#g-book-blue)"/>
+          <path d="M110 185 Q91 175 68 179 L68 147 Q91 143 110 153 Z" fill="url(#g-page)"/>
+          <path d="M110 185 Q129 175 152 179 L152 147 Q129 143 110 153 Z" fill="url(#g-page-r)"/>
+          <path d="M76 155 Q90 152 102 158 M76 162 Q90 159 102 165 M76 169 Q88 166 98 171 M118 158 Q130 152 144 155 M118 165 Q130 159 144 162 M122 171 Q132 166 144 169" fill="none" stroke="#C9C1B3" stroke-width="2" stroke-linecap="round"/>
+          <!-- turning page: flips from right to left around the spine (x = 110) -->
+          <path class="flip-page" d="M110 185 Q129 175 152 179 L152 147 Q129 143 110 153 Z" fill="url(#g-page-r)" stroke="#E4DACB" stroke-width="1"/>
+          <path d="M110 153 L110 185" stroke="#D8CDBB" stroke-width="2"/>
+          <circle cx="68" cy="172" r="10" fill="url(#g-fur)"/>
+          <circle cx="152" cy="172" r="10" fill="url(#g-fur)"/>
+        </g>
+      </svg>
+    <div>
+      <h2>Becky is reading the abstracts…</h2>
+      <ol class="timeline" aria-label="Progress">
+        <li><span class="dot done">✓</span><span><span class="label">Planning</span> <span class="meta">· 3 searches planned</span></span></li>
+        <li><span class="dot done">✓</span><span><span class="label">Retrieving</span> <span class="meta">· 36 passages found, best 5 kept</span></span></li>
+        <li aria-current="step"><span class="dot now"></span><span><span class="label">Synthesizing</span> <span class="meta">· writing a cited answer…</span></span></li>
+        <li class="todo"><span class="dot todo"></span><span><span class="label">Checking claims</span></span></li>
+      </ol>
+    </div>
+  </div>
+
+  <h2 class="state-title">2 · When the answer arrives</h2>
+  <p class="state-sub">Becky's reading card goes away and the answer appears. A slim row of four ticks stays on top of the answer
+    so you can see every step finished (and how many findings the checker kept or removed).</p>
+  <div class="card">
+    <ol class="trail" aria-label="Steps completed">
+      <li><span class="dot done">✓</span>Planning</li>
+      <li><span class="dot done">✓</span>Retrieving</li>
+      <li><span class="dot done">✓</span>Synthesizing</li>
+      <li><span class="dot done">✓</span>Checking claims · 2 findings kept, 1 removed</li>
+    </ol>
+    <h2 style="margin:0 0 10px;font-size:22px;font-weight:600">Becky's answer</h2>
+    <div class="verdict">No</div>
+    <p class="faint">…findings with [1] [2] citations and sources, unchanged from today…</p>
+  </div>
+
+  <h2 class="state-title">3 · Not enough evidence</h2>
+  <p class="state-sub">When the abstracts found aren't close enough, the server skips writing and checking. The slim row shows those
+    two steps as a grey dash ("skipped"), above today's "Not enough evidence" card with Becky's apologetic shrug.</p>
+  <div class="card">
+    <ol class="trail" aria-label="Steps">
+      <li><span class="dot done">✓</span>Planning</li>
+      <li><span class="dot done">✓</span>Retrieving · nothing close enough</li>
+      <li><span class="dot skip">–</span>Synthesizing · skipped</li>
+      <li><span class="dot skip">–</span>Checking claims · skipped</li>
+    </ol>
+    <div class="work">
+      <svg width="170" height="187" viewBox="0 0 220 242" role="img" aria-label="Becky shrugging with an apologetic smile">
+        <use href="#becky-floor"/>
+        <g class="bob">
+          <use href="#becky-body"/>
+          <!-- arms out, palms up -->
+          <path d="M78 148 L56 166 L44 150" fill="none" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.5 2)"/>
+          <path d="M78 148 L56 166 L44 150" fill="none" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M142 148 L164 166 L176 150" fill="none" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.5 2)"/>
+          <path d="M142 148 L164 166 L176 150" fill="none" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="42" cy="144" r="10" fill="url(#g-fur)"/>
+          <circle cx="178" cy="144" r="10" fill="url(#g-fur)"/>
+          <g transform="rotate(-7 110 140)">
+            <use href="#becky-ears"/>
+            <use href="#becky-head"/>
+            <use href="#becky-bow"/>
+            <!-- smiling closed eyes, brows raised in the middle: "sorry!" rather than sad -->
+            <path d="M78 96 Q88 86 98 96 M122 96 Q132 86 142 96" fill="none" stroke="#1E2A47" stroke-width="4" stroke-linecap="round"/>
+            <path d="M76 76 Q86 74 96 68 M124 68 Q134 74 144 76" fill="none" stroke="#B8875E" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M102 119 Q110 125 118 119" fill="none" stroke="#1E2A47" stroke-width="2.8" stroke-linecap="round"/>
+          </g>
+        </g>
+      </svg>
+      <div class="refusal" style="margin:0"><strong>Not enough evidence</strong>The abstracts Becky found aren't close enough to this question, so she won't guess.</div>
+    </div>
+  </div>
+
+  <h2 class="state-title">4 · Something went wrong</h2>
+  <p class="state-sub">If a step fails (for example the AI service is down), that step gets a red ✕ and "didn't finish"; later steps
+    stay empty. Becky stops reading and shrugs. The red box is the same plain error message as today.</p>
+  <div class="card work">
+      <svg width="170" height="187" viewBox="0 0 220 242" role="img" aria-label="Becky shrugging with an apologetic smile">
+        <use href="#becky-floor"/>
+        <g class="bob">
+          <use href="#becky-body"/>
+          <!-- arms out, palms up -->
+          <path d="M78 148 L56 166 L44 150" fill="none" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.5 2)"/>
+          <path d="M78 148 L56 166 L44 150" fill="none" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M142 148 L164 166 L176 150" fill="none" stroke="#C9D3E5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" transform="translate(1.5 2)"/>
+          <path d="M142 148 L164 166 L176 150" fill="none" stroke="#F6F8FC" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="42" cy="144" r="10" fill="url(#g-fur)"/>
+          <circle cx="178" cy="144" r="10" fill="url(#g-fur)"/>
+          <g transform="rotate(-7 110 140)">
+            <use href="#becky-ears"/>
+            <use href="#becky-head"/>
+            <use href="#becky-bow"/>
+            <!-- smiling closed eyes, brows raised in the middle: "sorry!" rather than sad -->
+            <path d="M78 96 Q88 86 98 96 M122 96 Q132 86 142 96" fill="none" stroke="#1E2A47" stroke-width="4" stroke-linecap="round"/>
+            <path d="M76 76 Q86 74 96 68 M124 68 Q134 74 144 76" fill="none" stroke="#B8875E" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M102 119 Q110 125 118 119" fill="none" stroke="#1E2A47" stroke-width="2.8" stroke-linecap="round"/>
+          </g>
+        </g>
+      </svg>
+    <div>
+      <ol class="timeline" aria-label="Progress">
+        <li><span class="dot done">✓</span><span><span class="label">Planning</span> <span class="meta">· 3 searches planned</span></span></li>
+        <li><span class="dot done">✓</span><span><span class="label">Retrieving</span> <span class="meta">· 36 passages found, best 5 kept</span></span></li>
+        <li><span class="dot fail">✕</span><span><span class="label">Synthesizing</span> <span class="meta">· didn't finish</span></span></li>
+        <li class="todo"><span class="dot todo"></span><span><span class="label">Checking claims</span> <span class="meta">· not started</span></span></li>
+      </ol>
+      <div class="error-box">The service is temporarily unavailable, please try again later.</div>
+    </div>
+  </div>
+
+  <footer>GroundedMed · research demo, not medical advice</footer>
+</div>
+</body>
+</html>
