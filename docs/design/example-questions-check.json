@@ -1,5 +1,5 @@
 {
-  "spent_usd": 0.25946,
+  "spent_usd": 0.3095,
   "cap_usd": 1.0,
   "results": [
     {
@@ -180,6 +180,52 @@
       "checked_at": "2026-10-30T01:25:10+00:00",
       "model": "claude-sonnet-5-5",
       "commit": "323dbc3",
+      "cap_usd": 0.05
+    },
+    {
+      "pmid": "22680064",
+      "question": "Can third-trimester ultrasound predict the position of the first twin at delivery?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:22680064"
+      ],
+      "claims": [
+        "Yes: in a retrospective cohort of 238 twin pregnancies, ultrasound-determined cephalic presentation of twin A predicted cephalic presentation at delivery with a positive predictive value reaching 95% after 28 weeks.",
+        "Noncephalic presentation of twin A on ultrasound also predicted noncephalic presentation at delivery, with a positive predictive value above 90% after 32 weeks of gestation."
+      ],
+      "cost_usd": 0.02438,
+      "total_ms": 13661,
+      "keep": true,
+      "checked_at": "2026-10-30T01:55:56+00:00",
+      "model": "claude-sonnet-5-5",
+      "commit": "fcffb8e-dirty",
+      "cap_usd": 0.05
+    },
+    {
+      "pmid": "17598882",
+      "question": "Is breast cancer prognosis inherited?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:17598882"
+      ],
+      "claims": [
+        "In a Swedish population-based cohort, daughters and sisters of a breast cancer patient with poor prognosis had a 60% higher 5-year breast cancer mortality than relatives of a patient with good prognosis (HR 1.6, 95% CI 1.2 to 2.2), indicating familial aggregation of prognosis.",
+        "Five-year survival was lower among daughters whose mothers died within 5 years (87% vs 91%) and among sisters whose proband sister died (70% vs 88%). The association was slightly stronger among sisters (HR 1.8) than daughters (HR 1.6)."
+      ],
+      "cost_usd": 0.02566,
+      "total_ms": 12049,
+      "keep": true,
+      "checked_at": "2026-10-30T01:56:18+00:00",
+      "model": "claude-sonnet-5-5",
+      "commit": "fcffb8e-dirty",
       "cap_usd": 0.05
     }
   ]

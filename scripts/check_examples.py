@@ -43,6 +43,12 @@ CANDIDATES = [
     # 24669960 (rt-PA stroke drug) was checked on 2026-10-28; the owner removed it from the page on
     # 2026-10-29 (reads closest to treatment advice). Its recorded result stays in the file.
     ("11138995", "Is trouble putting feelings into words linked to unexplained physical symptoms?"),
+    # Owner 2026-10-30 UTC: replace keyhole surgery (a treatment comparison); fill the rt-PA slot.
+    (
+        "22680064",
+        "Can third-trimester ultrasound predict the position of the first twin at delivery?",
+    ),
+    ("17598882", "Is breast cancer prognosis inherited?"),
 ]
 
 

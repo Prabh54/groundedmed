@@ -1,16 +1,17 @@
-// Example questions: short rewordings of DEV questions (never test), each run once through the agent on
-// 2026-10-28 and kept only if it gave a cited yes/no answer matching the dev label
-// (docs/design/example-questions-check.json). lib/examples.test.ts checks this list against that file and
+// Example questions: short rewordings of DEV questions (never test), each run once through the agent
+// (2026-10-28; the twins and breast-cancer ones 2026-10-30 UTC) and kept only if it gave a cited yes/no answer
+// matching the dev label (docs/design/example-questions-check.json). lib/examples.test.ts checks this list against that file and
 // the frozen manifests. The first BUTTON_COUNT are also the buttons; all of them rotate in the placeholder.
-// The rt-PA stroke-drug example (24669960) was removed by the owner on 2026-10-29: it read closest to treatment
-// advice. Its replacement candidate (11138995) answered "maybe" in its one check and was not added.
+// Removed by the owner as treatment-flavoured: rt-PA stroke drug (24669960, 2026-10-29) and keyhole vs open
+// surgery in newborns (21194998, 2026-10-30 UTC). Candidate 11138995 answered "maybe" in its one check: not added.
 export const EXAMPLES: { question: string; pmid: string }[] = [
-  { question: "Does keyhole surgery hurt newborns less than open surgery?", pmid: "21194998" },
+  { question: "Can third-trimester ultrasound predict the position of the first twin at delivery?", pmid: "22680064" },
   { question: "Can the brain's right half learn to read on its own?", pmid: "25819796" },
   { question: "Do recorded lectures make medical students skip class?", pmid: "28027677" },
   { question: "Is paying pregnant smokers to quit worth the cost?", pmid: "26370095" },
   { question: "Does a baby's sex affect asthma ER visits during pregnancy?", pmid: "16809243" },
   { question: "Can adults with mild intellectual disabilities get better at reading comprehension?", pmid: "17910536" },
+  { question: "Is breast cancer prognosis inherited?", pmid: "17598882" },
 ];
 
 export const BUTTON_COUNT = 3;

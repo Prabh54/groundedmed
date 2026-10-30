@@ -1,0 +1,29 @@
+# Supabase Free pauses a project after 7 days without activity (ADR-017 risk). One read-only query every
+# 3 days keeps it awake ($0: a few free Actions minutes per month). Uses only the read-only DATABASE_URL secret.
+# GitHub may start scheduled runs late (and, for public repositories only, turns schedules off after 60 idle days).
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Install (locked)
+        run: uv sync --locked
+
+      - name: Read-only query
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: uv run python -m scripts.keep_alive
