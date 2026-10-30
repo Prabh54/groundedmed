@@ -2,6 +2,8 @@
 // 2026-10-28 and kept only if it gave a cited yes/no answer matching the dev label
 // (docs/design/example-questions-check.json). lib/examples.test.ts checks this list against that file and
 // the frozen manifests. The first BUTTON_COUNT are also the buttons; all of them rotate in the placeholder.
+// The rt-PA stroke-drug example (24669960) was removed by the owner on 2026-10-29: it read closest to treatment
+// advice. Its replacement candidate (11138995) answered "maybe" in its one check and was not added.
 export const EXAMPLES: { question: string; pmid: string }[] = [
   { question: "Does keyhole surgery hurt newborns less than open surgery?", pmid: "21194998" },
   { question: "Can the brain's right half learn to read on its own?", pmid: "25819796" },
@@ -9,7 +11,6 @@ export const EXAMPLES: { question: string; pmid: string }[] = [
   { question: "Is paying pregnant smokers to quit worth the cost?", pmid: "26370095" },
   { question: "Does a baby's sex affect asthma ER visits during pregnancy?", pmid: "16809243" },
   { question: "Can adults with mild intellectual disabilities get better at reading comprehension?", pmid: "17910536" },
-  { question: "Does a stroke patient's sex change how well the clot-busting drug rt-PA works?", pmid: "24669960" },
 ];
 
 export const BUTTON_COUNT = 3;

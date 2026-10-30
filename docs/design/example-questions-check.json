@@ -1,5 +1,5 @@
 {
-  "spent_usd": 0.23142,
+  "spent_usd": 0.25946,
   "cap_usd": 1.0,
   "results": [
     {
@@ -158,6 +158,29 @@
       "cost_usd": 0.03363,
       "total_ms": 12869,
       "keep": true
+    },
+    {
+      "pmid": "11138995",
+      "question": "Is trouble putting feelings into words linked to unexplained physical symptoms?",
+      "gold_label": "no",
+      "verdict": "maybe",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:11138995"
+      ],
+      "claims": [
+        "Evidence is mixed: in an internal medicine outpatient clinic, patients with medically unexplained symptoms were overall not more alexithymic than those with explained symptoms, and alexithymia was not linked to subjective health experience or use of medical services.",
+        "A subgroup of patients with unexplained symptoms and a mental disorder who denied any connection between emotional problems and physical symptoms did show more alexithymic traits."
+      ],
+      "cost_usd": 0.02804,
+      "total_ms": 13332,
+      "keep": false,
+      "checked_at": "2026-10-30T01:25:10+00:00",
+      "model": "claude-sonnet-5-5",
+      "commit": "323dbc3",
+      "cap_usd": 0.05
     }
   ]
 }
