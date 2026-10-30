@@ -20,12 +20,14 @@ from backend.app.agents.planner import make_planner_node
 from backend.app.agents.retriever import make_retriever_node
 from backend.app.agents.synthesizer import make_synthesizer_node
 from backend.app.agents.validator import make_gate_node, make_validator_node
+from backend.app.llm.client import Cancelled
 from backend.app.models.agent import ResearchState, initial_state
 from backend.app.models.answer import FinalAnswer
 
 # (name, status, message, ms); status is started | done | failed
 StageEvent = tuple[str, str, str, float]
 Emit = Callable[[StageEvent], None]
+ShouldStop = Callable[[], bool]
 
 STARTED = {
     "planner": "Planning evidence needs",
@@ -106,11 +108,23 @@ def _announced(name: str, node: Node, emit: Emit) -> Node:
     return run
 
 
+def _stoppable(name: str, node: Node, should_stop: ShouldStop) -> Node:
+    """Start the node only if the visitor is still there (M6-F2); a running node always finishes."""
+
+    def run(state: ResearchState) -> dict:
+        if should_stop():
+            raise Cancelled(name)
+        return node(state)
+
+    return run
+
+
 def build_agent_graph(
     llm: anthropic.Anthropic,
     voyage: voyageai.Client,
     conn: psycopg.Connection,
     emit: Emit | None = None,
+    should_stop: ShouldStop | None = None,
 ):
     nodes = {
         "planner": make_planner_node(llm),
@@ -122,6 +136,8 @@ def build_agent_graph(
     }
     if emit is not None:
         nodes = {name: _announced(name, node, emit) for name, node in nodes.items()}
+    if should_stop is not None:  # outermost, so a skipped node is not even announced
+        nodes = {name: _stoppable(name, node, should_stop) for name, node in nodes.items()}
     return build_graph(**nodes)
 
 
@@ -133,14 +149,16 @@ def answer_agent(
     llm: anthropic.Anthropic,
     request_id: str | None = None,
     emit: Emit | None = None,
+    should_stop: ShouldStop | None = None,
 ) -> tuple[FinalAnswer, ResearchState]:
     """Run the graph; return the final answer (timing_ms completed with every stage and the total)
     and the final state (sub-queries, candidates, critic results for logs and eval).
 
     An exception that escapes the graph (retrieval/database failure, bug) gets `usage`: the calls
-    already made, e.g. the planner's, so a failed question still counts its cost (M3 review S3)."""
+    already made, e.g. the planner's, so a failed question still counts its cost (M3 review S3).
+    That includes `Cancelled`, raised when `should_stop()` is true before a node starts."""
     start = time.perf_counter()
-    graph = build_agent_graph(llm, voyage, conn, emit)
+    graph = build_agent_graph(llm, voyage, conn, emit, should_stop)
     state = initial_state(request_id or str(uuid.uuid4()), question)
     try:
         for step_state in graph.stream(state, stream_mode="values"):  # state after each step

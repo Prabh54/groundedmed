@@ -6,6 +6,7 @@ Errors: 422 invalid input; 429 rate limit or daily cap; 503 provider or database
 Never a mocked answer. One JSON log line per query goes to stdout (ARCHITECTURE §10).
 """
 
+import asyncio
 import functools
 import json
 import os
@@ -20,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from backend.app.agents.graph import NODE_ORDER
-from backend.app.agents.pipeline import Emit, StageEvent, answer_agent
+from backend.app.agents.pipeline import Emit, ShouldStop, StageEvent, answer_agent
 from backend.app.baseline.pipeline import answer_baseline
 from backend.app.config import (
     DEFAULT_DAILY_QUERY_CAP,
@@ -35,7 +36,7 @@ from backend.app.guardrails.rate_limit import (
     client_key,
     trusted_networks,
 )
-from backend.app.llm.client import anthropic_client
+from backend.app.llm.client import Cancelled, anthropic_client
 from backend.app.models.answer import FinalAnswer
 from backend.app.models.api import (
     Citation,
@@ -52,6 +53,7 @@ from backend.app.retrieval.vector_search import connect, get_document
 LIMIT_MESSAGE = "Demo limit reached, please try again later."
 UNAVAILABLE_MESSAGE = "The service is temporarily unavailable, please try again later."
 INTERNAL_MESSAGE = "Something went wrong while answering, please try again later."
+STREAM_POLL_SECONDS = 0.05  # how often the stream checks for a new event or a departed visitor
 
 
 def allowed_origins(env_value: str) -> list[str]:
@@ -201,9 +203,15 @@ def check_limits(request: Request, request_id: str) -> None:
         raise HTTPException(status_code=429, detail=LIMIT_MESSAGE)
 
 
-def answer(body: QueryRequest, request_id: str, emit: Emit | None = None) -> QueryResponse:
+def answer(
+    body: QueryRequest,
+    request_id: str,
+    emit: Emit | None = None,
+    should_stop: ShouldStop | None = None,
+) -> QueryResponse:
     """Run one question in the requested mode, log it, and build the response. Raises 503 for a
-    retrieval/database failure or a model failure (never a partial answer)."""
+    retrieval/database failure or a model failure (never a partial answer), and Cancelled (logged
+    with the cost so far) when `should_stop()` turned true before a step started."""
     events: list[StageEvent] = []
 
     def record(event: StageEvent) -> None:
@@ -217,9 +225,16 @@ def answer(body: QueryRequest, request_id: str, emit: Emit | None = None) -> Que
         with connect() as conn:
             if body.mode == "agent":
                 result, state = answer_agent(body.question, conn=conn, voyage=voyage, llm=llm,
-                                             request_id=request_id, emit=record)  # fmt: skip
+                                             request_id=request_id, emit=record,
+                                             should_stop=should_stop)  # fmt: skip
             else:
-                result = answer_baseline(body.question, conn=conn, voyage=voyage, llm=llm)
+                result = answer_baseline(body.question, conn=conn, voyage=voyage, llm=llm,
+                                         should_stop=should_stop)  # fmt: skip
+    except Cancelled as exc:  # visitor left: no further paid call was started
+        log({"request_id": request_id, "mode": body.mode, "event": "cancelled",
+             "stopped_before": exc.before, "usage": [u.model_dump() for u in exc.usage],
+             "cost_usd": sum(u.cost_usd for u in exc.usage)})  # fmt: skip
+        raise
     except (RetrievalError, psycopg.Error) as exc:  # embedding or database failure
         spent = getattr(exc, "usage", [])  # calls made before the failure (agent planner)
         log({"request_id": request_id, "mode": body.mode, "event": "error", "stage": "retrieval",
@@ -268,14 +283,33 @@ def sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
+class StopOnExit(StreamingResponse):
+    """Sets `stop` however the response ends: answer sent, visitor disconnected (the server
+    cancels the response) or a failed write (M6-F2)."""
+
+    def __init__(self, content, stop: threading.Event, **kwargs):
+        super().__init__(content, **kwargs)
+        self.stop = stop
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            self.stop.set()
+
+
 @app.post("/query/stream")
 def query_stream(body: QueryRequest, request: Request):
     """Server-Sent Events: `stage` events ({name, status, message, ms}), then one `result` event
     (the /query response) or one `error` event with a plain message. Limits and input errors are
-    still answered as HTTP 429/422 before the stream starts."""
+    still answered as HTTP 429/422 before the stream starts.
+
+    If the visitor disconnects, `stop` is set: the step already running finishes, no later step
+    (so no further model call) starts, and the cost so far is logged (M6-F2)."""
     request_id = str(uuid.uuid4())
     check_limits(request, request_id)
     events: queue.Queue = queue.Queue()
+    stop = threading.Event()
 
     def emit(event: StageEvent) -> None:
         name, status, message, ms = event
@@ -284,7 +318,9 @@ def query_stream(body: QueryRequest, request: Request):
 
     def work() -> None:
         try:
-            events.put(sse("result", answer(body, request_id, emit).model_dump()))
+            events.put(sse("result", answer(body, request_id, emit, stop.is_set).model_dump()))
+        except Cancelled:  # nobody to tell; answer() logged it
+            pass
         except HTTPException as exc:
             events.put(sse("error", {"message": exc.detail}))
         except Exception as exc:  # a bug: no traceback or secrets to the client, logged here
@@ -296,12 +332,21 @@ def query_stream(body: QueryRequest, request: Request):
 
     threading.Thread(target=work, daemon=True).start()
 
-    def stream():
-        while (chunk := events.get()) is not None:
+    async def stream():
+        # Never block the event loop on the queue: a blocked read would delay noticing the
+        # disconnect until the next event, by which time the next step has already started.
+        while not await request.is_disconnected():
+            try:
+                chunk = events.get_nowait()
+            except queue.Empty:
+                await asyncio.sleep(STREAM_POLL_SECONDS)
+                continue
+            if chunk is None:
+                return
             yield chunk
 
-    return StreamingResponse(stream(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache"})  # fmt: skip
+    return StopOnExit(stream(), stop, media_type="text/event-stream",
+                      headers={"Cache-Control": "no-cache"})  # fmt: skip
 
 
 @app.get("/sources/{pmid}", response_model=SourceResponse)

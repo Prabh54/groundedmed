@@ -6,6 +6,7 @@ never a partial answer.
 """
 
 import time
+from collections.abc import Callable
 
 import anthropic
 import psycopg
@@ -15,7 +16,7 @@ from backend.app.baseline.synthesizer import SYNTHESIZER_VERSION, synthesize
 from backend.app.config import EVIDENCE_GATE_DENSE_THRESHOLD, EVIDENCE_GATE_THRESHOLD, redact
 from backend.app.guardrails.citation_validator import validate
 from backend.app.guardrails.evidence_gate import gate_passes, top_rerank_score
-from backend.app.llm.client import LLMError, anthropic_client
+from backend.app.llm.client import Cancelled, LLMError, anthropic_client
 from backend.app.models.answer import FinalAnswer, ValidationReport
 from backend.app.retrieval.retrieve import retrieve
 
@@ -48,7 +49,11 @@ def answer_baseline(
     conn: psycopg.Connection | None = None,
     voyage: voyageai.Client | None = None,
     llm: anthropic.Anthropic | None = None,
+    should_stop: Callable[[], bool] | None = None,
 ) -> FinalAnswer:
+    """`should_stop()` is checked before the model call (M6-F2): if the visitor has left, raise
+    Cancelled carrying the retrieval usage instead of paying for synthesis. Retrieval itself
+    (embedding then rerank) always runs to the end once started, like an agent step."""
     start = time.perf_counter()
     retrieval = retrieve(question, conn=conn, client=voyage)
     evidence = retrieval.evidence
@@ -83,6 +88,10 @@ def answer_baseline(
             validation=ValidationReport(),
         )
 
+    if should_stop and should_stop():
+        stopped = Cancelled("synthesizer")
+        stopped.usage = usage
+        raise stopped
     try:
         draft, call_usage, synth_ms = synthesize(llm or anthropic_client(), question, evidence)
     except LLMError as exc:

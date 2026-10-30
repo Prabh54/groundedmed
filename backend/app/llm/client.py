@@ -27,6 +27,17 @@ class LLMError(RuntimeError):
         self.usage, self.elapsed_ms = usage, elapsed_ms
 
 
+class Cancelled(RuntimeError):
+    """The visitor left mid-answer (M6-F2), so step `before` and everything after it never started.
+
+    `usage` is set by the caller to the calls already made, so their cost is still logged.
+    """
+
+    def __init__(self, before: str):
+        super().__init__(f"visitor disconnected; stopped before {before}")
+        self.before, self.usage = before, []
+
+
 def anthropic_client() -> anthropic.Anthropic:
     # SDK retries 429/5xx/connection errors twice (ARCHITECTURE §13).
     return anthropic.Anthropic(api_key=env("ANTHROPIC_API_KEY"), max_retries=2, timeout=90)

@@ -345,6 +345,9 @@ Guards (also tested):
 
 - One structured JSON log line per request (stdout, captured by Railway): request_id, mode, stage timings,
   candidate/evidence counts, abstained + reason, per-call model ID and token usage, estimated cost, errors.
+- A visitor who leaves `/query/stream` mid-answer gets an `"event": "cancelled"` line instead (M6-F2):
+  `stopped_before` (the step that never started), `usage` and `cost_usd` of the calls already made. Spend
+  totals must add these lines to the answer and error lines.
 - Never log secrets or API keys. Questions are logged (public demo; no personal data is requested).
 - Cost = Σ calls (input_tokens × input_price + output_tokens × output_price) / 1e6, from provider-reported
   usage, with the price table versioned in `config.py`. Voyage cost is computed the same way from token counts.
@@ -393,6 +396,7 @@ Names follow each SDK's default variable (ADR-018), except `EVALUATOR_API_KEY` (
 | Planner returns 0 usable sub-queries | Use the original question as the single query |
 | Structured output refused / truncated | Treat as node failure (above) |
 | Daily cap or per-IP limit hit | 429 with "demo limit reached, try again later" |
+| Visitor disconnects from `/query/stream` | The running step finishes; no later step (so no further model or Voyage call) starts; `cancelled` log line with the cost so far (M6-F2). Plain `/query` still runs to the end |
 
 Build-time fallbacks (from the playbook): pgvector blocked → Chroma locally behind the same `retrieve()`;
 reranker blocked → ship dense retrieval; LangGraph blocked → four plain functions first, then wrap;
