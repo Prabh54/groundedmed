@@ -29,7 +29,12 @@ from backend.app.config import (
     REPO_ROOT,
     redact,
 )
-from backend.app.guardrails.rate_limit import RateLimiter
+from backend.app.guardrails.rate_limit import (
+    CLIENT_IP_HEADER,
+    RateLimiter,
+    client_key,
+    trusted_networks,
+)
 from backend.app.llm.client import anthropic_client
 from backend.app.models.answer import FinalAnswer
 from backend.app.models.api import (
@@ -72,6 +77,8 @@ app.add_middleware(
 )
 # In-memory limits: run a single uvicorn worker, or each worker gets its own counters.
 limiter = RateLimiter(PER_IP_QUERIES_PER_HOUR, daily_cap(os.environ.get("DAILY_QUERY_CAP")))
+# Proxy addresses whose X-Real-IP header is believed (ADR-039). Empty = believe no header.
+TRUSTED_PROXIES, _invalid_proxies = trusted_networks(os.environ.get("TRUSTED_PROXY_CIDRS", ""))
 
 
 @functools.cache
@@ -178,8 +185,16 @@ def log(record: dict) -> None:
     print(json.dumps(record), flush=True)
 
 
+if _invalid_proxies:
+    log({"event": "config_warning", "setting": "TRUSTED_PROXY_CIDRS",
+         "ignored_entries": _invalid_proxies})  # fmt: skip
+
+
 def check_limits(request: Request, request_id: str) -> None:
-    ip = request.client.host if request.client else "unknown"
+    peer = request.client.host if request.client else None
+    # Two copies may mean the proxy added its own after a caller's: believe neither.
+    values = request.headers.getlist(CLIENT_IP_HEADER)
+    ip = client_key(peer, values[0] if len(values) == 1 else None, TRUSTED_PROXIES)
     refused = limiter.check(ip)
     if refused:
         log({"request_id": request_id, "event": "rate_limited", "reason": refused})

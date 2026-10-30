@@ -303,8 +303,9 @@ server; the log line adds sub-queries, candidate count, `planner_added_evidence`
 As built in M2 (baseline only): `mode` accepts only `"baseline"` until M3-T7; the response also has
 `rerank_skipped`; `/query` stages are `retriever` and `synthesizer` with status `done | skipped | failed`
 (`skipped` = synthesis not run because the evidence gate abstained). Any other server error is a 500, not
-a 503. Rate limits are in memory, so the API must run as a single uvicorn worker. Before deployment the
-per-IP limit must read the client IP correctly behind Railway's proxy (`request.client.host` is the proxy).
+a 503. Rate limits are in memory, so the API must run as a single uvicorn worker. Behind Railway's proxy
+the per-IP limit counts the `X-Real-IP` address, but only when the connecting peer is in `TRUSTED_PROXY_CIDRS`
+(M6-F1, ADR-039); otherwise it counts the peer address. IPv6 visitors are counted per /64.
 
 ## 9. Evaluation architecture
 
@@ -376,6 +377,7 @@ Database hosting for the public month is decided at M6 (ADR-017): Supabase Free 
 | `EVALUATOR_API_KEY` | independent judge (Gemini, Google AI Studio) | local `.env` only (never deployed) |
 | `ALLOWED_ORIGINS` | CORS | Railway |
 | `DAILY_QUERY_CAP` | spend protection | Railway |
+| `TRUSTED_PROXY_CIDRS` | per-IP limit: proxy addresses whose `X-Real-IP` is believed (ADR-039); empty = none | Railway |
 | `NEXT_PUBLIC_API_BASE_URL` | frontend | Vercel |
 
 Names follow each SDK's default variable (ADR-018), except `EVALUATOR_API_KEY` (owner's name, 2026-10-24; passed to the Gemini client explicitly). Values never go in this file or in Git.
