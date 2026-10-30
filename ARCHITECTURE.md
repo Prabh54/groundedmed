@@ -348,6 +348,11 @@ Guards (also tested):
 - A visitor who leaves `/query/stream` mid-answer gets an `"event": "cancelled"` line instead (M6-F2):
   `stopped_before` (the step that never started), `usage` and `cost_usd` of the calls already made. Spend
   totals must add these lines to the answer and error lines.
+- Every `/query` and `/query/stream` request that passes validation first logs an `"event": "client"` line
+  (M6-T4): `peer` (the connecting address: Railway's proxy in production), `trusted_peer` (inside
+  `TRUSTED_PROXY_CIDRS`), `real_ip_headers` (how many `X-Real-IP` copies arrived) and `client_id` (an HMAC
+  pseudonym of the limit key with a random per-process key: same visitor -> same id within one run). The
+  visitor's own address is never written.
 - Never log secrets or API keys. Questions are logged (public demo; no personal data is requested).
 - Cost = Σ calls (input_tokens × input_price + output_tokens × output_price) / 1e6, from provider-reported
   usage, with the price table versioned in `config.py`. Voyage cost is computed the same way from token counts.
@@ -366,8 +371,24 @@ Browser ──> Vercel (Next.js, static dashboard data baked in at build)
               └──> Anthropic API (planner, synthesizer, critic, baseline)
 Developer machine only: ingestion scripts, eval runners, Gemini judge.
 ```
-Database hosting for the public month is decided at M6 (ADR-017): Supabase Free pauses after
-7 days without activity.
+Database: Supabase Free + keep-alive workflow (ADR-017, decided 2026-10-30); `DATABASE_URL` uses the
+Supabase pooler host (IPv4).
+
+Railway service settings (M6-T2; set in the dashboard, because Railway's `railway.json` "Config as Code" is
+deprecated and its replacement is experimental):
+- Source: GitHub repo, branch `main`, Root Directory = repo root (ADR-024); builder Railpack (uv, `--no-dev`,
+  Python from `.python-version`, `/app/.venv/bin` on PATH).
+- Start command: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT --workers 1 --no-proxy-headers`
+  (single worker: in-memory limits; no proxy headers: `request.client.host` stays the real peer, ADR-039).
+- Healthcheck path `/health`; restart on failure.
+- Watch paths: `backend/**`, `pyproject.toml`, `uv.lock`, `.python-version` (docs-only pushes do not
+  redeploy, and every redeploy resets the in-memory limits).
+- Variables: `DATABASE_URL` (read-only role), `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `ALLOWED_ORIGINS`,
+  `DAILY_QUERY_CAP`, `TRUSTED_PROXY_CIDRS`. Never `DATABASE_ADMIN_URL` or `EVALUATOR_API_KEY`.
+
+Vercel project settings (M6-T3): Root Directory `frontend`, framework Next.js, "Include files outside the
+root directory" ON (the `/eval` page reads `../eval/results` at build time); variable
+`NEXT_PUBLIC_API_BASE_URL` = the Railway public URL.
 
 ## 12. Environment variables
 

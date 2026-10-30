@@ -9,7 +9,10 @@ peer is inside TRUSTED_PROXY_CIDRS; from anyone else it is ignored, so a visitor
 own key.
 """
 
+import hashlib
+import hmac
 import ipaddress
+import secrets
 import threading
 import time
 from collections import defaultdict, deque
@@ -19,6 +22,9 @@ CLIENT_IP_HEADER = "x-real-ip"  # Railway: "X-Real-IP for identifying client's r
 IPV6_PREFIX = 64  # one visitor usually controls a whole /64, so it counts as one address
 
 Network = ipaddress.IPv4Network | ipaddress.IPv6Network
+# Random per process: log pseudonyms can be compared within one run but not reversed or linked
+# across restarts.
+_PSEUDONYM_KEY = secrets.token_bytes(16)
 
 
 def trusted_networks(env_value: str) -> tuple[list[Network], list[str]]:
@@ -51,6 +57,16 @@ def _key(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
     return str(address)
 
 
+def is_trusted(peer: str | None, trusted: list[Network]) -> bool:
+    address = _parse(peer)
+    return address is not None and any(address in n for n in trusted)
+
+
+def pseudonym(key: str) -> str:
+    """A short stand-in for a limit key in the logs, so visitor addresses are never written."""
+    return hmac.new(_PSEUDONYM_KEY, key.encode(), hashlib.sha256).hexdigest()[:10]
+
+
 def client_key(peer: str | None, header_value: str | None, trusted: list[Network]) -> str:
     """The address the per-IP limit counts for one request.
 
@@ -60,7 +76,7 @@ def client_key(peer: str | None, header_value: str | None, trusted: list[Network
     peer_address = _parse(peer)
     if peer_address is None:
         return peer or "unknown"
-    if any(peer_address in n for n in trusted):
+    if is_trusted(peer, trusted):
         forwarded = _parse(header_value)
         if forwarded is not None:
             return _key(forwarded)

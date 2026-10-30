@@ -34,6 +34,8 @@ from backend.app.guardrails.rate_limit import (
     CLIENT_IP_HEADER,
     RateLimiter,
     client_key,
+    is_trusted,
+    pseudonym,
     trusted_networks,
 )
 from backend.app.llm.client import Cancelled, anthropic_client
@@ -197,6 +199,11 @@ def check_limits(request: Request, request_id: str) -> None:
     # Two copies may mean the proxy added its own after a caller's: believe neither.
     values = request.headers.getlist(CLIENT_IP_HEADER)
     ip = client_key(peer, values[0] if len(values) == 1 else None, TRUSTED_PROXIES)
+    # The peer is the proxy's address on Railway (how TRUSTED_PROXY_CIDRS is measured, M6-T4);
+    # the visitor's own address is logged only as a pseudonym.
+    log({"request_id": request_id, "event": "client", "peer": peer,
+         "trusted_peer": is_trusted(peer, TRUSTED_PROXIES), "real_ip_headers": len(values),
+         "client_id": pseudonym(ip)})  # fmt: skip
     refused = limiter.check(ip)
     if refused:
         log({"request_id": request_id, "event": "rate_limited", "reason": refused})

@@ -5,12 +5,18 @@ TRUSTED_PROXY_CIDRS. Fakes for the pipeline and DB, no network.
 """
 
 import ipaddress
+import json
 
 import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import main
-from backend.app.guardrails.rate_limit import RateLimiter, client_key, trusted_networks
+from backend.app.guardrails.rate_limit import (
+    RateLimiter,
+    client_key,
+    pseudonym,
+    trusted_networks,
+)
 from backend.tests.unit.test_api import FakeConn, final_answer
 
 PROXY = ("10.1.2.3", 50000)  # the connecting peer when Railway's proxy forwards a request
@@ -106,3 +112,35 @@ def test_trusted_networks_parsing():
     assert [str(n) for n in networks] == ["10.0.0.0/8", "fd12::/16", "100.64.0.1/32"]
     assert invalid == ["nonsense", "10.0.0.0/33"]
     assert trusted_networks("") == ([], [])
+
+
+def client_lines(capsys) -> list[dict]:
+    out = capsys.readouterr().out
+    return [json.loads(line) for line in out.splitlines() if '"event": "client"' in line]
+
+
+def test_log_line_shows_proxy_peer_and_header_count_but_never_the_visitor_address(app, capsys):
+    proxy = TestClient(app, client=PROXY)
+    codes(proxy, ["198.51.100.1", "198.51.100.1", "198.51.100.2"])
+    out = capsys.readouterr().out
+    assert "198.51.100." not in out  # visitor addresses are never written
+    lines = [json.loads(line) for line in out.splitlines() if '"event": "client"' in line]
+    assert [(x["peer"], x["trusted_peer"], x["real_ip_headers"]) for x in lines] == [
+        ("10.1.2.3", True, 1)
+    ] * 3
+    ids = [x["client_id"] for x in lines]
+    assert ids[0] == ids[1] != ids[2]  # same visitor -> same pseudonym; another visitor differs
+    assert all(len(i) == 10 for i in ids)
+
+
+def test_log_line_shows_untrusted_peer_and_duplicate_headers(app, capsys):
+    outsider = TestClient(app, client=OUTSIDER)
+    codes(outsider, [None, "198.51.100.10"])
+    dup = [("X-Real-IP", "198.51.100.1"), ("X-Real-IP", "198.51.100.2")]
+    TestClient(app, client=PROXY).post("/query", json=QUESTION, headers=dup)
+    a, b, c = client_lines(capsys)
+    assert (a["trusted_peer"], a["real_ip_headers"]) == (False, 0)
+    assert (b["trusted_peer"], b["real_ip_headers"]) == (False, 1)
+    assert a["client_id"] == b["client_id"]  # a forged header did not change the count used
+    assert (c["peer"], c["trusted_peer"], c["real_ip_headers"]) == ("10.1.2.3", True, 2)
+    assert c["client_id"] == pseudonym("10.1.2.3")  # duplicates: the proxy's own count
