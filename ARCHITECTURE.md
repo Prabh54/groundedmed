@@ -306,8 +306,8 @@ As built in M2 (baseline only): `mode` accepts only `"baseline"` until M3-T7; th
 a 503. Rate limits are in memory, so the API must run as a single uvicorn worker. Behind the hosting
 proxy the per-IP limit counts the address in the `CLIENT_IP_HEADER` header, but only when the connecting peer is in
 `TRUSTED_PROXY_CIDRS` and the header arrives exactly once holding one IP (M6-F1, ADR-039, ADR-041); otherwise it
-counts the peer address. Both settings are empty by default (no header believed) and are measured on Render at
-M6-T4. IPv6 visitors are counted per /64.
+counts the peer address. Both settings are empty by default (no header believed). Measured on Render at M6-T4
+(ADR-041): `CLIENT_IP_HEADER=cf-connecting-ip`, `TRUSTED_PROXY_CIDRS=10.0.0.0/8`. IPv6 visitors are counted per /64.
 
 `GET /debug/client-ip` (M6-T4 measurement only): 404 unless `DEBUG_CLIENT_IP=1`. Returns the caller's own peer
 address, the candidate client-IP headers they arrived with, and the limit key the server would use. Not logged,
@@ -382,7 +382,9 @@ Developer machine only: ingestion scripts, eval runners, Gemini judge.
 Database: Supabase Free + keep-alive workflow (ADR-017, decided 2026-10-30); `DATABASE_URL` uses the
 Supabase pooler host (IPv4).
 
-Render web service settings (M6-T2, ADR-041; set in the dashboard when the service is created):
+Render web service settings (M6-T2, ADR-041; set in the dashboard when the service is created). Live:
+`https://groundedmed-api.onrender.com` (service `groundedmed-api`, region virginia,
+plan Starter 0.5c-512mb); frontend `https://groundedmed.vercel.app`.
 - Source: GitHub repo, branch `main`, Root Directory empty (= repo root, ADR-024); Language Python 3 (version from
   `.python-version`; uv is used because `uv.lock` is present); Region Virginia (US East), next to the Supabase
   pooler in us-east-1; Instance type Starter.
@@ -394,8 +396,8 @@ Render web service settings (M6-T2, ADR-041; set in the dashboard when the servi
   `pyproject.toml`, `uv.lock`, `.python-version` (docs-only pushes do not redeploy; every deploy resets the
   in-memory limits).
 - Variables: `DATABASE_URL` (read-only role), `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` (added last, after M6-T4),
-  `ALLOWED_ORIGINS`, `DAILY_QUERY_CAP`, `CLIENT_IP_HEADER`, `TRUSTED_PROXY_CIDRS`; `DEBUG_CLIENT_IP=1` only during
-  M6-T4. Never `DATABASE_ADMIN_URL` or `EVALUATOR_API_KEY`. `/health` reports Render's `RENDER_GIT_COMMIT`.
+  `ALLOWED_ORIGINS=https://groundedmed.vercel.app`, `CLIENT_IP_HEADER=cf-connecting-ip`,
+  `TRUSTED_PROXY_CIDRS=10.0.0.0/8`; `DAILY_QUERY_CAP` unset (default 100); `DEBUG_CLIENT_IP=1` only during M6-T4. Never `DATABASE_ADMIN_URL` or `EVALUATOR_API_KEY`. `/health` reports Render's `RENDER_GIT_COMMIT`.
 
 Vercel project settings (M6-T3): Root Directory `frontend`, framework Next.js, "Include files outside the
 root directory" ON (the `/eval` page reads `../eval/results` at build time); variable
