@@ -31,7 +31,8 @@ jobs:
           test "$code" = "200" || { echo "Debug endpoint is off, so M6-T4 is over: not running."; exit 1; }
 
       - name: Runner network
-        run: echo "runner public IPv4 (a GitHub/Azure address): $(curl -s -4 https://api.ipify.org)"
+        run: |
+          echo "runner public IPv4 (a GitHub/Azure address): $(curl -s -4 https://api.ipify.org)"
 
       - name: Measure
         if: inputs.phase == 'measure'
