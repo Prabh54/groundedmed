@@ -1,0 +1,56 @@
+# M6-T4: a second network (a GitHub-hosted runner) for checking the per-visitor limit on the public API.
+# Manual only. Costs $0: the API has no AI keys while this runs, so allowed queries end in an error
+# before any paid call. Never run it once the AI keys are set (each allowed query would be a paid call).
+name: Proxy check (M6-T4)
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "measure = show how the API sees this runner; limits = 11 queries with forged headers"
+        required: true
+        default: measure
+        type: choice
+        options: [measure, limits]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      API: https://groundedmed-api.onrender.com
+    steps:
+      - name: Refuse if the API can make paid calls
+        run: |
+          # /debug/client-ip exists only during M6-T4; the AI keys are added after it is switched off.
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$API/debug/client-ip")
+          echo "debug endpoint: $code"
+          test "$code" = "200" || { echo "Debug endpoint is off, so M6-T4 is over: not running."; exit 1; }
+
+      - name: Runner network
+        run: echo "runner public IPv4 (a GitHub/Azure address): $(curl -s -4 https://api.ipify.org)"
+
+      - name: Measure
+        if: inputs.phase == 'measure'
+        run: |
+          for i in 1 2 3 4 5; do curl -s "$API/debug/client-ip"; echo; done
+          echo "forged True-Client-IP:";  curl -s "$API/debug/client-ip" -H "True-Client-IP: 203.0.113.3"; echo
+          echo "forged CF-Connecting-IP:"; curl -s -w " [%{http_code}]" "$API/debug/client-ip" -H "CF-Connecting-IP: 203.0.113.4"; echo
+          echo "forged X-Forwarded-For:"; curl -s "$API/debug/client-ip" -H "X-Forwarded-For: 203.0.113.1"; echo
+
+      - name: Limits (11 queries, each with a different forged address)
+        if: inputs.phase == 'limits'
+        run: |
+          q='{"question":"Proxy check from the second network","mode":"baseline"}'
+          echo "limit key the API uses for this runner: $(curl -s "$API/debug/client-ip")"
+          for i in $(seq 1 11); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/query" \
+              -H "Content-Type: application/json" -H "True-Client-IP: 198.51.100.$i" \
+              -H "X-Forwarded-For: 198.51.100.$i" -H "X-Real-IP: 198.51.100.$i" -d "$q")
+            echo "query $i (forged 198.51.100.$i): HTTP $code"
+          done
+          echo "forged CF-Connecting-IP query: HTTP $(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/query" \
+            -H "Content-Type: application/json" -H "CF-Connecting-IP: 198.51.100.99" -d "$q")"
