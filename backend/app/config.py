@@ -74,7 +74,7 @@ EVIDENCE_GATE_THRESHOLD = 0.72  # top rerank-3 score
 EVIDENCE_GATE_DENSE_THRESHOLD = 0.62  # top cosine score, used only when reranking failed
 EVIDENCE_GATE_DEV_RUN = "dev-gate-20261023-030256-4455e98"
 
-# API spend protection (ADR-021). Values come from the environment on Railway.
+# API spend protection (ADR-021). Values come from the environment on the backend host.
 PER_IP_QUERIES_PER_HOUR = 10
 DEFAULT_DAILY_QUERY_CAP = 100
 LOCAL_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]

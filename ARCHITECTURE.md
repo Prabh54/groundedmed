@@ -23,7 +23,7 @@ Prefer one obvious way to do each thing over configurable flexibility.
 | LLM output | Anthropic structured outputs (`output_config.format`, JSON schema) | The API guarantees parseable JSON, so no retry-on-bad-JSON code. |
 | Independent judge | Google Gemini, paid tier, offline only (ADR-014) | Different provider from the runtime critic by construction; never deployed. |
 | Frontend | Next.js App Router + Tailwind, Vercel Hobby | Vercel is Next.js's native host: push to deploy, no server config. |
-| Backend host | Railway Hobby | Deploys a Python service from the repo with no Dockerfile or VM management. |
+| Backend host | Render, Starter instance (ADR-041; replaces Railway, ADR-040) | Deploys a Python service from the repo with no Dockerfile or VM management; always on (no cold start). |
 | CI | GitHub Actions | Already where the code lives; free allowance covers this project. |
 
 ## 1. Repository structure
@@ -303,9 +303,15 @@ server; the log line adds sub-queries, candidate count, `planner_added_evidence`
 As built in M2 (baseline only): `mode` accepts only `"baseline"` until M3-T7; the response also has
 `rerank_skipped`; `/query` stages are `retriever` and `synthesizer` with status `done | skipped | failed`
 (`skipped` = synthesis not run because the evidence gate abstained). Any other server error is a 500, not
-a 503. Rate limits are in memory, so the API must run as a single uvicorn worker. Behind Railway's proxy
-the per-IP limit counts the `X-Real-IP` address, but only when the connecting peer is in `TRUSTED_PROXY_CIDRS`
-(M6-F1, ADR-039); otherwise it counts the peer address. IPv6 visitors are counted per /64.
+a 503. Rate limits are in memory, so the API must run as a single uvicorn worker. Behind the hosting
+proxy the per-IP limit counts the address in the `CLIENT_IP_HEADER` header, but only when the connecting peer is in
+`TRUSTED_PROXY_CIDRS` and the header arrives exactly once holding one IP (M6-F1, ADR-039, ADR-041); otherwise it
+counts the peer address. Both settings are empty by default (no header believed) and are measured on Render at
+M6-T4. IPv6 visitors are counted per /64.
+
+`GET /debug/client-ip` (M6-T4 measurement only): 404 unless `DEBUG_CLIENT_IP=1`. Returns the caller's own peer
+address, the candidate client-IP headers they arrived with, and the limit key the server would use. Not logged,
+not counted; switched off again once M6-T4 is verified.
 
 ## 9. Evaluation architecture
 
@@ -343,16 +349,18 @@ Guards (also tested):
 
 ## 10. Logging, cost and latency measurement
 
-- One structured JSON log line per request (stdout, captured by Railway): request_id, mode, stage timings,
+- One structured JSON log line per request (stdout, captured by Render's log view): request_id, mode, stage timings,
   candidate/evidence counts, abstained + reason, per-call model ID and token usage, estimated cost, errors.
 - A visitor who leaves `/query/stream` mid-answer gets an `"event": "cancelled"` line instead (M6-F2):
   `stopped_before` (the step that never started), `usage` and `cost_usd` of the calls already made. Spend
   totals must add these lines to the answer and error lines.
 - Every `/query` and `/query/stream` request that passes validation first logs an `"event": "client"` line
-  (M6-T4): `peer` (the connecting address: Railway's proxy in production), `trusted_peer` (inside
-  `TRUSTED_PROXY_CIDRS`), `real_ip_headers` (how many `X-Real-IP` copies arrived) and `client_id` (an HMAC
-  pseudonym of the limit key with a random per-process key: same visitor -> same id within one run). The
-  visitor's own address is never written.
+  (M6-T4): `peer` (the connecting address: the hosting proxy in production), `trusted_peer` (inside
+  `TRUSTED_PROXY_CIDRS`), `ip_headers` (copies of each candidate client-IP header that arrived: X-Forwarded-For,
+  X-Real-IP, True-Client-IP, CF-Connecting-IP, Forwarded, plus `CLIENT_IP_HEADER`), `xff_entries` (addresses in
+  X-Forwarded-For), and `client_id` (an HMAC
+  pseudonym of the limit key with a random per-process key: same visitor -> same id within one run). No header
+  value and no visitor address is ever written.
 - Never log secrets or API keys. Questions are logged (public demo; no personal data is requested).
 - Cost = Σ calls (input_tokens × input_price + output_tokens × output_price) / 1e6, from provider-reported
   usage, with the price table versioned in `config.py`. Voyage cost is computed the same way from token counts.
@@ -365,7 +373,7 @@ Guards (also tested):
 Browser ──> Vercel (Next.js, static dashboard data baked in at build)
               │  HTTPS, CORS-restricted
               v
-           Railway (FastAPI + LangGraph, 1 small instance)
+           Render (FastAPI + LangGraph, 1 Starter instance)
               ├──> Supabase Postgres + pgvector (read-only role, pooled connection)
               ├──> Voyage API (embed query, rerank)
               └──> Anthropic API (planner, synthesizer, critic, baseline)
@@ -374,34 +382,39 @@ Developer machine only: ingestion scripts, eval runners, Gemini judge.
 Database: Supabase Free + keep-alive workflow (ADR-017, decided 2026-10-30); `DATABASE_URL` uses the
 Supabase pooler host (IPv4).
 
-Railway service settings (M6-T2; set in the dashboard, because Railway's `railway.json` "Config as Code" is
-deprecated and its replacement is experimental):
-- Source: GitHub repo, branch `main`, Root Directory = repo root (ADR-024); builder Railpack (uv, `--no-dev`,
-  Python from `.python-version`, `/app/.venv/bin` on PATH).
-- Start command: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT --workers 1 --no-proxy-headers`
-  (single worker: in-memory limits; no proxy headers: `request.client.host` stays the real peer, ADR-039).
-- Healthcheck path `/health`; restart on failure.
-- Watch paths: `backend/**`, `pyproject.toml`, `uv.lock`, `.python-version` (docs-only pushes do not
-  redeploy, and every redeploy resets the in-memory limits).
-- Variables: `DATABASE_URL` (read-only role), `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `ALLOWED_ORIGINS`,
-  `DAILY_QUERY_CAP`, `TRUSTED_PROXY_CIDRS`. Never `DATABASE_ADMIN_URL` or `EVALUATOR_API_KEY`.
+Render web service settings (M6-T2, ADR-041; set in the dashboard when the service is created):
+- Source: GitHub repo, branch `main`, Root Directory empty (= repo root, ADR-024); Language Python 3 (version from
+  `.python-version`; uv is used because `uv.lock` is present); Region Virginia (US East), next to the Supabase
+  pooler in us-east-1; Instance type Starter.
+- Build command: `uv sync --locked --no-dev`
+- Start command: `uv run --no-sync uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT --workers 1 --no-proxy-headers`
+  (Render's default `PORT` is 10000; `--workers 1` overrides Render's `WEB_CONCURRENCY`: in-memory limits;
+  `--no-proxy-headers`: `request.client.host` stays the real peer, ADR-039).
+- Health Check Path `/health`; Auto-Deploy on commit; Build Filters, included paths: `backend/**`,
+  `pyproject.toml`, `uv.lock`, `.python-version` (docs-only pushes do not redeploy; every deploy resets the
+  in-memory limits).
+- Variables: `DATABASE_URL` (read-only role), `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` (added last, after M6-T4),
+  `ALLOWED_ORIGINS`, `DAILY_QUERY_CAP`, `CLIENT_IP_HEADER`, `TRUSTED_PROXY_CIDRS`; `DEBUG_CLIENT_IP=1` only during
+  M6-T4. Never `DATABASE_ADMIN_URL` or `EVALUATOR_API_KEY`. `/health` reports Render's `RENDER_GIT_COMMIT`.
 
 Vercel project settings (M6-T3): Root Directory `frontend`, framework Next.js, "Include files outside the
 root directory" ON (the `/eval` page reads `../eval/results` at build time); variable
-`NEXT_PUBLIC_API_BASE_URL` = the Railway public URL.
+`NEXT_PUBLIC_API_BASE_URL` = the Render public URL (`https://<name>.onrender.com`).
 
 ## 12. Environment variables
 
 | Name | Used by | Where set |
 |---|---|---|
-| `DATABASE_URL` | backend (read-only role) | local `.env`, Railway |
+| `DATABASE_URL` | backend (read-only role) | local `.env`, Render |
 | `DATABASE_ADMIN_URL` | `scripts/ingest.py` only | local `.env` only |
-| `VOYAGE_API_KEY` | embeddings + rerank | local `.env`, Railway |
-| `ANTHROPIC_API_KEY` | runtime LLM | local `.env`, Railway |
+| `VOYAGE_API_KEY` | embeddings + rerank | local `.env`, Render |
+| `ANTHROPIC_API_KEY` | runtime LLM | local `.env`, Render |
 | `EVALUATOR_API_KEY` | independent judge (Gemini, Google AI Studio) | local `.env` only (never deployed) |
-| `ALLOWED_ORIGINS` | CORS | Railway |
-| `DAILY_QUERY_CAP` | spend protection | Railway |
-| `TRUSTED_PROXY_CIDRS` | per-IP limit: proxy addresses whose `X-Real-IP` is believed (ADR-039); empty = none | Railway |
+| `ALLOWED_ORIGINS` | CORS | Render |
+| `DAILY_QUERY_CAP` | spend protection | Render |
+| `CLIENT_IP_HEADER` | per-IP limit: the header holding the visitor's address (ADR-041); empty = none believed; measured at M6-T4 | Render |
+| `TRUSTED_PROXY_CIDRS` | per-IP limit: proxy addresses whose `CLIENT_IP_HEADER` is believed (ADR-039); empty = none | Render |
+| `DEBUG_CLIENT_IP` | `1` enables `GET /debug/client-ip` (M6-T4 only; unset afterwards) | Render, temporarily |
 | `NEXT_PUBLIC_API_BASE_URL` | frontend | Vercel |
 
 Names follow each SDK's default variable (ADR-018), except `EVALUATOR_API_KEY` (owner's name, 2026-10-24; passed to the Gemini client explicitly). Values never go in this file or in Git.

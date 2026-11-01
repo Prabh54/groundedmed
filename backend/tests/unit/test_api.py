@@ -63,6 +63,11 @@ def test_health_ok(client):
     assert r.json()["status"] == "ok" and r.json()["db"] == "ok" and r.json()["version"]
 
 
+def test_version_is_the_commit_render_deployed(monkeypatch):
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "abc123def")
+    assert main.version.__wrapped__() == "abc123def"
+
+
 def test_health_503_when_db_unreachable(client, monkeypatch):
     monkeypatch.setattr(main, "connect", lambda: FakeConn(fail=True))
     r = client.get("/health")

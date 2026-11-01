@@ -1,7 +1,8 @@
-"""M6-F1: the per-IP limit counts the visitor behind Railway's proxy, never a spoofed header.
+"""M6-F1: the per-IP limit counts the visitor behind the hosting proxy, never a spoofed header.
 
-Railway's edge sets X-Real-IP (ADR-039); the API believes it only when the connecting peer is in
-TRUSTED_PROXY_CIDRS. Fakes for the pipeline and DB, no network.
+The API believes the CLIENT_IP_HEADER header only when the connecting peer is in TRUSTED_PROXY_CIDRS
+(ADR-039, ADR-041). The tests set the header name to X-Real-IP; any name works the same way (the
+production name is measured on the host at M6-T4). Fakes for the pipeline and DB, no network.
 """
 
 import ipaddress
@@ -19,7 +20,7 @@ from backend.app.guardrails.rate_limit import (
 )
 from backend.tests.unit.test_api import FakeConn, final_answer
 
-PROXY = ("10.1.2.3", 50000)  # the connecting peer when Railway's proxy forwards a request
+PROXY = ("10.1.2.3", 50000)  # the connecting peer when the hosting proxy forwards a request
 OUTSIDER = ("203.0.113.9", 50000)  # someone connecting directly, not through the proxy
 TRUSTED = [ipaddress.ip_network("10.0.0.0/8")]
 QUESTION = {"question": "Does X help?", "mode": "baseline"}
@@ -32,6 +33,8 @@ def app(monkeypatch):
     monkeypatch.setattr(main, "answer_baseline", lambda q, **kw: final_answer(question=q))
     monkeypatch.setattr(main, "limiter", RateLimiter(per_ip_per_hour=2, daily_cap=100))
     monkeypatch.setattr(main, "TRUSTED_PROXIES", TRUSTED)
+    monkeypatch.setattr(main, "CLIENT_IP_HEADER", "x-real-ip")
+    monkeypatch.setattr(main, "DEBUG_CLIENT_IP", False)
     return main.app
 
 
@@ -119,14 +122,16 @@ def client_lines(capsys) -> list[dict]:
     return [json.loads(line) for line in out.splitlines() if '"event": "client"' in line]
 
 
-def test_log_line_shows_proxy_peer_and_header_count_but_never_the_visitor_address(app, capsys):
+def test_log_line_shows_proxy_peer_and_header_counts_but_never_an_address(app, capsys):
     proxy = TestClient(app, client=PROXY)
-    codes(proxy, ["198.51.100.1", "198.51.100.1", "198.51.100.2"])
+    xff = {"X-Forwarded-For": "192.0.2.50, 192.0.2.51", "True-Client-IP": "192.0.2.52"}
+    for ip in ["198.51.100.1", "198.51.100.1", "198.51.100.2"]:
+        proxy.post("/query", json=QUESTION, headers={"X-Real-IP": ip, **xff})
     out = capsys.readouterr().out
-    assert "198.51.100." not in out  # visitor addresses are never written
+    assert "198.51.100." not in out and "192.0.2." not in out  # no address is ever written
     lines = [json.loads(line) for line in out.splitlines() if '"event": "client"' in line]
-    assert [(x["peer"], x["trusted_peer"], x["real_ip_headers"]) for x in lines] == [
-        ("10.1.2.3", True, 1)
+    assert [(x["peer"], x["trusted_peer"], x["ip_headers"], x["xff_entries"]) for x in lines] == [
+        ("10.1.2.3", True, {"x-forwarded-for": 1, "x-real-ip": 1, "true-client-ip": 1}, 2)
     ] * 3
     ids = [x["client_id"] for x in lines]
     assert ids[0] == ids[1] != ids[2]  # same visitor -> same pseudonym; another visitor differs
@@ -139,8 +144,42 @@ def test_log_line_shows_untrusted_peer_and_duplicate_headers(app, capsys):
     dup = [("X-Real-IP", "198.51.100.1"), ("X-Real-IP", "198.51.100.2")]
     TestClient(app, client=PROXY).post("/query", json=QUESTION, headers=dup)
     a, b, c = client_lines(capsys)
-    assert (a["trusted_peer"], a["real_ip_headers"]) == (False, 0)
-    assert (b["trusted_peer"], b["real_ip_headers"]) == (False, 1)
+    assert (a["trusted_peer"], a["ip_headers"]) == (False, {})
+    assert (b["trusted_peer"], b["ip_headers"]) == (False, {"x-real-ip": 1})
     assert a["client_id"] == b["client_id"]  # a forged header did not change the count used
-    assert (c["peer"], c["trusted_peer"], c["real_ip_headers"]) == ("10.1.2.3", True, 2)
+    assert (c["peer"], c["trusted_peer"], c["ip_headers"]) == ("10.1.2.3", True, {"x-real-ip": 2})
     assert c["client_id"] == pseudonym("10.1.2.3")  # duplicates: the proxy's own count
+
+
+def test_no_header_name_configured_means_no_header_is_believed(app, monkeypatch):
+    monkeypatch.setattr(main, "CLIENT_IP_HEADER", "")
+    proxy = TestClient(app, client=PROXY)
+    assert codes(proxy, ["198.51.100.1", "198.51.100.2", "198.51.100.3"]) == [200, 200, 429]
+
+
+def test_the_configured_header_name_is_the_one_believed(app, monkeypatch):
+    monkeypatch.setattr(main, "CLIENT_IP_HEADER", "true-client-ip")
+    proxy = TestClient(app, client=PROXY)
+    # X-Real-IP is now just another header: varying it does not buy more queries
+    assert codes(proxy, ["198.51.100.1", "198.51.100.2", "198.51.100.3"]) == [200, 200, 429]
+    visitor = {"True-Client-IP": "198.51.100.7"}
+    out = [proxy.post("/query", json=QUESTION, headers=visitor).status_code for _ in range(3)]
+    assert out == [200, 200, 429]
+
+
+def test_debug_endpoint_is_off_by_default(app):
+    assert TestClient(app, client=PROXY).get("/debug/client-ip").status_code == 404
+
+
+def test_debug_endpoint_shows_the_callers_own_view_and_is_not_counted(app, monkeypatch, capsys):
+    monkeypatch.setattr(main, "DEBUG_CLIENT_IP", True)
+    proxy = TestClient(app, client=PROXY)
+    headers = [("X-Real-IP", "198.51.100.1"), ("X-Forwarded-For", "192.0.2.1, 10.9.9.9")]
+    for _ in range(3):
+        body = proxy.get("/debug/client-ip", headers=headers).json()
+    assert body == {"peer": "10.1.2.3", "trusted_peer": True, "client_ip_header": "x-real-ip",
+                    "limit_key": "198.51.100.1",
+                    "headers": {"x-forwarded-for": ["192.0.2.1, 10.9.9.9"],
+                                "x-real-ip": ["198.51.100.1"]}}  # fmt: skip
+    assert client_lines(capsys) == []  # nothing logged
+    assert codes(proxy, ["198.51.100.1"] * 3) == [200, 200, 429]  # its allowance is untouched

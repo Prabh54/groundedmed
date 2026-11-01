@@ -3,10 +3,11 @@
 In-memory, so limits reset when the single API instance restarts; the Anthropic console spend
 limit is the hard backstop.
 
-Behind Railway the connecting address is Railway's proxy, so the visitor's address comes from the
-`X-Real-IP` header that Railway's edge sets (ADR-039). That header is read only when the direct
-peer is inside TRUSTED_PROXY_CIDRS; from anyone else it is ignored, so a visitor cannot pick their
-own key.
+Behind a hosting proxy the connecting address is the proxy, so the visitor's address comes from a
+header the proxy sets. Which header, and which proxy addresses to believe it from, are settings
+(CLIENT_IP_HEADER, TRUSTED_PROXY_CIDRS) measured on the deployed host (ADR-039, ADR-041). The header
+is read only when the direct peer is inside TRUSTED_PROXY_CIDRS; from anyone else it is ignored, so
+a visitor cannot pick their own key. With either setting empty, no header is believed.
 """
 
 import hashlib
@@ -18,7 +19,15 @@ import time
 from collections import defaultdict, deque
 from datetime import UTC, datetime
 
-CLIENT_IP_HEADER = "x-real-ip"  # Railway: "X-Real-IP for identifying client's remote IP"
+# Headers a proxy may use for the visitor's address. Only their presence and copy counts are logged
+# (M6-T4 measurement); none is believed unless named in CLIENT_IP_HEADER.
+CANDIDATE_IP_HEADERS = (
+    "x-forwarded-for",
+    "x-real-ip",
+    "true-client-ip",
+    "cf-connecting-ip",
+    "forwarded",
+)
 IPV6_PREFIX = 64  # one visitor usually controls a whole /64, so it counts as one address
 
 Network = ipaddress.IPv4Network | ipaddress.IPv6Network

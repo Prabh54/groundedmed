@@ -31,7 +31,7 @@ from backend.app.config import (
     redact,
 )
 from backend.app.guardrails.rate_limit import (
-    CLIENT_IP_HEADER,
+    CANDIDATE_IP_HEADERS,
     RateLimiter,
     client_key,
     is_trusted,
@@ -81,13 +81,17 @@ app.add_middleware(
 )
 # In-memory limits: run a single uvicorn worker, or each worker gets its own counters.
 limiter = RateLimiter(PER_IP_QUERIES_PER_HOUR, daily_cap(os.environ.get("DAILY_QUERY_CAP")))
-# Proxy addresses whose X-Real-IP header is believed (ADR-039). Empty = believe no header.
+# The header holding the visitor's address, believed only from these proxy addresses (ADR-039,
+# ADR-041; both measured on the host at M6-T4). Either one empty = believe no header.
+CLIENT_IP_HEADER = os.environ.get("CLIENT_IP_HEADER", "").strip().lower()
 TRUSTED_PROXIES, _invalid_proxies = trusted_networks(os.environ.get("TRUSTED_PROXY_CIDRS", ""))
+# Off unless DEBUG_CLIENT_IP=1: lets a caller see how the server sees their own request (M6-T4).
+DEBUG_CLIENT_IP = os.environ.get("DEBUG_CLIENT_IP", "").strip() == "1"
 
 
 @functools.cache
 def version() -> str:
-    sha = os.environ.get("RAILWAY_GIT_COMMIT_SHA")
+    sha = os.environ.get("RENDER_GIT_COMMIT")  # set by Render for each deploy
     if sha:
         return sha
     try:
@@ -194,16 +198,27 @@ if _invalid_proxies:
          "ignored_entries": _invalid_proxies})  # fmt: skip
 
 
-def check_limits(request: Request, request_id: str) -> None:
+def limit_key(request: Request) -> tuple[str | None, str]:
+    """(connecting peer, the address the per-IP limit counts) for one request."""
     peer = request.client.host if request.client else None
     # Two copies may mean the proxy added its own after a caller's: believe neither.
-    values = request.headers.getlist(CLIENT_IP_HEADER)
-    ip = client_key(peer, values[0] if len(values) == 1 else None, TRUSTED_PROXIES)
-    # The peer is the proxy's address on Railway (how TRUSTED_PROXY_CIDRS is measured, M6-T4);
-    # the visitor's own address is logged only as a pseudonym.
+    values = request.headers.getlist(CLIENT_IP_HEADER) if CLIENT_IP_HEADER else []
+    return peer, client_key(peer, values[0] if len(values) == 1 else None, TRUSTED_PROXIES)
+
+
+def ip_header_counts(request: Request) -> dict[str, int]:
+    names = dict.fromkeys(CANDIDATE_IP_HEADERS + ((CLIENT_IP_HEADER,) if CLIENT_IP_HEADER else ()))
+    return {n: len(request.headers.getlist(n)) for n in names if request.headers.getlist(n)}
+
+
+def check_limits(request: Request, request_id: str) -> None:
+    peer, ip = limit_key(request)
+    # The peer is the hosting proxy's address in production (how TRUSTED_PROXY_CIDRS is measured,
+    # M6-T4); header values and the visitor's own address are never logged, only a pseudonym.
+    xff = [e for v in request.headers.getlist("x-forwarded-for") for e in v.split(",") if e.strip()]
     log({"request_id": request_id, "event": "client", "peer": peer,
-         "trusted_peer": is_trusted(peer, TRUSTED_PROXIES), "real_ip_headers": len(values),
-         "client_id": pseudonym(ip)})  # fmt: skip
+         "trusted_peer": is_trusted(peer, TRUSTED_PROXIES), "ip_headers": ip_header_counts(request),
+         "xff_entries": len(xff), "client_id": pseudonym(ip)})  # fmt: skip
     refused = limiter.check(ip)
     if refused:
         log({"request_id": request_id, "event": "rate_limited", "reason": refused})
@@ -354,6 +369,20 @@ def query_stream(body: QueryRequest, request: Request):
 
     return StopOnExit(stream(), stop, media_type="text/event-stream",
                       headers={"Cache-Control": "no-cache"})  # fmt: skip
+
+
+@app.get("/debug/client-ip")
+def debug_client_ip(request: Request):
+    """The caller's own request as the server sees it, for measuring the proxy (M6-T4). Returns
+    only what the caller sent or their own proxy chain; nothing is logged or counted. 404 unless
+    DEBUG_CLIENT_IP=1."""
+    if not DEBUG_CLIENT_IP:
+        raise HTTPException(status_code=404, detail="Not Found")
+    peer, ip = limit_key(request)
+    headers = {n: request.headers.getlist(n) for n in ip_header_counts(request)}
+    return {"peer": peer, "trusted_peer": is_trusted(peer, TRUSTED_PROXIES),
+            "client_ip_header": CLIENT_IP_HEADER or None, "limit_key": ip,
+            "headers": headers}  # fmt: skip
 
 
 @app.get("/sources/{pmid}", response_model=SourceResponse)
