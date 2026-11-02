@@ -24,6 +24,7 @@ node_modules/
 .next/
 .next-e2e/
 test-results/
+test-results-live/
 next-env.d.ts
 *.tsbuildinfo
 

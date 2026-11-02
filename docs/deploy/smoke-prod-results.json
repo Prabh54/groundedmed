@@ -1,0 +1,133 @@
+{
+  "created_utc": "2026-11-02T04:39:58+00:00",
+  "api": "https://groundedmed-api.onrender.com",
+  "site": "https://groundedmed.vercel.app",
+  "paid": true,
+  "cap_usd": 0.05,
+  "spent_usd": 0.030555,
+  "passed": true,
+  "stopped": null,
+  "checks": [
+    {
+      "check": "health ok, database ok",
+      "ok": true,
+      "seen": {
+        "status": "ok",
+        "version": "788e61368702f10485e4f37561c901863c426a87",
+        "db": "ok"
+      }
+    },
+    {
+      "check": "deployed commit has the same backend files as HEAD",
+      "ok": true,
+      "seen": {
+        "deployed": "788e61368702f10485e4f37561c901863c426a87"
+      }
+    },
+    {
+      "check": "debug page is off (404)",
+      "ok": true,
+      "seen": 404
+    },
+    {
+      "check": "CORS refuses another site",
+      "ok": true,
+      "seen": 400
+    },
+    {
+      "check": "CORS allows the site",
+      "ok": true,
+      "seen": {
+        "status": 200,
+        "allow_origin": "https://groundedmed.vercel.app"
+      }
+    },
+    {
+      "check": "site / loads",
+      "ok": true,
+      "seen": 200
+    },
+    {
+      "check": "site /eval loads",
+      "ok": true,
+      "seen": 200
+    },
+    {
+      "check": "empty question refused (422, never answered)",
+      "ok": true,
+      "seen": 422
+    },
+    {
+      "check": "source abstract loads with no conclusion fields",
+      "ok": true,
+      "seen": {
+        "status": 200,
+        "fields": [
+          "id",
+          "meshes",
+          "passage",
+          "pmid",
+          "pubmed_url",
+          "sections"
+        ],
+        "sections": 5
+      }
+    },
+    {
+      "check": "advice refusal",
+      "ok": true,
+      "seen": {
+        "events": 0,
+        "last_event": "result",
+        "verdict": "insufficient_evidence",
+        "abstain_reason": "personal_advice",
+        "claims": 0,
+        "cited_pmids": [],
+        "cost_usd": 7.8e-05,
+        "prompt_versions": {
+          "advice_check": "v1"
+        }
+      }
+    },
+    {
+      "check": "weak evidence refusal",
+      "ok": true,
+      "seen": {
+        "events": 8,
+        "last_event": "result",
+        "verdict": "insufficient_evidence",
+        "abstain_reason": "weak_evidence",
+        "claims": 0,
+        "cited_pmids": [],
+        "cost_usd": 0.003491,
+        "prompt_versions": {
+          "planner": "v1",
+          "synthesizer": "v3",
+          "critic": "v1",
+          "advice_check": "v1"
+        }
+      }
+    },
+    {
+      "check": "cited answer",
+      "ok": true,
+      "seen": {
+        "events": 12,
+        "last_event": "result",
+        "verdict": "yes",
+        "abstain_reason": null,
+        "claims": 3,
+        "cited_pmids": [
+          "20121683"
+        ],
+        "cost_usd": 0.026986,
+        "prompt_versions": {
+          "planner": "v1",
+          "synthesizer": "v3",
+          "critic": "v1",
+          "advice_check": "v1"
+        }
+      }
+    }
+  ]
+}

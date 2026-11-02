@@ -11,7 +11,8 @@
     "test": "node --test lib/*.test.ts",
     "mock-api": "node scripts/mock-api.mjs",
     "check:eval": "node scripts/check-eval-page.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:live": "LIVE_E2E=1 playwright test -c playwright.live.config.ts"
   },
   "dependencies": {
     "next": "16.4.1",
