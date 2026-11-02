@@ -1,26 +1,7 @@
 {
-  "spent_usd": 0.3095,
+  "spent_usd": 0.50792,
   "cap_usd": 1.0,
   "results": [
-    {
-      "pmid": "26370095",
-      "question": "Is paying pregnant smokers to quit worth the cost?",
-      "gold_label": "yes",
-      "verdict": "yes",
-      "abstained": false,
-      "abstain_reason": null,
-      "n_claims": 2,
-      "cited": [
-        "PMID:26370095"
-      ],
-      "claims": [
-        "A cost-effectiveness analysis of a Glasgow RCT of up to \u00a3400 in incentives for pregnant smokers found an incremental cost of \u00a31127 per cotinine-validated quitter at 34-38 weeks, and a lifetime model ICER of \u00a3482/QALY, well below a \u00a330,000/QALY willingness-to-pay threshold.",
-        "The cost per quitter was similar to a standard look-up value from published ICER tables (\u00a31390 per quitter), supporting the plausibility of the estimate."
-      ],
-      "cost_usd": 0.03121,
-      "total_ms": 17168,
-      "keep": true
-    },
     {
       "pmid": "21123461",
       "question": "Are body measurements like waist size linked to height?",
@@ -41,25 +22,6 @@
       ],
       "cost_usd": 0.03185,
       "total_ms": 12669,
-      "keep": true
-    },
-    {
-      "pmid": "17910536",
-      "question": "Can adults with mild intellectual disabilities get better at reading comprehension?",
-      "gold_label": "yes",
-      "verdict": "yes",
-      "abstained": false,
-      "abstain_reason": null,
-      "n_claims": 2,
-      "cited": [
-        "PMID:17910536"
-      ],
-      "claims": [
-        "In a study of 38 adults with mild intellectual disability, a 15-week text comprehension strategy program (summarizing, questioning, clarifying, predicting) produced a substantial transfer effect on general text comprehension that was well maintained at follow-up.",
-        "Direct effects on the taught strategy tests were substantial except for the questioning strategy, and there was no significant difference between individual and small-group (reciprocal teaching) instruction."
-      ],
-      "cost_usd": 0.02595,
-      "total_ms": 9395,
       "keep": true
     },
     {
@@ -99,44 +61,6 @@
       ],
       "cost_usd": 0.02734,
       "total_ms": 9747,
-      "keep": true
-    },
-    {
-      "pmid": "16809243",
-      "question": "Does a baby's sex affect asthma ER visits during pregnancy?",
-      "gold_label": "no",
-      "verdict": "no",
-      "abstained": false,
-      "abstain_reason": null,
-      "n_claims": 2,
-      "cited": [
-        "PMID:16809243"
-      ],
-      "claims": [
-        "Fetal gender was not associated with the risk of an ED visit for asthma during pregnancy (OR 1.01, 95% CI 0.85-1.19) in a linked administrative-data study of 109,173 live singleton deliveries, 530 of whom had an asthma ED visit.",
-        "Among women who had an asthma ED visit during pregnancy, fetal gender also did not significantly predict adverse pregnancy outcomes (low birth weight, preterm delivery, Caesarian delivery)."
-      ],
-      "cost_usd": 0.02613,
-      "total_ms": 11143,
-      "keep": true
-    },
-    {
-      "pmid": "28027677",
-      "question": "Do recorded lectures make medical students skip class?",
-      "gold_label": "no",
-      "verdict": "no",
-      "abstained": false,
-      "abstain_reason": null,
-      "n_claims": 2,
-      "cited": [
-        "PMID:28027677"
-      ],
-      "claims": [
-        "Providing prerecorded lecture VODcasts to first-year graduate-entry medical students did not appear to reduce live lecture attendance: 84.3% attended all 21 Physiology lectures and only 4% missed more than one lecture in each lecture series.",
-        "Most students (79%) indicated that VODcasts should not replace live lectures."
-      ],
-      "cost_usd": 0.02237,
-      "total_ms": 11448,
       "keep": true
     },
     {
@@ -189,20 +113,137 @@
       "verdict": "yes",
       "abstained": false,
       "abstain_reason": null,
-      "n_claims": 2,
+      "n_claims": 1,
       "cited": [
         "PMID:22680064"
       ],
       "claims": [
-        "Yes: in a retrospective cohort of 238 twin pregnancies, ultrasound-determined cephalic presentation of twin A predicted cephalic presentation at delivery with a positive predictive value reaching 95% after 28 weeks.",
-        "Noncephalic presentation of twin A on ultrasound also predicted noncephalic presentation at delivery, with a positive predictive value above 90% after 32 weeks of gestation."
+        "Noncephalic presentation of twin A on sonogram predicted noncephalic presentation at delivery with a positive predictive value above 90% after 32 weeks of gestation."
       ],
-      "cost_usd": 0.02438,
-      "total_ms": 13661,
-      "keep": true,
-      "checked_at": "2026-10-30T01:55:56+00:00",
+      "cost_usd": 0.02529,
+      "total_ms": 13263,
+      "keep": false,
+      "checked_at": "2026-11-02T00:26:55+00:00",
       "model": "claude-sonnet-5-5",
-      "commit": "fcffb8e-dirty",
+      "commit": "37c39dc",
+      "cap_usd": 0.05
+    },
+    {
+      "pmid": "21368683",
+      "question": "Are people with serious mental illness more likely to end up in worse nursing homes?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 3,
+      "cited": [
+        "PMID:21368683"
+      ],
+      "claims": [
+        "In a national cohort of over 1.3 million new nursing home admissions in 2007, patients with schizophrenia or bipolar disorder tended to enter nursing homes with more total and healthcare-related deficiency citations than other patients.",
+        "Patients with schizophrenia entered facilities with more total (13.3 vs. 11.2) and healthcare-related deficiencies (8.6 vs. 7.2), and patients with bipolar disorder likewise entered facilities with more total (12.5 vs. 11.2) and healthcare-related deficiencies (8.2 vs. 7.2).",
+        "The association of serious mental illness with admission to higher-deficiency nursing homes persisted after controlling for within-county facility choice, patient characteristics, and facility covariates."
+      ],
+      "cost_usd": 0.03001,
+      "total_ms": 12504,
+      "keep": true,
+      "checked_at": "2026-11-02T00:27:09+00:00",
+      "model": "claude-sonnet-5-5",
+      "commit": "37c39dc-dirty",
+      "cap_usd": 0.05
+    },
+    {
+      "pmid": "28027677",
+      "question": "Do recorded lectures make medical students skip class?",
+      "gold_label": "no",
+      "verdict": "no",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:28027677"
+      ],
+      "claims": [
+        "In a survey study of first-year graduate-entry medical students given prerecorded Physiology VODcasts, 84.3% attended all 21 live lectures and only 4% missed more than one lecture per series, so recorded lectures did not appear to cause widespread skipping.",
+        "79% of these students indicated that VODcasts should not replace live lectures."
+      ],
+      "cost_usd": 0.02281,
+      "total_ms": 9058,
+      "keep": true,
+      "checked_at": "2026-11-02T00:27:20+00:00",
+      "model": "claude-sonnet-5-5",
+      "commit": "37c39dc-dirty",
+      "cap_usd": 0.05
+    },
+    {
+      "pmid": "26370095",
+      "question": "Is paying pregnant smokers to quit worth the cost?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 3,
+      "cited": [
+        "PMID:26370095"
+      ],
+      "claims": [
+        "A cost-effectiveness analysis of a Glasgow RCT of up to \u00a3400 in vouchers for pregnant smokers found an incremental cost of \u00a31127 per cotinine-validated quitter at 34-38 weeks of pregnancy, and a lifetime model gave an ICER of \u00a3482/QALY, well below a \u00a330,000/QALY willingness-to-pay threshold.",
+        "The cost per quitter was similar to the \u00a31390 per quitter obtained from published ICER look-up tables, based on an incremental cost of \u00a3157 and an incremental 6-month quit outcome of 0.14.",
+        "The lifetime model showed a small incremental cost (\u00a317) and a small QALY gain (0.04)."
+      ],
+      "cost_usd": 0.03193,
+      "total_ms": 15560,
+      "keep": true,
+      "checked_at": "2026-11-02T00:27:37+00:00",
+      "model": "claude-sonnet-5-5",
+      "commit": "37c39dc-dirty",
+      "cap_usd": 0.05
+    },
+    {
+      "pmid": "16809243",
+      "question": "Does a baby's sex affect asthma ER visits during pregnancy?",
+      "gold_label": "no",
+      "verdict": "no",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 2,
+      "cited": [
+        "PMID:16809243"
+      ],
+      "claims": [
+        "Fetal gender was not associated with the risk of an ED visit for asthma during pregnancy (OR 1.01, 95% CI 0.85-1.19) in a linked database study of 109,173 live singleton deliveries, 530 of which involved an asthma ED visit.",
+        "Among women who had an asthma ED visit during pregnancy, fetal gender also did not significantly predict adverse pregnancy outcomes (low birth weight, preterm delivery, Caesarian delivery)."
+      ],
+      "cost_usd": 0.02606,
+      "total_ms": 9794,
+      "keep": true,
+      "checked_at": "2026-11-02T00:27:48+00:00",
+      "model": "claude-sonnet-5-5",
+      "commit": "37c39dc-dirty",
+      "cap_usd": 0.05
+    },
+    {
+      "pmid": "17910536",
+      "question": "Can adults with mild intellectual disabilities get better at reading comprehension?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 3,
+      "cited": [
+        "PMID:17910536"
+      ],
+      "claims": [
+        "In a study of 38 adults with mild intellectual disability, a 15-week text comprehension strategy program (summarizing, questioning, clarifying, predicting) produced substantial transfer gains in general text comprehension.",
+        "The gains in general reading comprehension were well maintained at follow-up, and direct effects on the trained strategy tests were substantial except for the questioning strategy.",
+        "Individual instruction and small-group reciprocal teaching did not differ significantly in effectiveness."
+      ],
+      "cost_usd": 0.02861,
+      "total_ms": 11657,
+      "keep": true,
+      "checked_at": "2026-11-02T00:28:01+00:00",
+      "model": "claude-sonnet-5-5",
+      "commit": "37c39dc-dirty",
       "cap_usd": 0.05
     },
     {
@@ -212,20 +253,21 @@
       "verdict": "yes",
       "abstained": false,
       "abstain_reason": null,
-      "n_claims": 2,
+      "n_claims": 3,
       "cited": [
         "PMID:17598882"
       ],
       "claims": [
-        "In a Swedish population-based cohort, daughters and sisters of a breast cancer patient with poor prognosis had a 60% higher 5-year breast cancer mortality than relatives of a patient with good prognosis (HR 1.6, 95% CI 1.2 to 2.2), indicating familial aggregation of prognosis.",
-        "Five-year survival was lower among daughters whose mothers died within 5 years (87% vs 91%) and among sisters whose proband sister died (70% vs 88%). The association was slightly stronger among sisters (HR 1.8) than daughters (HR 1.6)."
+        "In a Swedish population-based cohort, daughters and sisters of a breast cancer patient with poor prognosis had a 60% higher 5-year breast cancer mortality than relatives of a patient with good prognosis (HR 1.6; 95% CI 1.2-2.2), suggesting prognosis is familial.",
+        "Five-year survival was lower among daughters whose mothers died within 5 years (87% vs 91%) and among sisters whose proband sister died within 5 years (70% vs 88%).",
+        "The association was slightly stronger among sisters (HR 1.8; 95% CI 1.0-3.4) than among daughters (HR 1.6; 95% CI 1.1-2.3)."
       ],
-      "cost_usd": 0.02566,
-      "total_ms": 12049,
+      "cost_usd": 0.03371,
+      "total_ms": 11697,
       "keep": true,
-      "checked_at": "2026-10-30T01:56:18+00:00",
+      "checked_at": "2026-11-02T00:28:15+00:00",
       "model": "claude-sonnet-5-5",
-      "commit": "fcffb8e-dirty",
+      "commit": "37c39dc-dirty",
       "cap_usd": 0.05
     }
   ]
