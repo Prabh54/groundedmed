@@ -1,197 +1,124 @@
 # GroundedMed
 
-**Agentic Biomedical Research Analyst — evidence-grounded RAG with citation
-verification and reproducible evaluation**
+**Agentic Biomedical Research Analyst — evidence-grounded RAG with citation verification and reproducible evaluation**
 
-Built a four-stage planner → retriever → synthesizer → critic research pipeline over
-conclusion-free PubMedQA contexts. The system produces traceable citations, abstains when
-evidence is weak, and compares agentic performance against a single-call RAG baseline on a
-held-out benchmark.
+**Live demo: https://groundedmed.vercel.app** · Research demonstration only, not medical advice.
 
-Research demonstration only — not medical advice.
+Ask Becky, the site's assistant, a research question: the system finds relevant medical research abstracts, answers
+yes / no / maybe with every finding citing the abstract it is based on, and says "not enough evidence" when it can't
+back an answer up.
 
-Status: deployed (M6 complete); release polish and audit (M7) in progress. SPEC.md says what it does,
-ARCHITECTURE.md how, DECISIONS.md why (ADR-nnn below), PLAN.md and PROGRESS.md where the build stands.
+![Becky, the GroundedMed assistant, answering an example question with numbered citations](docs/images/demo-answer.png)
 
-## Live demo
+*A home-page example question on the live site, November 2026. A short demo recording will replace this screenshot.*
 
-https://groundedmed.vercel.app (API: https://groundedmed-api.onrender.com). Frontend on Vercel Hobby, FastAPI on Render
-Starter ($7/month), Supabase Postgres + pgvector (free tier). Each answer costs about $0.03 in model calls; visitors get
-10 questions per hour and the site 100 per day. Manual live checks (never run by CI): `uv run python -m
-scripts.smoke_prod` (free; `--paid` sends 3 questions) and `npm run test:e2e:live` in `frontend/` (3 paid questions).
+## Results
 
-## Architecture
+Tested once on 200 frozen questions from PubMedQA (a public benchmark of yes / no / maybe questions about medical
+research papers) that were never used for tuning. Every number below is read
+from the stored result files and matches the live dashboard, which also shows 95% ranges:
+https://groundedmed.vercel.app/eval
 
-The live site runs the **agent**. Its four stages are planner → retriever → synthesizer → critic, with two code
-check in between (an evidence gate) and a code validator at the end. The **baseline** it is compared with uses the same
-retriever, gate, synthesizer prompt and validator, but has no planner and no critic: it retrieves for the question
-alone and makes one model call.
+| | Baseline (one AI call) | Agent (4 stages) |
+|---|---|---|
+| Correct answers, refusals counted as wrong | 76.5% (153/200) | 74.0% (148/200) |
+| Questions answered (not refused) | 97.5% (195/200) | 95.0% (190/200) |
+| Correct, of the questions answered | 78.5% (153/195) | 77.9% (148/190) |
+| Findings fully supported by their cited abstract (AI-judged)* | 93.2% (455/488) | 95.0% (421/443) |
+| Limitations fully supported by their cited abstract (AI-judged)** | 86.2% (344/399) | 91.3% (306/335) |
+| Typical time per answer (median) | 4.23 s | 11.79 s |
+| AI cost per question, refusals included (mean) | $0.0131 | $0.0287 |
 
-How a live question is answered:
+\* Judged by an independent AI from a different company (Google Gemini). A second-AI cross-check (ChatGPT) re-labelled
+30 of these findings; no person checked them. \*\* Same judge; limitations were not in the second-AI cross-check.
+Cost counts AI model tokens at list price; times are from a laptop, one question at a time.
+
+**What this means:** reading the abstracts is what makes the answers good (the same AI without them scored 54.0%, no
+better than always answering "yes" at 55.0%), while the agent's extra stages bought limitations that the AI judge
+rated better supported (findings: no clear difference) at the price of refusing more questions, scoring 2.5 points
+lower overall, and taking almost 3 times as long at about twice the cost.
+
+## How it works
 
 ```mermaid
 flowchart TD
     U[Browser] --> FE["Next.js on Vercel<br/>question box, stage progress, source cards"]
-    FE -- "POST /query/stream (SSE)" --> API["FastAPI on Render<br/>CORS-restricted; 10 questions/hour per visitor, 100/day site-wide"]
+    FE -- "question; progress streamed back" --> API["FastAPI on Render<br/>limits: 10 questions/hour per visitor, 100/day site-wide"]
     API --> ADV["Personal-advice screen (Claude Haiku 5.5)<br/>live site only, not benchmarked (ADR-042)"]
     ADV -- "personal advice" --> REF["Polite refusal, no search"]
     ADV -- "screen fails" --> ERR["Error (503), no answer"]
     ADV -- "research question" --> PL
 
     subgraph AGENT ["Agent (LangGraph)"]
-        PL["1 Planner (LLM)<br/>1–3 search sub-queries"] --> RT["2 Retriever (code)<br/>question + sub-queries: dense top 20 each,<br/>pooled, reranked, top 5 kept"]
+        PL["1 Planner (LLM)<br/>1–3 search queries"] --> RT["2 Retriever (code)<br/>top 20 matches for the question and each query,<br/>pooled, reranked, best 5 kept"]
         RT --> GT{"Evidence gate (code)<br/>top rerank score at least 0.72?"}
-        GT -- yes --> SY["3 Synthesizer (LLM)<br/>verdict + claims, each citing<br/>PMIDs of the 5 passages"]
-        SY --> CR["4 Critic (LLM)<br/>checks each claim against its cited passages,<br/>and whether the claims support the verdict"]
-        CR --> VA["Validator (code)<br/>drops claims with missing or invalid citations,<br/>applies the critic's removals and veto"]
+        GT -- yes --> SY["3 Synthesizer (LLM)<br/>verdict + findings, each citing<br/>one of the 5 abstracts"]
+        SY --> CR["4 Critic (LLM)<br/>checks each finding against its cited abstract,<br/>and whether the findings support the verdict"]
+        CR --> VA["Validator (code)<br/>drops findings with missing or invalid citations,<br/>applies the critic's removals and veto"]
         GT -- no --> VA
     end
 
-    RT <--> DB[("Supabase Postgres + pgvector<br/>2,500 conclusion-free passages, read-only role")]
+    RT <--> DB[("Supabase Postgres + pgvector<br/>2,500 abstracts without their conclusions,<br/>read-only access")]
     RT <--> VY["Voyage AI<br/>voyage-4 embeddings, rerank-3"]
     CL["Anthropic Claude Sonnet 5.5<br/>planner, synthesizer, critic"]
     PL & SY & CR <--> CL
-    VA --> OUT["Answer: yes / no / maybe with cited claims,<br/>or insufficient_evidence"]
+    VA --> OUT["Answer: yes / no / maybe with cited findings,<br/>or not enough evidence"]
     OUT --> FE
 ```
 
-How the published numbers are produced (on the developer machine; only the finished result files reach the site):
+- **Planner** turns the question into 1–3 search queries.
+- **Retriever** searches 2,500 abstracts by meaning, reranks the best matches, and keeps the top 5. If even the best
+  match is weak, the system says "not enough evidence" instead of answering.
+- **Synthesizer** writes a yes / no / maybe verdict as short findings, each citing one of the 5 abstracts.
+- **Critic** checks each finding against the abstract it cites, and can remove findings or reject the whole answer,
+  but never add anything.
+- **Validator** (plain code, no AI) drops any finding whose citation is missing or not one of the 5 abstracts.
 
-```mermaid
-flowchart LR
-    MF["Frozen manifests<br/>200 test, 100 dev"] --> RUN["eval/runners/run_system.py<br/>baseline, agent, closed-book"]
-    RUN --> RAW["raw.jsonl<br/>one row per question"]
-    RAW --> JG["Independent judge<br/>Gemini 3.1 Pro, blinded"]
-    RAW --> SC["eval/runners/score_m4.py<br/>metrics + 95% intervals"]
-    JG --> SC
-    JG --> XC["Second-AI cross-check<br/>30 claims, ChatGPT"]
-    SC --> SUM["summary.json"]
-    SC --> CS["claim support<br/>held until the cross-check"]
-    XC --> AG["agreement files"]
-    SUM & CS & AG --> DASH["/eval dashboard<br/>reads the stored files at build time"]
-```
+## Tech stack
 
-In the table, **bold** limits are enforced by code; the others are instructions in the prompt (PROMPTS.md) whose
-effect the validator, the critic and the offline judge check after the fact.
+- Python 3.12, FastAPI, LangGraph
+- Anthropic Claude Sonnet 5.5 (answers), Claude Haiku 5.5 (personal-advice screen)
+- Voyage AI embeddings and reranking
+- PostgreSQL with pgvector (Supabase)
+- Next.js, React, TypeScript (plain CSS)
+- Google Gemini (offline evaluation judge only)
+- pytest, Playwright, GitHub Actions, uv, ruff
+- Vercel (frontend), Render (API)
 
-| Step | Kind | What it does | What it must not do |
-|---|---|---|---|
-| Planner | LLM | Turns the question into 1–3 search sub-queries | Answer the question or make biomedical claims (code drops a sub-query that starts with a verdict) |
-| Retriever | Code | Embeds the question and each sub-query, takes the dense top 20 for each, merges them, reranks the pool against the original question, keeps 5 | **Call an LLM or generate text** |
-| Evidence gate | Code | Refuses (`weak_evidence`) when the best rerank score is below 0.72 (or the best cosine score below 0.62 if reranking failed) | **Use test labels** (the threshold was set on dev only, ADR-028) |
-| Synthesizer | LLM | Returns a verdict plus short claims and limitations, each citing `PMID:` IDs; no free-text summary (ADR-030) | Use anything outside the 5 passages; **cite an ID that is not one of the 5** |
-| Critic | LLM | Checks each claim against only the passages it cites, and whether the surviving claims support the verdict | **Add or rewrite text**: it can keep a claim, remove it, or reject the whole answer |
-| Validator | Code | Removes claims with no citation or an invalid one, applies the critic's removals; refuses (`no_supported_claims`) if no claim is left or the critic says the claims do not support the verdict | **Call an LLM** |
+## Key engineering decisions
 
-What keeps answers grounded:
-- **Citation IDs are checked by code, not by a model.** A claim reaches the user only if each of its citations is
-  one of the 5 passages retrieved for that request. The displayed answer is just the surviving claims, so every
-  factual sentence on screen cites a passage you can open. Whether the passage really *supports* the claim is checked
-  by the critic (a model) at run time and measured offline by the independent judge; neither is a guarantee.
-- **The system can say no.** `insufficient_evidence` comes from the evidence gate, from the synthesizer itself, or
-  from the validator when no claim survives or the critic rejects the answer.
-- **Retrieved text is untrusted data.** Passages are wrapped as evidence after an instruction that they are data, no
-  model call has any tools, and the database role is read-only. Tests plant an "ignore all previous instructions"
-  passage and check that the output still follows the schema and citation rules.
-- **The critic is not the judge.** The runtime critic (Anthropic) is part of the agent; the independent evaluation
-  judge (Google) only ever runs offline.
+- **Refusals count as wrong.** Accuracy is out of all 200 questions, and "answered" is always shown next to "correct
+  when answered", so the system can't look better just by refusing hard questions.
+- **The critic doesn't grade itself.** The agent's critic (Anthropic) is never the judge of the results; an AI from
+  a different company (Google) judged them offline, blinded to which system wrote what.
+- **Frozen test set.** The 200 test questions were locked by a hash before any system was built, each system ran on
+  them exactly once, and everything tuned was tuned on 100 separate questions.
+- **Citations are checked by code.** A finding reaches the screen only if its citation points to one of the
+  abstracts actually retrieved for that question. Whether the abstract really supports it is checked by AI, not code.
+- **No answers in the search index.** Only each abstract's text without its conclusion is searchable; the answer
+  labels and conclusions are never stored where the system can see them, and tests check this.
 
-Stage progress is streamed to the browser as Server-Sent Events carrying counts only (for example, how many passages
-were found and kept); no model reasoning is ever shown. Full design: ARCHITECTURE.md.
+## Limitations
 
-## Methodology
+- **The benchmark makes search easy.** PubMedQA questions are often the paper's own title, so the right abstract is
+  found almost every time (top 5: 200/200). Real-world search would be harder.
+- **"Supported" is judged by AI.** No person checked the findings. The judge is one AI model, and the second-AI
+  cross-check covered only 30 findings: the second AI agreed with 14 of the 20 findings the judge accepted (6 of 10 for the agent) and
+  8 of the 10 it rejected, so the support figures may be optimistic. Limitations were not cross-checked.
+- **Small test, one run.** 200 questions, one run per system: small differences fall inside the ranges on the
+  dashboard.
+- **The AI may know the answers.** PubMedQA is public and may be in the model's training data; the closed-book result
+  suggests it does not simply remember them.
+- **Small, fixed library.** It answers only from 2,500 PubMedQA abstracts, not all of PubMed.
+- **Wording matters.** Casually worded or misspelled questions sometimes get "not enough evidence" even when the
+  right abstract is in the library.
+- **Not medical advice.** The live site refuses questions about a person's own health, but that screen is an AI
+  check and can make mistakes. It was added after the evaluation, so the results above do not include it.
 
-**Data.** PubMedQA from Hugging Face (`qiaojin/PubMedQA`, revision pinned to `9001f285…`). The corpus is 2,500
-documents: all 1,000 papers whose questions were labelled yes/no/maybe by experts ("PQA-L") plus 1,500 unlabelled
-papers ("PQA-U") chosen as same-topic distractors by shared specific MeSH topic terms (1,495 of the 1,500 share at
-least two with a labelled paper; ADR-025). Duplicate copies of labelled papers are excluded. One passage per paper:
-its abstract with the conclusion removed (`context.contexts`). Rebuilt from scratch with
-`uv run python -m scripts.prepare_dataset`; CI fails if the rebuild would change any committed data file.
+## Run it locally
 
-**Leakage controls.** Only the conclusion-free context is embedded. The reference conclusion (`long_answer`) and the
-answer label (`final_decision`) are never stored in the database, so the runtime model cannot see them; the
-`reasoning_*` fields are dropped at load time. The question (often the paper's title) is not stored as document text.
-The database has no label, split or source column, so retrieval cannot tell labelled papers from distractors
-(ADR-026). Tests check this on the real corpus and the real database (`backend/tests/integration/test_corpus_leakage.py`,
-`test_database.py`).
-
-**Splits.** The 1,000 labelled questions are split once with a fixed seed (20261021): test 200 (110 yes / 68 no /
-22 maybe), dev 100, reserve 700, with no overlap. The test list is frozen by a SHA-256 hash that a unit test checks.
-Everything that was tuned, including the synthesizer prompt and the evidence-gate threshold, was tuned on dev only.
-Test labels were never used to tune anything.
-
-**Systems compared.**
-1. **Baseline**: retrieve 5 passages for the question, the evidence gate, one synthesizer call, the validator.
-2. **Agent**: planner → retriever → synthesizer → critic, with the same model (Claude Sonnet 5.5), the same evidence
-   budget of 5 passages, the same gate, synthesizer prompt and validator (ADR-015). Because the original question is
-   always one of the agent's queries, its candidate pool contains the question's own top 20, so a fixed passage
-   count makes the comparison about *better* evidence plus the critic's checks, not *more* evidence. The baseline
-   makes one model call per question; the agent makes three (planner and critic at low reasoning effort, synthesizer
-   at medium in both systems).
-3. **Closed-book control**: the same model, the question only, verdict only, no retrieval (ADR-010). It shows how
-   well the model does on this public benchmark with no evidence at all, the floor that retrieval has to beat.
-
-**Metrics** (computed by `eval/runners/score_m4.py` and the interval code in `eval/metrics/`, from the stored
-per-question rows):
-- Overall accuracy = correct / 200, where a refusal counts as wrong. Coverage = answered / 200. Answered-only accuracy
-  = correct / answered. Coverage and answered-only accuracy are always shown together, because refusing more can
-  raise answered-only accuracy.
-- Majority-class reference ("always yes", 110/200), so accuracy has context.
-- Hit@1 / Hit@5: is the question's source paper in the top 1 / 5 passages?
-- Claim support (judge-estimated): share of claims the independent judge labels fully supported by the passages
-  they cite. Partly supported counts as not supported.
-- Latency p50 / p95 and LLM cost per question (provider-reported tokens × list price).
-
-**Uncertainty.** Wilson 95% intervals for proportions; bootstrap 95% intervals for latency and cost; a paired
-bootstrap over the same question IDs for every system-vs-system difference (2,000 resamples, seed 20261024). Claim
-support also gets a bootstrap that resamples whole questions, because claims from one answer are not independent.
-
-**Independent judge.** Gemini (`gemini-3.1-pro-preview`, version pinned and re-checked during the run, ADR-035): a
-different provider from the runtime model and its critic. One call per question shows it both systems' claims side by
-side, blinded as SYSTEM_A / SYSTEM_B by a seeded coin flip, at temperature 0. It never sees the verdict, the gold
-label or the reference conclusion, and judges each claim only against the passages that claim cites, using a rubric
-(`eval/rubric/judge_v2.md`) whose files were hash-frozen before any test run.
-
-**Second-AI cross-check of the judge** (ADR-037). A blind, shuffled sheet of 30 claims (15 per system, deliberately
-stratified to include judge-rejected claims) was answered by a second AI from a third provider (ChatGPT, OpenAI;
-model, settings and prompt as reported by the owner, not independently verified) under the same three judging rules.
-Its answers were committed before being compared with the judge's labels. This is not human validation: two models
-can share blind spots. Because the sample is stratified, its agreement rates are not an estimate of claim support.
-
-**Run integrity.** The analysis plan (systems, metrics, intervals, judge blinding) was written and committed before
-any test run; rules for operating the judge (checkpoint, resume, daily quota) were added after the system runs and
-before any scoring. The stored methodology is in
-`eval/results/m4-final-20261026-222211-498b76a/methodology.md`; that copy was written with the scores and still
-says "none" under changes made after results were seen, because the change below came later. Changes after results
-were seen are recorded, not hidden: the planned check of 30 claims by a person was replaced by the second-AI cross-check (ADR-037, recorded in
-`eval/methodology.md`), and the scoring script was corrected and re-run three times (for example per-stage latency, stricter checks when
-joining judge labels, a cost label); no headline number changed, and the earlier score folders are kept, each with a
-SUPERSEDED.md saying why. No system was re-run and no data was changed.
-
-Code enforces the rules: test runs need an explicit flag, a clean Git tree and the owner's recorded spending approval;
-each system runs on the test set once (a second run needs an override flag and a written reason; none was used); a
-run that stops early is void and never scored (two judge runs were voided this way before the one that was scored);
-the scorer refuses runs on different question lists; result folders are never overwritten. Every run records its
-commit, prompt versions, threshold, model IDs and dataset revision. The runtime model has no fixed seed, so a rerun
-repeats the procedure, not the exact outputs. That is why every raw output is stored: every number can be
-recomputed from the files in `eval/results/`.
-
-**What was not part of the benchmark.** The live site's personal-advice screen (next section) was added after the
-evaluation; latency was measured on a developer machine, one question at a time, not under production load.
-
-Results and limitations: the live dashboard at https://groundedmed.vercel.app/eval shows the stored results now; the
-README section is being added in the next release task (M7-T2).
-
-## Live site vs the benchmark
-
-The public demo screens every question for personal medical advice before answering ("should I take ...",
-"my mum has ...", doses, "my doctor said ...") and refuses those with a pointer to a doctor or pharmacist
-(ADR-042). That screen was added after the evaluation and is **not part of the benchmarked system**: the
-measured baseline and agent never run it, so the published results do not include it.
-
-## Setup
-
-Requires [uv](https://docs.astral.sh/uv/). Python 3.12 is installed by uv if missing.
+Requires [uv](https://docs.astral.sh/uv/) and Node.js. Run commands from the repo root unless they start with
+`cd frontend`.
 
 ```bash
 uv sync
@@ -199,17 +126,50 @@ uv run ruff check .
 uv run pytest
 ```
 
-Run everything from the repo root; scripts run as `uv run python -m scripts.<name>` (ADR-024).
+**Try the interface with no API keys.** A fake API answers every question with text labelled MOCK. Install once, then
+run each of these in its own terminal:
 
-Secrets go in a local `.env` (never committed); `.env.example` lists the variable names.
+```bash
+cd frontend && npm install
+```
 
-## Repository map
+```bash
+cd frontend && npm run mock-api
+```
 
-| Path | What is there |
-|---|---|
-| `backend/app/` | FastAPI app; `agents/` (graph, planner, retriever, synthesizer, critic, validator), `baseline/`, `retrieval/`, `guardrails/` (evidence gate, citation validator, rate limit, advice screen), `prompts/` |
-| `backend/tests/` | Unit, integration and adversarial tests |
-| `data/manifests/` | Frozen corpus and split manifests with hashes |
-| `eval/` | Runners, metrics, judge rubric, cross-check sheets, every stored run in `results/` |
-| `scripts/` | Dataset preparation, ingestion, service checks, live smoke test |
-| `frontend/` | Next.js app and its Playwright tests |
+```bash
+cd frontend && NEXT_PUBLIC_API_BASE_URL=http://localhost:8001 npm run dev
+```
+
+Then open http://localhost:3000.
+
+**Run the real system.** You need your own Anthropic and Voyage AI API keys and an empty Postgres database with the
+pgvector extension available. Copy `.env.example` to `.env` and set `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` and
+`DATABASE_ADMIN_URL` (an admin connection string). Leave `DATABASE_URL` empty: the ingest step creates a read-only
+database user and writes `DATABASE_URL` into `.env` for you. Never commit `.env`. Then build the corpus, load it,
+and start the API:
+
+```bash
+uv run python -m scripts.prepare_dataset
+```
+
+```bash
+uv run python -m scripts.ingest
+```
+
+```bash
+uv run uvicorn backend.app.main:app --port 8000
+```
+
+In another terminal, start the interface against it and open http://localhost:3000:
+
+```bash
+cd frontend && NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 npm run dev
+```
+
+## More detail
+
+- [docs/methodology.md](docs/methodology.md): the evaluation method in full, the evaluation diagram, each pipeline
+  step and what code enforces, and references to the recorded design decisions (ADR-nnn)
+- [ARCHITECTURE.md](ARCHITECTURE.md): the full design · [DECISIONS.md](DECISIONS.md): every decision and why
+- [docs/operations.md](docs/operations.md): live checks and upkeep for maintainers

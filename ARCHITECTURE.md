@@ -22,7 +22,7 @@ Prefer one obvious way to do each thing over configurable flexibility.
 | Runtime LLM | Claude Sonnet 5.5 (`claude-sonnet-5-5`) for all runtime nodes (ADR-022) | One model = one config, one price row, one failure mode. |
 | LLM output | Anthropic structured outputs (`output_config.format`, JSON schema) | The API guarantees parseable JSON, so no retry-on-bad-JSON code. |
 | Independent judge | Google Gemini, paid tier, offline only (ADR-014) | Different provider from the runtime critic by construction; never deployed. |
-| Frontend | Next.js App Router + Tailwind, Vercel Hobby | Vercel is Next.js's native host: push to deploy, no server config. |
+| Frontend | Next.js App Router + plain CSS (planned Tailwind was not needed), Vercel Hobby | Vercel is Next.js's native host: push to deploy, no server config. |
 | Backend host | Render, Starter instance (ADR-041; replaces Railway, ADR-040) | Deploys a Python service from the repo with no Dockerfile or VM management; always on (no cold start). |
 | CI | GitHub Actions | Already where the code lives; free allowance covers this project. |
 
