@@ -45,5 +45,6 @@ exclude = ["*.md"]
 testpaths = ["backend/tests"]
 pythonpath = ["."]
 addopts = ["--import-mode=importlib", "--strict-markers"]
+markers = ["real_advice_screen: run the API's real personal-advice screen (backend/tests/unit/conftest.py)"]
 # Print a stack trace for any test still running after 2 minutes, so a hang is diagnosable.
 faulthandler_timeout = 120

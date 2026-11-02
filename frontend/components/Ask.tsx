@@ -31,6 +31,12 @@ const NO_ANSWER_TEXT: Record<string, string> = {
   model_abstained: "The abstracts Becky found don't answer this question directly, so she won't guess.",
 };
 const NO_ANSWER_FALLBACK = "The abstracts Becky found don't answer this clearly, so she won't guess.";
+// The API's personal-advice screen (ADR-042): refused before any search, so no steps and no sources.
+const ADVICE_TITLE = "Becky can't give medical advice";
+const ADVICE_TEXT =
+  "This looks like a question about someone's own health or treatment. Becky only summarises research, so she " +
+  "won't answer it. Please ask a doctor or pharmacist.";
+const ADVICE_TIP = "Ask what studies found, e.g. 'Does X work better than Y?', not what someone should do.";
 
 export default function Ask() {
   const [question, setQuestion] = useState("");
@@ -287,6 +293,28 @@ function Answer({ result, steps, headingRef, onPick }: AnswerProps) {
     </>
   );
 
+  if (result.abstain_reason === "personal_advice") {
+    return (
+      <section className="result">
+        <div className="no-answer">
+          <Becky pose="noAnswer" width={140} />
+          <div className="refusal">
+            <h2 ref={headingRef} tabIndex={-1} className="refusal-title">
+              {ADVICE_TITLE}
+            </h2>
+            {ADVICE_TEXT}
+          </div>
+        </div>
+        <div className="try-instead">
+          <h3>Try this instead</h3>
+          <ul>
+            <li>{ADVICE_TIP}</li>
+          </ul>
+          <ExampleChips id="retry-label" label="Or try one she can answer:" disabled={false} onPick={onPick} />
+        </div>
+      </section>
+    );
+  }
   if (result.abstained) {
     return (
       <section className="result">

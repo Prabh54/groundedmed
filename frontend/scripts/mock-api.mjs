@@ -7,7 +7,8 @@
 // (same event order as the real server; __crash__ = synthesizer), __cut__ -> stream stops mid-answer with
 // no error event, __down__ -> error event before any stage (database unreachable at the start),
 // __norerank__ -> retriever message with the reranker-unavailable note,
-// __slow__ -> 3 s per stage, __fast__ -> every event and the result in one chunk.
+// __slow__ -> 3 s per stage, __fast__ -> every event and the result in one chunk,
+// __advice__ -> the personal-advice screen refuses before any stage (ADR-042: one result event, no stages).
 // Planner/retriever counts vary with the question length, so the page must take them from the events.
 import http from "node:http";
 
@@ -38,6 +39,9 @@ const UNCITED = ["44444444", "55555555", "66666666"].map(citation);
 
 function result(question, kind) {
   const base = { request_id: "mock", mode: "agent", rerank_skipped: false, stages: [], timing_ms: {}, estimated_cost_usd: 0, prompt_versions: {} };
+  if (kind === "advice") {
+    return { ...base, verdict: "insufficient_evidence", answer: "MOCK: personal medical advice is out of scope.", claims: [], citations: [], limitations: [], abstained: true, abstain_reason: "personal_advice" };
+  }
   if (kind === "weak") {
     return { ...base, verdict: "insufficient_evidence", answer: "MOCK: The retrieved evidence scored below the relevance threshold.", claims: [], citations: [citation("11111111"), citation("22222222"), ...UNCITED], limitations: [], abstained: true, abstain_reason: "weak_evidence" };
   }
@@ -128,6 +132,11 @@ const server = http.createServer(async (req, res) => {
   const crash = crashAt(question);
   if (question.includes("__down__")) {
     send("error", { message: UNAVAILABLE });
+    return finish();
+  }
+  if (question.includes("__advice__")) {
+    if (delay) await sleep(delay); // the screen runs before the agent: no stage events at all
+    send("result", result(question, "advice"));
     return finish();
   }
   for (const [name, startMessage, message] of stages(question)) {

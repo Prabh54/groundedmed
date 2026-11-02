@@ -61,6 +61,26 @@ test("weak evidence: a friendly refusal with tips, and a tip fills the question 
   await expect(page.locator(".timeline")).toHaveCount(0);
 });
 
+test("personal-advice question: its own refusal, no steps, no rephrasing tip", async ({ page }) => {
+  await page.goto("/");
+  await ask(page, "Should I take this __advice__ for my condition?");
+  const title = page.getByRole("heading", { name: "Becky can't give medical advice" });
+  await expect(title).toBeFocused();
+  const refusal = page.locator(".refusal");
+  await expect(refusal).toContainText("Please ask a doctor or pharmacist.");
+  await expect(page.locator(".result")).not.toContainText("Try rephrasing");
+  await expect(page.locator(".result")).not.toContainText("Not enough evidence");
+  await expect(page.locator(".result .trail")).toHaveCount(0); // nothing ran, so no steps
+  await expect(page.locator(".source")).toHaveCount(0);
+  await expect(page.locator(".error-box")).toHaveCount(0);
+  const tips = page.locator(".try-instead");
+  await expect(tips).toContainText("Ask what studies found");
+  await expect(tips).not.toContainText("PubMed abstracts"); // the weak-evidence tips are not shown
+  await expect(tips.getByRole("group", { name: "Or try one she can answer:" }).getByRole("button")).toHaveText(
+    EXAMPLES.slice(0, BUTTON_COUNT).map((e) => e.question),
+  );
+});
+
 test("model abstains but keeps a cited claim: refusal, tips and what the abstracts do say", async ({ page }) => {
   await page.goto("/");
   await ask(page, "Does this question __abstain__ please?");

@@ -87,7 +87,7 @@ def test_query_returns_cited_answer_schema(client):
     }
     assert [s["name"] for s in body["stages"]] == ["retriever", "synthesizer"]
     assert set(body["timing_ms"]) == {"planner", "retrieval", "synthesis", "critic", "total"}
-    assert body["prompt_versions"] == {"synthesizer": "v1"}
+    assert body["prompt_versions"] == {"synthesizer": "v1", "advice_check": "v1"}
     assert body["limitations"] == [
         {"id": "l1", "text": "Small study.", "citation_ids": ["PMID:101"]}
     ]

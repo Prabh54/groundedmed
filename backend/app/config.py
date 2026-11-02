@@ -17,7 +17,9 @@ load_dotenv(REPO_ROOT / ".env")
 EMBEDDING_MODEL = "voyage-4"
 EMBEDDING_DIMS = 1024
 RERANK_MODEL = "rerank-3"
-LLM_MODEL = "claude-sonnet-5-5"  # every runtime LLM call (ADR-022)
+LLM_MODEL = "claude-sonnet-5-5"  # every LLM call in the measured pipelines (ADR-022)
+# The API's personal-advice screen only, outside the benchmark (ADR-042).
+ADVICE_MODEL = "claude-haiku-5-5"
 
 # USD per million tokens, checked 2026-10-21 (ADR-019). Free allocations are not subtracted here.
 PRICE_PER_M_TOKENS = {
@@ -25,7 +27,11 @@ PRICE_PER_M_TOKENS = {
     RERANK_MODEL: 0.05,
 }
 # Anthropic list prices, USD per million tokens (ADR-022). Thinking tokens bill as output.
-LLM_PRICE_PER_M_TOKENS = {LLM_MODEL: {"input": 2.00, "output": 10.00}}
+# Haiku 5.5: prompts up to 100,000 tokens (the screen's are ~600), checked 2026-11-02 (ADR-042).
+LLM_PRICE_PER_M_TOKENS = {
+    LLM_MODEL: {"input": 2.00, "output": 10.00},
+    ADVICE_MODEL: {"input": 0.10, "output": 0.50},
+}
 
 
 SECRET_ENV_VARS = (

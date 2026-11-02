@@ -139,7 +139,8 @@ def test_agent_query_returns_the_checked_answer(setup, capsys):
     messages = [s["message"] for s in body["stages"]]
     assert messages[1] == "Retrieved 6 candidate passages; selected 5 evidence passages"
     assert messages[5] == "Kept 1 cited claims; removed 1 unsupported items"
-    assert body["prompt_versions"] == {"planner": "v1", "synthesizer": "v3", "critic": "v1"}
+    assert body["prompt_versions"] == {"planner": "v1", "synthesizer": "v3", "critic": "v1",
+                                       "advice_check": "v1"}  # fmt: skip
     assert set(body["timing_ms"]) >= {"planner", "retrieval", "synthesis", "critic", "total"}
     assert body["timing_ms"]["total"] >= body["timing_ms"]["planner"]
     assert "SECRET-REASONING" not in r.text  # critic reasons never reach the client
@@ -178,7 +179,8 @@ def test_agent_retrieval_failure_is_503_and_logs_the_planner_cost(setup, monkeyp
     assert post(setup).status_code == 503
     (line,) = [json.loads(x) for x in capsys.readouterr().out.splitlines() if '"error"' in x]
     assert line["stage"] == "retrieval" and line["cost_usd"] > 0  # the planner call was paid
-    assert [u["model"] for u in line["usage"]] == ["claude-sonnet-5-5"]
+    # the advice screen (free in unit tests) ran first, then the planner
+    assert [u["model"] for u in line["usage"]] == ["claude-haiku-5-5", "claude-sonnet-5-5"]
 
 
 def test_baseline_mode_is_still_the_default_and_unchanged(setup):
@@ -188,7 +190,7 @@ def test_baseline_mode_is_still_the_default_and_unchanged(setup):
     assert setup.llm.calls == ["synthesizer"]  # no planner, no critic
     assert [c["id"] for c in body["claims"]] == ["c1", "c2"]  # no critic removal in baseline
     assert [s["name"] for s in body["stages"]] == ["retriever", "synthesizer"]
-    assert body["prompt_versions"] == {"synthesizer": "v3"}
+    assert body["prompt_versions"] == {"synthesizer": "v3", "advice_check": "v1"}
 
 
 # --- /query/stream ---------------------------------------------------------------------------

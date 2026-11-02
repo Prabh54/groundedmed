@@ -30,6 +30,11 @@ from backend.app.config import (
     REPO_ROOT,
     redact,
 )
+from backend.app.guardrails.advice_check import (
+    ADVICE_VERSION,
+    advice_client,
+    check_advice,
+)
 from backend.app.guardrails.rate_limit import (
     CANDIDATE_IP_HEADERS,
     RateLimiter,
@@ -39,7 +44,7 @@ from backend.app.guardrails.rate_limit import (
     trusted_networks,
 )
 from backend.app.llm.client import Cancelled, anthropic_client
-from backend.app.models.answer import FinalAnswer
+from backend.app.models.answer import FinalAnswer, LLMUsage
 from backend.app.models.api import (
     Citation,
     QueryRequest,
@@ -55,6 +60,7 @@ from backend.app.retrieval.vector_search import connect, get_document
 LIMIT_MESSAGE = "Demo limit reached, please try again later."
 UNAVAILABLE_MESSAGE = "The service is temporarily unavailable, please try again later."
 INTERNAL_MESSAGE = "Something went wrong while answering, please try again later."
+ADVICE_ANSWER = "No answer: personal medical advice is out of scope for this research demo."
 STREAM_POLL_SECONDS = 0.05  # how often the stream checks for a new event or a departed visitor
 
 
@@ -105,6 +111,16 @@ def version() -> str:
 @functools.cache
 def clients():
     return voyage_client(), anthropic_client()
+
+
+@functools.cache
+def advice_llm():
+    return advice_client()
+
+
+def screen(question: str) -> tuple[bool, LLMUsage, float]:
+    """The personal-advice check (ADR-042); tests replace this one function."""
+    return check_advice(advice_llm(), question)
 
 
 @app.get("/health")
@@ -189,6 +205,14 @@ def to_agent_response(request_id: str, a: FinalAnswer, events: list[StageEvent])
     )  # fmt: skip
 
 
+def with_screen_cost(response: QueryResponse, usage: LLMUsage) -> QueryResponse:
+    """Add the advice screen's cost and version to an answer (pipeline figures unchanged)."""
+    return response.model_copy(update={
+        "estimated_cost_usd": round(response.estimated_cost_usd + usage.cost_usd, 6),
+        "prompt_versions": response.prompt_versions | {"advice_check": ADVICE_VERSION},
+    })  # fmt: skip
+
+
 def log(record: dict) -> None:
     print(json.dumps(record), flush=True)
 
@@ -225,6 +249,37 @@ def check_limits(request: Request, request_id: str) -> None:
         raise HTTPException(status_code=429, detail=LIMIT_MESSAGE)
 
 
+def advice_refusal(body: QueryRequest, request_id: str) -> tuple[QueryResponse | None, LLMUsage]:
+    """Run the personal-advice screen before any search (ADR-042). Returns (the refusal if the
+    question asks for personal advice, else None; the screen's usage). Fails closed: if the screen
+    errors or times out, no answer is given (503). A refused question's text is not logged, since
+    it may describe someone's health; only its length is."""
+    try:
+        flagged, usage, ms = screen(body.question)
+    except Exception as exc:  # fail closed (owner, 2026-11-02): a failed check is never "fine"
+        spent = [exc.usage] if getattr(exc, "usage", None) else []
+        log({"request_id": request_id, "mode": body.mode, "event": "error", "stage": "advice_check",
+             "error": redact(f"{type(exc).__name__}: {exc}")[:300],
+             "usage": [u.model_dump() for u in spent],
+             "cost_usd": sum(u.cost_usd for u in spent)})  # fmt: skip
+        raise HTTPException(status_code=503, detail=UNAVAILABLE_MESSAGE) from None
+    if not flagged:
+        return None, usage
+    log({"request_id": request_id, "mode": body.mode, "question_chars": len(body.question),
+         "verdict": "insufficient_evidence", "abstained": True, "abstain_reason": "personal_advice",
+         "advice_check_ms": round(ms), "usage": [usage.model_dump()],
+         "cost_usd": usage.cost_usd})  # fmt: skip
+    refusal = QueryResponse(
+        request_id=request_id, mode=body.mode, verdict="insufficient_evidence",
+        answer=ADVICE_ANSWER, claims=[], citations=[], limitations=[], abstained=True,
+        abstain_reason="personal_advice",
+        rerank_skipped=False, stages=[], timing_ms={"advice_check": ms, "total": ms},
+        estimated_cost_usd=round(usage.cost_usd, 6),
+        prompt_versions={"advice_check": ADVICE_VERSION},
+    )  # fmt: skip
+    return refusal, usage
+
+
 def answer(
     body: QueryRequest,
     request_id: str,
@@ -233,7 +288,11 @@ def answer(
 ) -> QueryResponse:
     """Run one question in the requested mode, log it, and build the response. Raises 503 for a
     retrieval/database failure or a model failure (never a partial answer), and Cancelled (logged
-    with the cost so far) when `should_stop()` turned true before a step started."""
+    with the cost so far) when `should_stop()` turned true before a step started. The
+    personal-advice screen runs first and can refuse before any search (ADR-042)."""
+    refusal, advice_usage = advice_refusal(body, request_id)
+    if refusal is not None:
+        return refusal
     events: list[StageEvent] = []
 
     def record(event: StageEvent) -> None:
@@ -254,11 +313,12 @@ def answer(
                                          should_stop=should_stop)  # fmt: skip
     except Cancelled as exc:  # visitor left: no further paid call was started
         log({"request_id": request_id, "mode": body.mode, "event": "cancelled",
-             "stopped_before": exc.before, "usage": [u.model_dump() for u in exc.usage],
-             "cost_usd": sum(u.cost_usd for u in exc.usage)})  # fmt: skip
+             "stopped_before": exc.before,
+             "usage": [u.model_dump() for u in [advice_usage, *exc.usage]],
+             "cost_usd": advice_usage.cost_usd + sum(u.cost_usd for u in exc.usage)})  # fmt: skip
         raise
     except (RetrievalError, psycopg.Error) as exc:  # embedding or database failure
-        spent = getattr(exc, "usage", [])  # calls made before the failure (agent planner)
+        spent = [advice_usage, *getattr(exc, "usage", [])]  # calls made before the failure
         log({"request_id": request_id, "mode": body.mode, "event": "error", "stage": "retrieval",
              "error": redact(f"{type(exc).__name__}: {exc}")[:300],
              "usage": [u.model_dump() for u in spent],
@@ -271,7 +331,8 @@ def answer(
         "abstain_reason": result.abstain_reason, "evidence": [c.pmid for c in result.evidence],
         "rerank_skipped": result.rerank_skipped, "rerank_error": result.rerank_error,
         "timing_ms": result.timing_ms,
-        "usage": [u.model_dump() for u in result.usage], "cost_usd": result.estimated_cost_usd,
+        "usage": [u.model_dump() for u in [advice_usage, *result.usage]],
+        "cost_usd": advice_usage.cost_usd + result.estimated_cost_usd,
         "validation": result.validation.model_dump(), "error": result.error,
     }  # fmt: skip
     if state is not None:
@@ -286,8 +347,8 @@ def answer(
     if result.abstain_reason == "error":  # LLM failed: plain message, never a partial answer
         raise HTTPException(status_code=503, detail=UNAVAILABLE_MESSAGE)
     if body.mode == "agent":
-        return to_agent_response(request_id, result, events)
-    response = to_response(request_id, result)
+        return with_screen_cost(to_agent_response(request_id, result, events), advice_usage)
+    response = with_screen_cost(to_response(request_id, result), advice_usage)
     if emit:  # baseline has no live stages: report them once the answer is ready
         for s in response.stages:
             emit((s.name, s.status, s.message, s.ms))

@@ -131,7 +131,8 @@ def test_agent_stops_after_the_running_step_when_the_visitor_leaves(fakes, capsy
     llm.release.set()  # the planner call was already running, so it is allowed to finish
     line = wait_for_log(capsys, "cancelled")
     assert line["stopped_before"] == "retriever" and line["mode"] == "agent"
-    assert line["cost_usd"] == pytest.approx(PLANNER_COST) and len(line["usage"]) == 1
+    # usage = the advice screen (free in unit tests) + the planner
+    assert line["cost_usd"] == pytest.approx(PLANNER_COST) and len(line["usage"]) == 2
     time.sleep(0.2)  # give a wrongly continuing worker time to make its next call
     assert llm.calls == ["planner"] and voyage.calls == []  # no later model or Voyage call
     assert "Planning evidence needs" in body_text(sent) and "event: result" not in body_text(sent)

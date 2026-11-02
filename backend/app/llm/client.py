@@ -78,6 +78,7 @@ def structured_call[T: BaseModel](
     schema: type[T],
     effort: Effort,
     max_tokens: int = 16000,
+    model: str = LLM_MODEL,
 ) -> tuple[T, LLMUsage, float]:
     """Return (parsed output, usage, elapsed ms). Every failure raises LLMError (ARCHITECTURE §13).
 
@@ -87,7 +88,7 @@ def structured_call[T: BaseModel](
     start = time.perf_counter()
     try:
         response = client.messages.create(
-            model=LLM_MODEL,
+            model=model,
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": user}],
@@ -103,10 +104,10 @@ def structured_call[T: BaseModel](
     elapsed_ms = (time.perf_counter() - start) * 1000
 
     usage = LLMUsage(
-        model=LLM_MODEL,
+        model=model,
         input_tokens=response.usage.input_tokens,
         output_tokens=response.usage.output_tokens,
-        cost_usd=llm_cost(LLM_MODEL, response.usage.input_tokens, response.usage.output_tokens),
+        cost_usd=llm_cost(model, response.usage.input_tokens, response.usage.output_tokens),
     )
     if response.stop_reason == "refusal":
         category = getattr(response.stop_details, "category", None)
