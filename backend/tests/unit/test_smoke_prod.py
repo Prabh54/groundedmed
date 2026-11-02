@@ -90,11 +90,11 @@ class FakeLive:
 
 
 def run(fake: FakeLive, tmp_path, *args: str) -> tuple[int, dict]:
-    out = tmp_path / "smoke.json"
+    out, out_free = tmp_path / "smoke.json", tmp_path / "smoke-free.json"
     client = httpx.Client(transport=httpx.MockTransport(fake))
-    code = smoke_prod.main(list(args), client=client,
-                           current_backend=lambda sha: sha == COMMIT, out=out)  # fmt: skip
-    return code, json.loads(out.read_text())
+    code = smoke_prod.main(list(args), client=client, current_backend=lambda sha: sha == COMMIT,
+                           out=out, out_free=out_free)  # fmt: skip
+    return code, json.loads((out if "--paid" in args else out_free).read_text())
 
 
 def test_all_checks_pass_and_the_paid_questions_go_cheapest_first(tmp_path):
@@ -110,6 +110,17 @@ def test_without_paid_no_question_is_sent(tmp_path):
     fake = FakeLive()
     code, record = run(fake, tmp_path)
     assert code == 0 and fake.queries == [] and record["spent_usd"] == 0
+
+
+def test_a_free_run_never_overwrites_the_paid_record(tmp_path):
+    run(FakeLive(), tmp_path, "--paid")
+    paid_before = (tmp_path / "smoke.json").read_text()
+    code, record = run(FakeLive(), tmp_path)
+    assert code == 0 and not record["paid"] and len(record["checks"]) == 9
+    assert (tmp_path / "smoke.json").read_text() == paid_before
+    free_before = (tmp_path / "smoke-free.json").read_text()
+    run(FakeLive(), tmp_path, "--paid")
+    assert (tmp_path / "smoke-free.json").read_text() == free_before
 
 
 def test_a_failed_free_check_sends_no_paid_question(tmp_path):

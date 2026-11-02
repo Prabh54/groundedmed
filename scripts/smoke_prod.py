@@ -9,7 +9,9 @@ abstract with no conclusion fields. Paid, in agent mode as the site sends them, 
 advice question (refused before any search), a casual wording that must stop at the evidence gate,
 and a home-page example (cited answer that cites its own paper, every step done). The cap is checked
 BEFORE each question (spent + reserve <= cap), using the cost the API reports. No retries.
-Writes docs/deploy/smoke-prod-results.json (no secrets; the API never returns any).
+Writes docs/deploy/smoke-prod-results.json for a paid run and smoke-prod-results-free.json for a
+free run, so a free run never overwrites the paid record. The paid file holds the latest paid
+attempt, passed or not (git keeps earlier ones). No secrets; the API never returns any.
 """
 
 import argparse
@@ -23,6 +25,7 @@ import httpx
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUT = REPO_ROOT / "docs/deploy/smoke-prod-results.json"
+OUT_FREE = REPO_ROOT / "docs/deploy/smoke-prod-results-free.json"
 API = "https://groundedmed-api.onrender.com"
 SITE = "https://groundedmed.vercel.app"
 OTHER_SITE = "https://example.com"
@@ -220,6 +223,7 @@ def main(
     client: httpx.Client | None = None,
     current_backend=runs_current_backend,
     out: Path = OUT,
+    out_free: Path = OUT_FREE,
 ) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--paid", action="store_true", help="also send the 3 paid questions")
@@ -247,6 +251,7 @@ def main(
         "stopped": stopped,
         "checks": checks,
     }
+    out = out if args.paid else out_free
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     print(
