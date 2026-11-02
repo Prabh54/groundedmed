@@ -6,9 +6,10 @@
 // surgery in newborns (21194998, 2026-10-30 UTC). Candidate 11138995 answered "maybe" in its one check: not added.
 // Brain's right half (25819796) replaced 2026-11-02 by the nursing-homes question: it cleared the evidence gate by only
 // 0.03, so casual retypes were refused. The replacement was picked by a rule fixed in advance (PROGRESS session 16
-// part 5): gate margin >= 0.10 for this wording and a casual retype still passing.
+// part 5): gate margin >= 0.10 for this wording and a casual retype still passing. Twins (22680064, margin 0.04) was
+// replaced the same day by the rural-Australia question (next by that rule) after its re-check made only 1 claim.
 export const EXAMPLES: { question: string; pmid: string }[] = [
-  { question: "Can third-trimester ultrasound predict the position of the first twin at delivery?", pmid: "22680064" },
+  { question: "Are rural Australian patients willing to help teach medical students?", pmid: "20121683" },
   { question: "Are people with serious mental illness more likely to end up in worse nursing homes?", pmid: "21368683" },
   { question: "Do recorded lectures make medical students skip class?", pmid: "28027677" },
   { question: "Is paying pregnant smokers to quit worth the cost?", pmid: "26370095" },

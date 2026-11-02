@@ -55,6 +55,8 @@ CANDIDATES = [
         "21368683",
         "Are people with serious mental illness more likely to end up in worse nursing homes?",
     ),
+    # Owner 2026-11-02: replace twins 22680064 (1 claim in its re-check), next by the same rule.
+    ("20121683", "Are rural Australian patients willing to help teach medical students?"),
 ]
 
 
