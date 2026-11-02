@@ -24,7 +24,9 @@ const VERDICT_LABEL: Record<string, string> = { yes: "Yes", no: "No", maybe: "Ma
 
 // Friendly, fixed wording per abstain reason (backend/app/agents/validator.py), never model prose.
 const NO_ANSWER_TEXT: Record<string, string> = {
-  weak_evidence: "The abstracts Becky found aren't close enough to this question, so she won't guess.",
+  weak_evidence:
+    "Becky couldn't find a paper that closely matches this question, so she won't guess. Try rephrasing with medical " +
+    "terms (e.g. 'right hemisphere' instead of 'right half of the brain'), or try one of the examples below.",
   no_supported_claims: "Becky couldn't back up an answer with the abstracts she found, so she won't guess.",
   model_abstained: "The abstracts Becky found don't answer this question directly, so she won't guess.",
 };

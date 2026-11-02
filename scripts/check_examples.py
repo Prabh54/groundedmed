@@ -49,6 +49,12 @@ CANDIDATES = [
         "Can third-trimester ultrasound predict the position of the first twin at delivery?",
     ),
     ("17598882", "Is breast cancer prognosis inherited?"),
+    # Owner 2026-11-02: replace 25819796 (gate margin only 0.03); picked by gate margin
+    # (PROGRESS session 16 part 5).
+    (
+        "21368683",
+        "Are people with serious mental illness more likely to end up in worse nursing homes?",
+    ),
 ]
 
 

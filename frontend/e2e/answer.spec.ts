@@ -32,7 +32,12 @@ test("weak evidence: a friendly refusal with tips, and a tip fills the question 
 
   const title = page.getByRole("heading", { name: "Not enough evidence" });
   await expect(title).toBeFocused();
-  await expect(page.locator(".refusal")).toContainText("aren't close enough to this question, so she won't guess");
+  await expect(page.locator(".refusal")).toContainText(
+    "Becky couldn't find a paper that closely matches this question, so she won't guess. Try rephrasing with medical " +
+      "terms (e.g. 'right hemisphere' instead of 'right half of the brain'), or try one of the examples below.",
+  );
+  // not the wording of the other refusals
+  await expect(page.locator(".refusal")).not.toContainText("couldn't back up an answer");
   await expect(page.getByRole("img", { name: "Becky shrugging with an apologetic smile" })).toBeVisible();
   await expect(page.locator(".error-box")).toHaveCount(0); // a refusal, not an error
   await expect(page.locator(".source")).toHaveCount(0);
