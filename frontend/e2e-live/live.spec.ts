@@ -9,7 +9,10 @@ test("home page loads with its examples and footer", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Ask Becky" })).toBeVisible();
   await expect(page.getByRole("button", { name: EXAMPLES[0].question, exact: true })).toBeVisible();
-  await expect(page.locator(".site-footer")).toHaveText("GroundedMed is a portfolio research demo · not medical advice");
+  await expect(page.locator(".site-footer")).toHaveText(
+    "GroundedMed is a portfolio research demo · not medical advice" +
+      "Questions you ask are logged to run the demo, so please leave out personal details.",
+  );
 });
 
 test("/eval loads its numbers and the note that the advice screen is outside the benchmark", async ({ page }) => {

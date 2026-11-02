@@ -42,6 +42,7 @@ class FakeLive:
 
     def __init__(self):
         self.version, self.cite, self.queries = COMMIT, PMID, []
+        self.size_limit = True
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         url, method = str(request.url), request.method
@@ -58,6 +59,8 @@ class FakeLive:
         if path.startswith("/sources/"):
             return httpx.Response(200, json={"id": f"PMID:{PMID}", "sections": [{"label": "R"}]})
         if path == "/query":
+            if len(request.content) > 8192 and self.size_limit:
+                return httpx.Response(413, json={"detail": "Request too large."})
             return httpx.Response(422, json={"detail": "too short"})
         if path == "/query/stream":
             question = json.loads(request.content)["question"]
@@ -101,7 +104,7 @@ def test_all_checks_pass_and_the_paid_questions_go_cheapest_first(tmp_path):
     fake = FakeLive()
     code, record = run(fake, tmp_path, "--paid")
     assert code == 0 and record["passed"] and record["stopped"] is None
-    assert len(record["checks"]) == 12 and all(c["ok"] for c in record["checks"])
+    assert len(record["checks"]) == 14 and all(c["ok"] for c in record["checks"])
     assert fake.queries == [q for _, q, _ in smoke_prod.PAID]
     assert record["spent_usd"] == pytest.approx(0.0301)
 
@@ -116,11 +119,19 @@ def test_a_free_run_never_overwrites_the_paid_record(tmp_path):
     run(FakeLive(), tmp_path, "--paid")
     paid_before = (tmp_path / "smoke.json").read_text()
     code, record = run(FakeLive(), tmp_path)
-    assert code == 0 and not record["paid"] and len(record["checks"]) == 9
+    assert code == 0 and not record["paid"] and len(record["checks"]) == 11
     assert (tmp_path / "smoke.json").read_text() == paid_before
     free_before = (tmp_path / "smoke-free.json").read_text()
     run(FakeLive(), tmp_path, "--paid")
     assert (tmp_path / "smoke-free.json").read_text() == free_before
+
+
+def test_an_api_without_the_size_limit_fails_the_free_check(tmp_path):
+    fake = FakeLive()
+    fake.size_limit = False  # the old API: a huge body is read, then refused as too long (422)
+    code, record = run(fake, tmp_path)
+    failed = [c["check"] for c in record["checks"] if not c["ok"]]
+    assert code == 1 and failed == ["request over 8 KB refused (413, never read)"]
 
 
 def test_a_failed_free_check_sends_no_paid_question(tmp_path):

@@ -35,9 +35,8 @@ groundedmed/
 ├── pyproject.toml, uv.lock            # one Python project for backend + scripts + eval
 ├── backend/
 │   ├── app/
-│   │   ├── main.py                    # FastAPI app, CORS, routes wiring
+│   │   ├── main.py                    # FastAPI app, CORS, body-size limit, all routes
 │   │   ├── config.py                  # env vars, model IDs, price table, frozen thresholds
-│   │   ├── api/                       # routes: health, query, query_stream, sources
 │   │   ├── models/                    # Pydantic schemas (API + LLM structured outputs)
 │   │   ├── retrieval/                 # embed, vector_search, rerank, retrieve()
 │   │   ├── llm/                       # thin Anthropic client wrapper: call + usage + timing
@@ -296,8 +295,9 @@ limited to observable facts ("Planning evidence needs", "Retrieved 18 candidate 
 "Selected 5 evidence passages", "Checking 4 claims"), then one `result` event with the response above,
 or one `error` event. No model reasoning is ever streamed.
 
-Errors: 422 invalid input; 429 rate limit or daily cap reached (friendly message); 503 provider or
-DB unavailable. Never a mocked answer.
+Errors: 413 request body over 8 KB (M7-T4); 422 invalid input; 429 rate limit or daily cap reached (friendly
+message; the daily one says it resets at midnight UTC); 503 provider or DB unavailable. Never a mocked answer.
+No public `/docs`, `/redoc` or `/openapi.json` (turned off at M7-T4).
 
 As built in M3-T7: `mode` accepts `"baseline"` (default) or `"agent"`. Agent `/query` stages are the six
 graph nodes (planner, retriever, gate, synthesizer, critic, validator) with status `done | skipped | failed`
@@ -438,7 +438,8 @@ Names follow each SDK's default variable (ADR-018), except `EVALUATOR_API_KEY` (
 | Database unreachable | `/health` 503; `/query` 503 |
 | Planner returns 0 usable sub-queries | Use the original question as the single query |
 | Structured output refused / truncated | Treat as node failure (above) |
-| Daily cap or per-IP limit hit | 429 with "demo limit reached, try again later" |
+| Daily cap or per-IP limit hit | 429 with "demo limit reached, try again later"; the daily cap's message says it resets at midnight UTC |
+| Request body over 8 KB | 413 "Request too large.", refused before it is read or counted (M7-T4) |
 | Visitor disconnects from `/query/stream` | The running step finishes; no later step (so no further model or Voyage call) starts; `cancelled` log line with the cost so far (M6-F2). Plain `/query` still runs to the end |
 
 Build-time fallbacks (from the playbook): pgvector blocked → Chroma locally behind the same `retrieve()`;

@@ -20,6 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* The site's disclaimer (owner, M5-T6: replaces the sticky top bar; the home page card repeats it). */}
         <footer className="site-footer">
           GroundedMed is a portfolio <strong>research demo</strong> · not medical advice
+          <br />
+          Questions you ask are logged to run the demo, so please leave out personal details.
         </footer>
       </body>
     </html>

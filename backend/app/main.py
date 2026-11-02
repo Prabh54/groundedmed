@@ -2,7 +2,8 @@
 /sources/{pmid}.
 
 Run locally: uv run uvicorn backend.app.main:app --reload
-Errors: 422 invalid input; 429 rate limit or daily cap; 503 provider or database unavailable.
+Errors: 413 body over 8 KB; 422 invalid input; 429 rate limit or daily cap; 503 provider or database
+unavailable.
 Never a mocked answer. One JSON log line per query goes to stdout (ARCHITECTURE §10).
 """
 
@@ -58,6 +59,13 @@ from backend.app.retrieval.embed import voyage_client
 from backend.app.retrieval.vector_search import connect, get_document
 
 LIMIT_MESSAGE = "Demo limit reached, please try again later."
+DAILY_LIMIT_MESSAGE = (
+    "Today's demo limit for the whole site has been reached. It resets at midnight UTC; "
+    "please try again after that."
+)
+TOO_LARGE_MESSAGE = "Request too large."
+# A question is at most 500 characters, so a real request is well under 8 KB (M7-T4).
+MAX_BODY_BYTES = 8 * 1024
 UNAVAILABLE_MESSAGE = "The service is temporarily unavailable, please try again later."
 INTERNAL_MESSAGE = "Something went wrong while answering, please try again later."
 ADVICE_ANSWER = "No answer: personal medical advice is out of scope for this research demo."
@@ -78,7 +86,54 @@ def daily_cap(env_value: str | None) -> int:
     return cap if cap > 0 else DEFAULT_DAILY_QUERY_CAP
 
 
-app = FastAPI(title="GroundedMed API", description="Research demonstration, not medical advice.")
+class BodyLimit:
+    """Refuses any request body over `max_bytes` with 413 before the app reads or parses it, so a
+    huge upload cannot use up the instance's memory (M7-T4). A declared Content-Length is checked
+    first; a body without one is read only up to the limit, then handed on unchanged."""
+
+    def __init__(self, app, max_bytes: int):
+        self.app, self.max_bytes = app, max_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        declared = dict(scope["headers"]).get(b"content-length")
+        if declared is not None:
+            try:
+                too_large = int(declared) > self.max_bytes
+            except ValueError:
+                too_large = True
+            if too_large:
+                return await self.refuse(scope, receive, send)
+        body, more = b"", True
+        while more:
+            message = await receive()
+            if message["type"] != "http.request":  # the client left before sending a body
+                return
+            body += message.get("body", b"")
+            if len(body) > self.max_bytes:
+                return await self.refuse(scope, receive, send)
+            more = message.get("more_body", False)
+        replayed = False
+
+        async def replay():
+            nonlocal replayed
+            if not replayed:
+                replayed = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return await receive()  # later calls: disconnect notices for the stream
+
+        await self.app(scope, replay, send)
+
+    async def refuse(self, scope, receive, send):
+        response = JSONResponse(status_code=413, content={"detail": TOO_LARGE_MESSAGE})
+        await response(scope, receive, send)
+
+
+# No public /docs, /redoc or /openapi.json: the site needs none of them (M7-T4).
+app = FastAPI(title="GroundedMed API", description="Research demonstration, not medical advice.",
+              docs_url=None, redoc_url=None, openapi_url=None)  # fmt: skip
+app.add_middleware(BodyLimit, max_bytes=MAX_BODY_BYTES)  # added first, so CORS still wraps it
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(os.environ.get("ALLOWED_ORIGINS", "")),
@@ -246,7 +301,8 @@ def check_limits(request: Request, request_id: str) -> None:
     refused = limiter.check(ip)
     if refused:
         log({"request_id": request_id, "event": "rate_limited", "reason": refused})
-        raise HTTPException(status_code=429, detail=LIMIT_MESSAGE)
+        detail = DAILY_LIMIT_MESSAGE if refused == "daily_cap" else LIMIT_MESSAGE
+        raise HTTPException(status_code=429, detail=detail)
 
 
 def advice_refusal(body: QueryRequest, request_id: str) -> tuple[QueryResponse | None, LLMUsage]:
@@ -359,7 +415,14 @@ def answer(
 def query(body: QueryRequest, request: Request):
     request_id = str(uuid.uuid4())
     check_limits(request, request_id)
-    return answer(body, request_id)
+    try:
+        return answer(body, request_id)
+    except HTTPException:
+        raise
+    except Exception as exc:  # a bug: logged redacted, as on the stream; no traceback anywhere
+        log({"request_id": request_id, "event": "error", "stage": "query",
+             "error": redact(f"{type(exc).__name__}: {exc}")[:300]})  # fmt: skip
+        raise HTTPException(status_code=500, detail=INTERNAL_MESSAGE) from None
 
 
 def sse(event: str, data: dict) -> str:

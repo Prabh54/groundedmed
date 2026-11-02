@@ -22,7 +22,10 @@ test("an example question gets a cited answer with sources", async ({ page }) =>
   await expect(page.locator(".try-instead")).toHaveCount(0);
   // no disclaimer note under the answer (owner, M5-T6); the site footer carries it
   await expect(page.locator(".result")).not.toContainText(/advice/i);
-  await expect(page.locator(".site-footer")).toHaveText("GroundedMed is a portfolio research demo · not medical advice");
+  await expect(page.locator(".site-footer")).toHaveText(
+    "GroundedMed is a portfolio research demo · not medical advice" +
+      "Questions you ask are logged to run the demo, so please leave out personal details.",
+  );
 });
 
 test("weak evidence: a friendly refusal with tips, and a tip fills the question box", async ({ page }) => {

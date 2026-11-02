@@ -14,7 +14,7 @@ For the project owner and maintainers. Run everything from the repo root. Hostin
 
 | Command | What it does | Cost |
 |---|---|---|
-| `uv run python -m scripts.smoke_prod` | Free checks: health, deployed commit, debug page off, CORS, site pages, input validation, one source abstract | $0 |
+| `uv run python -m scripts.smoke_prod` | Free checks: health, deployed commit, debug page off, CORS, site pages, input validation, request over 8 KB refused, API docs pages off, one source abstract | $0 |
 | `uv run python -m scripts.smoke_prod --paid` | The free checks plus 3 real questions (advice refusal, weak-evidence refusal, cited answer); writes `docs/deploy/smoke-prod-results.json` | about $0.03 (capped at $0.05) |
 | `cd frontend && npm run test:e2e:live` | Browser tests against the live site, including 3 real questions | about $0.03 |
 

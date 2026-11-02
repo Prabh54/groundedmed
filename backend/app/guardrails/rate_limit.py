@@ -80,8 +80,11 @@ def client_key(peer: str | None, header_value: str | None, trusted: list[Network
     """The address the per-IP limit counts for one request.
 
     The header is used only when the direct peer is a trusted proxy and the header holds one valid
-    IP; otherwise the peer itself is counted (a bad header from the proxy shares the proxy's count,
-    which is stricter, never looser)."""
+    IP; otherwise the peer itself is counted. A bad header from the proxy is therefore counted
+    against the proxy's address. On Render that address changes from request to request (ADR-041),
+    so this fallback does not share one strict count: it spreads requests over several. In
+    production it is reachable only by a request that skips Cloudflare, which always sets the
+    header; the daily cap still bounds it."""
     peer_address = _parse(peer)
     if peer_address is None:
         return peer or "unknown"

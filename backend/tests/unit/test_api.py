@@ -119,15 +119,18 @@ def test_invalid_input_is_422(client, payload):
 
 def test_per_ip_limit_returns_429(client, monkeypatch):
     monkeypatch.setattr(main, "limiter", RateLimiter(per_ip_per_hour=2, daily_cap=100))
-    codes = [client.post("/query", json={"question": "Does X help?"}).status_code for _ in range(3)]
-    assert codes == [200, 200, 429]
+    rs = [client.post("/query", json={"question": "Does X help?"}) for _ in range(3)]
+    assert [r.status_code for r in rs] == [200, 200, 429]
+    assert rs[2].json()["detail"] == main.LIMIT_MESSAGE
 
 
 def test_daily_cap_returns_429_with_friendly_message(client, monkeypatch):
     monkeypatch.setattr(main, "limiter", RateLimiter(per_ip_per_hour=100, daily_cap=1))
     client.post("/query", json={"question": "Does X help?"})
     r = client.post("/query", json={"question": "Does X help?"})
-    assert r.status_code == 429 and r.json()["detail"] == main.LIMIT_MESSAGE
+    assert r.status_code == 429 and r.json()["detail"] == main.DAILY_LIMIT_MESSAGE
+    assert "midnight UTC" in main.DAILY_LIMIT_MESSAGE
+    assert main.DAILY_LIMIT_MESSAGE != main.LIMIT_MESSAGE
 
 
 def test_retrieval_failure_is_503_without_leaking_secrets(client, monkeypatch, capsys):
@@ -186,9 +189,9 @@ def test_whitespace_only_question_is_422(client):
     assert client.post("/query", json={"question": "      \n\t   "}).status_code == 422
 
 
-def test_unexpected_bug_is_500_not_disguised_as_503(monkeypatch):
+def test_unexpected_bug_is_500_not_disguised_as_503(monkeypatch, capsys):
     def broken(q, **kw):
-        raise KeyError("bug in pipeline")
+        raise KeyError("bug in pipeline near postgresql://u:secret@host/db")
 
     monkeypatch.setattr(main, "connect", lambda: FakeConn())
     monkeypatch.setattr(main, "clients", lambda: (object(), object()))
@@ -197,7 +200,64 @@ def test_unexpected_bug_is_500_not_disguised_as_503(monkeypatch):
     r = TestClient(main.app, raise_server_exceptions=False).post(
         "/query", json={"question": "Does X help?"}
     )
-    assert r.status_code == 500
+    assert r.status_code == 500 and r.json()["detail"] == main.INTERNAL_MESSAGE
+    out = capsys.readouterr()
+    # The plain /query path now logs like the stream: one redacted line, no traceback (M7-T4).
+    assert "secret" not in out.out + out.err and "Traceback" not in out.out + out.err
+    assert '"stage": "query"' in out.out and "KeyError" in out.out
+
+
+def boom(*args, **kwargs):
+    pytest.fail("an oversized request reached the app")
+
+
+@pytest.mark.parametrize("path", ["/query", "/query/stream"])
+def test_body_over_8_kb_is_413_before_the_app_runs(client, monkeypatch, path):
+    monkeypatch.setattr(main, "check_limits", boom)
+    monkeypatch.setattr(main, "answer", boom)
+    big = '{"question": "' + "x" * (main.MAX_BODY_BYTES + 1) + '"}'
+    r = client.post(path, content=big, headers={"content-type": "application/json"})
+    assert r.status_code == 413 and r.json()["detail"] == main.TOO_LARGE_MESSAGE
+
+
+def test_body_without_content_length_is_still_capped(client, monkeypatch):
+    monkeypatch.setattr(main, "check_limits", boom)
+
+    def chunks():  # sent chunked: no Content-Length header to trust
+        for _ in range(10):
+            yield b"x" * 1024
+
+    r = client.post("/query", content=chunks(), headers={"content-type": "application/json"})
+    assert r.status_code == 413
+
+
+def test_bad_content_length_is_413(client, monkeypatch):
+    monkeypatch.setattr(main, "check_limits", boom)
+    r = client.post("/query", content=b"{}", headers={"content-type": "application/json",
+                                                      "content-length": "lots"})  # fmt: skip
+    assert r.status_code == 413
+
+
+def test_largest_real_question_fits_under_the_limit(client):
+    # 500 characters that each need 6 bytes as JSON escapes is still far below 8 KB.
+    question = "\u00e9" * 500
+    escaped = '{"question": "' + "\\u00e9" * 500 + '", "mode": "agent"}'
+    assert len(escaped.encode()) < main.MAX_BODY_BYTES
+    r = client.post("/query", json={"question": question, "mode": "baseline"})
+    assert r.status_code == 200
+
+
+def test_oversized_request_is_not_counted_against_the_limits(client, monkeypatch):
+    monkeypatch.setattr(main, "limiter", RateLimiter(per_ip_per_hour=1, daily_cap=1))
+    big = '{"question": "' + "x" * 9000 + '"}'
+    r = client.post("/query", content=big, headers={"content-type": "application/json"})
+    assert r.status_code == 413
+    assert client.post("/query", json={"question": "Does X help?"}).status_code == 200
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
+def test_api_docs_are_not_public(client, path):
+    assert client.get(path).status_code == 404
 
 
 def test_allowed_origins_parsing():

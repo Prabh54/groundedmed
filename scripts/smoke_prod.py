@@ -4,8 +4,9 @@ MANUAL ONLY. Never run by CI or on push (a test checks the workflows); the paid 
 Run: uv run python -m scripts.smoke_prod            free checks only ($0)
      uv run python -m scripts.smoke_prod --paid     + 3 agent questions (~$0.03; $0.05 cap)
 Free: /health (ok, database ok, the latest commit Render deploys), /debug/client-ip off, CORS
-refuses another site and allows ours, the site's / and /eval, an empty question refused, one source
-abstract with no conclusion fields. Paid, in agent mode as the site sends them, cheapest first: an
+refuses another site and allows ours, the site's / and /eval, an empty question refused, a request
+over 8 KB refused (413) and the API docs pages off (M7-T4), one source abstract with no conclusion
+fields. Paid, in agent mode as the site sends them, cheapest first: an
 advice question (refused before any search), a casual wording that must stop at the evidence gate,
 and a home-page example (cited answer that cites its own paper, every step done). The cap is checked
 BEFORE each question (spent + reserve <= cap), using the cost the API reports. No retries.
@@ -126,6 +127,11 @@ def free_checks(client: httpx.Client, current_backend=runs_current_backend) -> l
         check(f"site {path} loads", r.status_code == 200 and "GroundedMed" in r.text, r.status_code)
     e = client.post(f"{API}/query", json={"question": "", "mode": "agent"})
     check("empty question refused (422, never answered)", e.status_code == 422, e.status_code)
+    # Free either way: without the size limit this is a 422 (question over 500 characters).
+    big = client.post(f"{API}/query", json={"question": "x" * 9000, "mode": "agent"})
+    check("request over 8 KB refused (413, never read)", big.status_code == 413, big.status_code)
+    docs = [client.get(f"{API}{p}").status_code for p in ("/docs", "/openapi.json")]
+    check("API docs pages are off (404)", docs == [404, 404], docs)
     s = client.get(f"{API}/sources/{EXAMPLE_PMID}")
     src = s.json() if s.status_code == 200 else {}
     check(
