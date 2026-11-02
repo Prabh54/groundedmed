@@ -254,6 +254,13 @@ Citation validator (pure Python, runs on every answer, baseline and agent):
 | POST | `/query/stream` | Same, as Server-Sent Events: stage events, then the final answer |
 | GET | `/sources/{pmid}` | Passage, sections, MeSH, PubMed URL for one corpus document |
 
+Personal-advice screen (ADR-042, PROMPTS.md Advice check v1): `/query` and `/query/stream` first ask a small
+model (`claude-haiku-5-5`) whether the question asks for personal medical advice. If yes, the answer is a refusal
+with `abstain_reason: "personal_advice"`, no stages and no citations (on the stream: one `result` event). If the
+screen fails or times out, the API answers 503 (fail closed). The rate limit is checked before the screen. The
+screen lives in `backend/app/main.py` + `guardrails/advice_check.py` only; the baseline, the agent and the
+evaluation runners never call it, so it is not part of any measured result.
+
 Evaluation results are not served by the API. The frontend reads the published `summary.json` at build
 time, so the dashboard shows exactly the frozen artifact in that commit and keeps working if the API is down
 (ADR-016; replaces `GET /eval/summary` from the starter).

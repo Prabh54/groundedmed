@@ -457,6 +457,10 @@ export default function EvalReport({ data }: { data: EvalData }) {
             answers.
           </li>
           <li>Times are from a developer laptop; costs exclude search and reranking.</li>
+          <li>
+            The live demo also screens out questions asking for personal medical advice before Becky answers. That screen was added after
+            this evaluation and is not part of the system measured here.
+          </li>
         </ul>
       </section>
 
