@@ -19,24 +19,28 @@ research papers) that were never used for tuning. Every number below is read
 from the stored result files and matches the live dashboard, which also shows 95% ranges:
 https://groundedmed.vercel.app/eval
 
-| | Baseline (one AI call) | Agent (4 stages) |
-|---|---|---|
-| Correct answers, refusals counted as wrong | 76.5% (153/200) | 74.0% (148/200) |
-| Questions answered (not refused) | 97.5% (195/200) | 95.0% (190/200) |
-| Correct, of the questions answered | 78.5% (153/195) | 77.9% (148/190) |
-| Findings fully supported by their cited abstract (AI-judged)* | 93.2% (455/488) | 95.0% (421/443) |
-| Limitations fully supported by their cited abstract (AI-judged)** | 86.2% (344/399) | 91.3% (306/335) |
-| Typical time per answer (median) | 4.23 s | 11.79 s |
-| AI cost per question, refusals included (mean) | $0.0131 | $0.0287 |
+| | Closed-book (no retrieval) | Baseline | Agent | Agent minus baseline (95% range) | Clear difference? |
+|---|---|---|---|---|---|
+| Correct answers, refusals counted as wrong | 54.0% (108/200) | 76.5% (153/200) | 74.0% (148/200) | −2.5 pts (−5.0 to −0.5) | Yes: agent lower, mainly because it refuses more |
+| Questions answered (not refused) | 100.0% (200/200) | 97.5% (195/200) | 95.0% (190/200) | −2.5 pts (−4.5 to −0.5) | Yes: agent refuses more |
+| Correct, of the questions answered | 54.0% (108/200) | 78.5% (153/195) | 77.9% (148/190) | −0.6 pts (−2.1 to +0.7) | No: within noise |
+| Right abstract ranked 1st / in top 5 | — | 98.5% / 100.0% | 98.5% / 100.0% | none | No: identical |
+| Findings fully supported by their cited abstract (AI-judged)* | — | 93.2% (455/488) | 95.0% (421/443) | +1.8 pts (−0.04 to +3.7) | No: within noise |
+| Limitations fully supported by their cited abstract (AI-judged)** | — | 86.2% (344/399) | 91.3% (306/335) | +5.1 pts (+1.8 to +8.6) | Yes: agent higher (AI judge only) |
+| Typical time per answer (median) | 1.00 s | 4.23 s | 11.79 s | +7.56 s (+7.22 to +7.84) | Yes: agent slower |
+| AI cost per question, refusals included (mean) | $0.0011 | $0.0131 | $0.0287 | +$0.0156 (+$0.0151 to +$0.0161) | Yes: agent costs more |
 
-\* Judged by an independent AI from a different company (Google Gemini). A second-AI cross-check (ChatGPT) re-labelled
-30 of these findings; no person checked them. \*\* Same judge; limitations were not in the second-AI cross-check.
-Cost counts AI model tokens at list price; times are from a laptop, one question at a time.
+Closed-book is the same AI answering from the question alone, with no abstracts, so it has nothing to cite (—).
+"Clear difference" means the 95% range of the paired difference (a bootstrap over the same 200 questions) does not
+include zero; each row is its own test. \* Judged by an independent AI from a different company (Google Gemini). A
+second-AI cross-check (ChatGPT) re-labelled 30 of these findings; no person checked them. \*\* Same judge; limitations
+were not in the second-AI cross-check. Cost counts AI model tokens at list price; times are from a laptop, one
+question at a time.
 
-**What this means:** reading the abstracts is what makes the answers good (the same AI without them scored 54.0%, no
-better than always answering "yes" at 55.0%), while the agent's extra stages bought limitations that the AI judge
-rated better supported (findings: no clear difference) at the price of refusing more questions, scoring 2.5 points
-lower overall, and taking almost 3 times as long at about twice the cost.
+**What this means:** retrieval is what makes the answers good, adding 22.5 points of accuracy over the same AI with
+no abstracts (95% range +15.0 to +29.5; closed-book scored 54.0%, no better than always answering "yes" at 55.0%),
+while the agent's extra stages add limitations that the AI judge rated better supported, at almost 3 times the time
+and about twice the cost of the baseline and with slightly lower overall accuracy, mainly because it refuses more.
 
 ## How it works
 
