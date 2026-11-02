@@ -27,5 +27,10 @@ check fails while backend changes are unpushed or undeployed.
   `.github/workflows/keepalive.yml`, so the free database is not paused for inactivity.
 - Service check: `uv run python -m scripts.check_services` prints OK or FAIL for the database, Voyage and Anthropic,
   never a secret.
-- The rate limits are kept in the API's memory. The design notes say a redeploy resets them (ARCHITECTURE §11);
-  whether a crash or restart does too is checked in the M7-T4 review.
+- The question limits live only in the API's memory (`backend/app/guardrails/rate_limit.py`; one process,
+  `--workers 1`). Any redeploy, manual restart, crash or health-check restart sets them back to zero, and the daily
+  count also starts again at 00:00 UTC (confirmed in the M7-T4 review, 2026-11-02; not fixed, listed in README
+  Limitations). Before a live demo: if the site says "Demo limit reached", the daily cap may be full; a manual
+  restart of the API service in the Render dashboard clears it.
+- Every push that changes `backend/**`, `pyproject.toml`, `uv.lock` or `.python-version` (backend tests included)
+  redeploys the API, which also resets the limits.

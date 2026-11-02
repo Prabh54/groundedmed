@@ -116,6 +116,9 @@ flowchart TD
 - **Small, fixed library.** It answers only from 2,500 PubMedQA abstracts, not all of PubMed.
 - **Wording matters.** Casually worded or misspelled questions sometimes get "not enough evidence" even when the
   right abstract is in the library.
+- **Demo limits reset when the server restarts.** The 10-questions-per-hour and 100-per-day limits are kept in the
+  server's memory, so a redeploy, restart or crash starts them again from zero, and the daily count also resets at
+  midnight UTC. A monthly spend limit set with the AI provider caps the total cost.
 - **Not medical advice.** The live site refuses questions about a person's own health, but that screen is an AI
   check and can make mistakes. It was added after the evaluation, so the results above do not include it.
 
@@ -126,9 +129,13 @@ Requires [uv](https://docs.astral.sh/uv/) and Node.js. Run commands from the rep
 
 ```bash
 uv sync
+uv run python -m scripts.prepare_dataset
 uv run ruff check .
 uv run pytest
 ```
+
+`prepare_dataset` downloads PubMedQA from Hugging Face (no key needed) and rebuilds the corpus the tests read; tests
+that need API keys or the database are skipped when those are not set.
 
 **Try the interface with no API keys.** A fake API answers every question with text labelled MOCK. Install once, then
 run each of these in its own terminal:
@@ -150,12 +157,8 @@ Then open http://localhost:3000.
 **Run the real system.** You need your own Anthropic and Voyage AI API keys and an empty Postgres database with the
 pgvector extension available. Copy `.env.example` to `.env` and set `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` and
 `DATABASE_ADMIN_URL` (an admin connection string). Leave `DATABASE_URL` empty: the ingest step creates a read-only
-database user and writes `DATABASE_URL` into `.env` for you. Never commit `.env`. Then build the corpus, load it,
-and start the API:
-
-```bash
-uv run python -m scripts.prepare_dataset
-```
+database user and writes `DATABASE_URL` into `.env` for you. Never commit `.env`. Then load the corpus prepared
+above and start the API:
 
 ```bash
 uv run python -m scripts.ingest
