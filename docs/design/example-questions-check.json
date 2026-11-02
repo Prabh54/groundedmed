@@ -1,5 +1,5 @@
 {
-  "spent_usd": 0.50792,
+  "spent_usd": 0.53355,
   "cap_usd": 1.0,
   "results": [
     {
@@ -268,6 +268,30 @@
       "checked_at": "2026-11-02T00:28:15+00:00",
       "model": "claude-sonnet-5-5",
       "commit": "37c39dc-dirty",
+      "cap_usd": 0.05
+    },
+    {
+      "pmid": "20121683",
+      "question": "Are rural Australian patients willing to help teach medical students?",
+      "gold_label": "yes",
+      "verdict": "yes",
+      "abstained": false,
+      "abstain_reason": null,
+      "n_claims": 3,
+      "cited": [
+        "PMID:20121683"
+      ],
+      "claims": [
+        "In a survey of patients at rural and regional New South Wales general practices, 118 of 122 patients consented to medical student involvement in their consultation, and patients were overwhelmingly positive about their practice being involved in student teaching.",
+        "Patients felt they played an important role in teaching, and after the consultation they reported they would have accepted higher levels of student involvement than actually occurred.",
+        "Before consultations, patients were reluctant to let students conduct some or all aspects of the consultation independently."
+      ],
+      "cost_usd": 0.02563,
+      "total_ms": 13243,
+      "keep": true,
+      "checked_at": "2026-11-02T02:45:56+00:00",
+      "model": "claude-sonnet-5-5",
+      "commit": "b756be7",
       "cap_usd": 0.05
     }
   ]
