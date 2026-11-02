@@ -9,9 +9,10 @@ abstract with no conclusion fields. Paid, in agent mode as the site sends them, 
 advice question (refused before any search), a casual wording that must stop at the evidence gate,
 and a home-page example (cited answer that cites its own paper, every step done). The cap is checked
 BEFORE each question (spent + reserve <= cap), using the cost the API reports. No retries.
-Writes docs/deploy/smoke-prod-results.json for a paid run and smoke-prod-results-free.json for a
-free run, so a free run never overwrites the paid record. The paid file holds the latest paid
-attempt, passed or not (git keeps earlier ones). No secrets; the API never returns any.
+Writes docs/deploy/smoke-prod-results.json for a paid run (committed) and
+smoke-prod-results-free.json for a free run (git-ignored), so a free run never overwrites the paid
+record or dirties git. The paid file holds the latest paid attempt, passed or not (git keeps
+earlier ones). No secrets; the API never returns any.
 """
 
 import argparse
