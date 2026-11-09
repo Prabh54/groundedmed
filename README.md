@@ -8,9 +8,9 @@ Ask Becky, the site's assistant, a research question: the system finds relevant 
 yes / no / maybe with every finding citing the abstract it is based on, and says "not enough evidence" when it can't
 back an answer up.
 
-![Becky, the GroundedMed assistant, answering an example question with numbered citations](docs/images/demo-answer.png)
+![Silent demo: an example question gets a cited "Yes" with a source opened, then an unrelated question gets "Not enough evidence"](docs/assets/demo.gif)
 
-*A home-page example question on the live site, November 2026. A short demo recording will replace this screenshot.*
+*Recorded on the live site, November 2026. The wait for the first answer plays at 3× speed, as the badge in the recording shows.*
 
 ## Results
 
