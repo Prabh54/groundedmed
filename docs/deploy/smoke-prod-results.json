@@ -1,10 +1,10 @@
 {
-  "created_utc": "2026-11-02T04:39:58+00:00",
+  "created_utc": "2026-11-09T01:08:21+00:00",
   "api": "https://groundedmed-api.onrender.com",
   "site": "https://groundedmed.vercel.app",
   "paid": true,
   "cap_usd": 0.05,
-  "spent_usd": 0.030555,
+  "spent_usd": 0.028499,
   "passed": true,
   "stopped": null,
   "checks": [
@@ -13,7 +13,7 @@
       "ok": true,
       "seen": {
         "status": "ok",
-        "version": "788e61368702f10485e4f37561c901863c426a87",
+        "version": "c4680eb68fa2bc4563c12ec5ab6340824394d707",
         "db": "ok"
       }
     },
@@ -21,7 +21,7 @@
       "check": "deployed commit has the same backend files as HEAD",
       "ok": true,
       "seen": {
-        "deployed": "788e61368702f10485e4f37561c901863c426a87"
+        "deployed": "c4680eb68fa2bc4563c12ec5ab6340824394d707"
       }
     },
     {
@@ -56,6 +56,19 @@
       "check": "empty question refused (422, never answered)",
       "ok": true,
       "seen": 422
+    },
+    {
+      "check": "request over 8 KB refused (413, never read)",
+      "ok": true,
+      "seen": 413
+    },
+    {
+      "check": "API docs pages are off (404)",
+      "ok": true,
+      "seen": [
+        404,
+        404
+      ]
     },
     {
       "check": "source abstract loads with no conclusion fields",
@@ -99,7 +112,7 @@
         "abstain_reason": "weak_evidence",
         "claims": 0,
         "cited_pmids": [],
-        "cost_usd": 0.003491,
+        "cost_usd": 0.003,
         "prompt_versions": {
           "planner": "v1",
           "synthesizer": "v3",
@@ -116,11 +129,11 @@
         "last_event": "result",
         "verdict": "yes",
         "abstain_reason": null,
-        "claims": 3,
+        "claims": 2,
         "cited_pmids": [
           "20121683"
         ],
-        "cost_usd": 0.026986,
+        "cost_usd": 0.025421,
         "prompt_versions": {
           "planner": "v1",
           "synthesizer": "v3",
