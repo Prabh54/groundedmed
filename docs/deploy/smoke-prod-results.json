@@ -1,10 +1,10 @@
 {
-  "created_utc": "2026-11-09T01:08:21+00:00",
+  "created_utc": "2026-11-09T18:48:22+00:00",
   "api": "https://groundedmed-api.onrender.com",
   "site": "https://groundedmed.vercel.app",
   "paid": true,
   "cap_usd": 0.05,
-  "spent_usd": 0.028499,
+  "spent_usd": 0.027587,
   "passed": true,
   "stopped": null,
   "checks": [
@@ -13,7 +13,7 @@
       "ok": true,
       "seen": {
         "status": "ok",
-        "version": "c4680eb68fa2bc4563c12ec5ab6340824394d707",
+        "version": "d306ba82161130393992d457e48496e65872db1a",
         "db": "ok"
       }
     },
@@ -21,7 +21,7 @@
       "check": "deployed commit has the same backend files as HEAD",
       "ok": true,
       "seen": {
-        "deployed": "c4680eb68fa2bc4563c12ec5ab6340824394d707"
+        "deployed": "d306ba82161130393992d457e48496e65872db1a"
       }
     },
     {
@@ -112,7 +112,7 @@
         "abstain_reason": "weak_evidence",
         "claims": 0,
         "cited_pmids": [],
-        "cost_usd": 0.003,
+        "cost_usd": 0.003212,
         "prompt_versions": {
           "planner": "v1",
           "synthesizer": "v3",
@@ -129,11 +129,11 @@
         "last_event": "result",
         "verdict": "yes",
         "abstain_reason": null,
-        "claims": 2,
+        "claims": 1,
         "cited_pmids": [
           "20121683"
         ],
-        "cost_usd": 0.025421,
+        "cost_usd": 0.024297,
         "prompt_versions": {
           "planner": "v1",
           "synthesizer": "v3",
