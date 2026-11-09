@@ -1,0 +1,24 @@
+{
+  "note": "Result files keep the commit IDs recorded when each run was made. The repository history was later rewritten, which changed every ID. Each key is a recorded ID and each value is the ID of that same commit today. Two recorded commits changed only planning files that are no longer in the repository, so they no longer exist: 303f652 now maps to 3325b38, and 06b80ea now maps to 88fd00b. Each maps to the last surviving commit before it, whose remaining files are identical.",
+  "commits": {
+    "303f652843b5272b145cb87a038db0c248d201ba": "3325b3871fbe25263872992cb9b725617aa5e85a",
+    "61f19a9a04412ec097273da298539d1ebb0d4d2e": "4c4ec8d0f9d84981c320e3289ac64de170c48c86",
+    "327e1d779adbdea0e807e85e88f7aa3facbc5b32": "1f58c3d1bfed57e0b68357bfefabf36f5dbb3f06",
+    "8c4f621ff48640f7663201f7c1532e20d1cbac3c": "dc436e90906653841136a32c09bfc050116f2581",
+    "9396a90b606ecd18685916f4ae2411958b718dbe": "1645e7c532f860e87e2b8a3a5d94e45fd7f3e4d8",
+    "871b22dd6aab50c7e8cec1db1f71fdb347be812c": "92479c2a8bb337c004378cb0e2b1632d58f22325",
+    "c72234e5809d5a3a7556b3ffd2c9094d926ea0bb": "64b5f2f6a0f79bc3a8c5dd70fce20ecaca8dc792",
+    "43fdf5ed8d5286ae5940f87a09775886b967a747": "0ce5ac9eaff0408f2733ef1b4ea20d7151d60d3c",
+    "4ebd38d56fb6d2696e371d19e23ce4f86e08589b": "044320bdad07dcea715a9321da290267e3058adf",
+    "1f1e7275eceae20cbcc870f4b6cbd0cefaaef510": "cf1266900cd23a19833e3677f28e240b1dfab156",
+    "6eecb38a26d5bcfb56f6b2031343eec99d2beb9a": "3129b427f711bbc2a99a195edc870aae60191526",
+    "cc3f2f7fcc906623d6a201f68ec619f4d9975163": "1b57b20ed748913fbb88dbccc13aa3fa366d7abc",
+    "00b81f46267d51871a9d668ad818a358c4a73fa8": "e63209130bae4ad72c21265e69d105a75035a9db",
+    "06b80ea185f543ba88a1586b0931dbd101586e58": "88fd00b8cc5bdac37b2a76a81f6dcf10d6534f32",
+    "84263e6543b7e7229eeced557378d0f7051b39a3": "a53cfbf2a22d4a13b54baad7cd95bff358b70145",
+    "50e88cf2d39d0618031e66ab85f214857727dea4": "9100fa75b49edadde7b5515794940bf482a6cfb5",
+    "7fa9341c42de7031b0ce63c519513781982418bf": "539e01a0ef6119b2c0d6a7559a594446d784acdc",
+    "498b76a615422e88def981d09fa98f6d7e328eff": "bd819996cd53253b1b89418cc1bce651d69c93ac",
+    "865624fbfee1428b8703f59f5b3df9e95e6ef8ed": "96241f4ec07ffa41bb250a37b30db18b713a09b9"
+  }
+}
