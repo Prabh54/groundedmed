@@ -1,4 +1,4 @@
-"""Unit tests run the API with the personal-advice screen (ADR-042) answering "not advice" for free,
+"""Unit tests run the API with the personal-advice screen answering "not advice" for free,
 so tests written before it keep their fake model and exact costs. Tests of the screen itself are
 marked `real_advice_screen` and get the real function."""
 

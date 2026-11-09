@@ -1,4 +1,4 @@
-"""Embedding cache and embedded-text rules for scripts/ingest.py (PLAN.md M1-T1)."""
+"""Embedding cache and embedded-text rules for scripts/ingest.py."""
 
 import json
 

@@ -1,5 +1,5 @@
 """Print the agent chain up to the critic for a few questions: planner -> retriever -> gate ->
-synthesizer -> critic, with each claim's keep/remove decision (smoke test, PLAN.md M3-T5).
+synthesizer -> critic, with each claim's keep/remove decision (smoke test).
 
 Run: uv run python -m scripts.critic_debug --dev 3 [--budget 0.09]
 Roughly $0.02-0.03 per question; stops before a question that could exceed --budget.

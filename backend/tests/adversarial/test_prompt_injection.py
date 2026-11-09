@@ -1,4 +1,4 @@
-"""Prompt-injection regression on the baseline (ARCHITECTURE §14.6, PLAN.md M2-T6).
+"""Prompt-injection regression on the baseline (ARCHITECTURE §14.6).
 
 A hostile passage sits among the retrieved evidence. The mocked-LLM tests run in CI and prove the
 plumbing: the passage stays inside its EVIDENCE element, the call has no tools, and whatever a

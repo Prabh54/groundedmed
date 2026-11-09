@@ -1,4 +1,4 @@
-"""M3-T7: agent mode in /query and /query/stream, run through the real graph with a fake model,
+"""Agent mode in /query and /query/stream, run through the real graph with a fake model,
 fake Voyage and a fake database (no network). Baseline mode is covered unchanged in test_api.py."""
 
 import json

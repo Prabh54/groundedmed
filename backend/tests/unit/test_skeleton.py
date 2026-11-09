@@ -1,4 +1,4 @@
-"""M0-T1: the package layout from ARCHITECTURE.md §1 imports from the repo root (ADR-024)."""
+"""The package layout from ARCHITECTURE.md §1 imports from the repo root."""
 
 import importlib
 import subprocess

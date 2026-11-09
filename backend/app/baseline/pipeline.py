@@ -21,7 +21,7 @@ from backend.app.models.answer import FinalAnswer, ValidationReport
 from backend.app.retrieval.retrieve import retrieve
 
 # Says what was measured, not that the corpus lacks the evidence: in all 3 dev gate refusals the
-# source paper was retrieved (rank 1 or 2) but scored below the threshold (M2 final review).
+# source paper was retrieved (rank 1 or 2) but scored below the threshold.
 WEAK_EVIDENCE_SUMMARY = (
     "No answer was generated: the retrieved evidence scored below the relevance threshold."
 )
@@ -33,7 +33,7 @@ MODEL_ABSTAINED_SUMMARY = "None of the retrieved evidence directly addresses thi
 
 
 def compose_answer(verdict: str, claims: list, abstain_reason: str | None) -> str:
-    """The displayed answer: the validated claims' texts in order (ADR-030), never model prose."""
+    """The displayed answer: the validated claims' texts in order, never model prose."""
     if abstain_reason == "no_supported_claims":
         return NO_SUPPORTED_CLAIMS_SUMMARY
     if verdict == "insufficient_evidence" and not claims:
@@ -51,7 +51,7 @@ def answer_baseline(
     llm: anthropic.Anthropic | None = None,
     should_stop: Callable[[], bool] | None = None,
 ) -> FinalAnswer:
-    """`should_stop()` is checked before the model call (M6-F2): if the visitor has left, raise
+    """`should_stop()` is checked before the model call: if the visitor has left, raise
     Cancelled carrying the retrieval usage instead of paying for synthesis. Retrieval itself
     (embedding then rerank) always runs to the end once started, like an agent step."""
     start = time.perf_counter()

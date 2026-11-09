@@ -1,4 +1,4 @@
-"""M6-F2: when the visitor leaves /query/stream mid-answer, no further model call starts; the step
+"""When the visitor leaves /query/stream mid-answer, no further model call starts; the step
 already running finishes and its cost is still logged.
 
 The app is driven at the ASGI level, as uvicorn drives it (spec 2.3: Starlette listens for the

@@ -1,4 +1,4 @@
-"""Closed-book control (ADR-010, M4-T3b): question only, verdict only, no retrieval. Fake model."""
+"""Closed-book control: question only, verdict only, no retrieval. Fake model."""
 
 import hashlib
 import json

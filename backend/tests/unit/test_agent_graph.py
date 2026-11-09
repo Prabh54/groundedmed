@@ -1,4 +1,4 @@
-"""M3-T1: the fixed agent graph compiles and passes typed state through its nodes in order
+"""The fixed agent graph compiles and passes typed state through its nodes in order
 (ARCHITECTURE §5–6), using stub nodes (no network, no model calls)."""
 
 import pytest
@@ -123,7 +123,7 @@ def test_stub_run_passes_state_through_all_nodes_in_order():
 
 
 def test_stream_reports_stages_in_order():
-    """M3-T7 builds stage events from these per-node updates."""
+    """The API builds stage events from these per-node updates."""
     graph = build_graph(**stub_nodes([]))
     updates = graph.stream(initial_state("req-1", QUESTION), stream_mode="updates")
     assert [next(iter(u)) for u in updates] == list(NODE_ORDER)

@@ -1,4 +1,4 @@
-"""Failure paths end to end, with fakes (final M2 review, should-fix 2): an LLM failure inside the
+"""Failure paths end to end, with fakes: an LLM failure inside the
 pipeline becomes a controlled abstention with its cost counted, and an outage on one question does
 not stop an eval run."""
 

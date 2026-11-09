@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from backend.app.models.answer import AbstainReason, Claim, Verdict
 from backend.app.models.retrieval import Section
 
-# The pipelines' reasons plus the API's personal-advice screen (ADR-042), which they never return.
+# The pipelines' reasons plus the API's personal-advice screen, which they never return.
 ApiAbstainReason = AbstainReason | Literal["personal_advice"]
 
 
@@ -44,7 +44,7 @@ class QueryResponse(BaseModel):
     answer: str
     claims: list[Claim]
     citations: list[Citation]  # the evidence passages the answer was generated from
-    limitations: list[Claim]  # cited, validated like claims (ADR-030)
+    limitations: list[Claim]  # cited, validated like claims
     abstained: bool
     abstain_reason: ApiAbstainReason | None
     rerank_skipped: bool

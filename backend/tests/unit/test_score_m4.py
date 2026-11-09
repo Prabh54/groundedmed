@@ -1,4 +1,4 @@
-"""M4-T4 scorer (eval/runners/score_m4.py) on four hand-made questions whose every metric is worked
+"""Scorer (eval/runners/score_m4.py) on four hand-made questions whose every metric is worked
 out by hand below. Fake run folders in tmp_path; stored summaries come from the real
 run_system.summarize, so the cross-check is tested against the code that wrote the real runs."""
 
@@ -143,7 +143,7 @@ def test_claim_support_is_held_and_hand_checked(env):
     assert (a["claim_strict"]["count"], a["claim_strict"]["n"]) == (2, 2)
     assert b["questions_with_a_not_supported_item"]["count"] == 2  # q1 and q2
     assert held["agent_minus_baseline"]["claim_strict"]["estimate"] == pytest.approx(0.5)
-    # nothing the owner might open (summary, raw, methodology) holds a judge label or figure
+    # nothing a reader might open (summary, raw, methodology) holds a judge label or figure
     summary_text = (out / "summary.json").read_text()
     assert "HELD" in summary_text and "claim_strict" not in summary_text
     for name in ("summary.json", "raw.jsonl", "methodology.md"):

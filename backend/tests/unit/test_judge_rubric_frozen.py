@@ -1,4 +1,4 @@
-"""The judge rubric (v1 record, v2 current) is frozen and blind (M4-T1, ADR-033/034). Offline."""
+"""The judge rubric (v1 record, v2 current) is frozen and blind. Offline."""
 
 import re
 import string
@@ -8,7 +8,7 @@ import pytest
 from eval import judge_rubric as jr
 
 # Frozen 2026-10-24, before any test-split run. Never edit these to match changed files: a changed
-# rubric or prompt is a new version with a DECISIONS.md entry. v1 (6843a68) stays as the record.
+# rubric or prompt is a new version with a recorded reason. v1 stays as the record.
 FROZEN_JUDGE_V1_SHA256 = {
     "judge_v1.md": "9954d19e1b91575899dd2c2d62e2b2f644a05768b264a87b43362694179d026b",
     "judge_v1_prompt.txt": "b240c38ad57deceb651f1357112ceb362848afd392a53d9932d473d537b27a95",

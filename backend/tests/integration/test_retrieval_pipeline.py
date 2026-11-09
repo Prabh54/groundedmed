@@ -1,4 +1,4 @@
-"""Live embed -> store -> retrieve -> rerank (PLAN.md M1-T4). Needs VOYAGE_API_KEY and DATABASE_URL.
+"""Live embed -> store -> retrieve -> rerank. Needs VOYAGE_API_KEY and DATABASE_URL.
 
 Queries are built from distractor (unlabeled) papers, so no benchmark question is used.
 """

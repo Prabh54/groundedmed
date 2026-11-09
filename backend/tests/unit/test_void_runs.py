@@ -1,4 +1,4 @@
-"""Runs that stop early are void (ADR-034): not scored, not counted as the test run, and the
+"""Runs that stop early are void: not scored, not counted as the test run, and the
 rerun must test the identical system. Fake manifests and results in tmp_path; no network."""
 
 import hashlib

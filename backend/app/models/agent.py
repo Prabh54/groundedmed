@@ -1,5 +1,5 @@
 """Agent-mode types: the graph state passed between nodes (ARCHITECTURE §5) and the planner/critic
-outputs it carries (PROMPTS.md Planner v1, Critic v1)."""
+outputs it carries."""
 
 import operator
 from typing import Annotated, Literal, TypedDict
@@ -29,7 +29,7 @@ class StageError(BaseModel):
 
 
 class PooledRetrieval(BaseModel):
-    """Agent retrieval (ADR-023): question + sub-queries, pooled, reranked against the question.
+    """Agent retrieval: question + sub-queries, pooled, reranked against the question.
 
     `candidates` holds the question's dense top 20 first (in dense order), then papers only the
     sub-queries found; a paper's dense score/rank come from the first query that found it.
@@ -65,7 +65,7 @@ class ResearchState(TypedDict):
     retrieved_candidates: list[Candidate]  # all dense hits before rerank (pooled, deduped)
     selected_evidence: list[Candidate]  # final top 5 after rerank
     retrieval_scores: dict[str, float]  # pmid -> rerank score
-    planner_added_evidence: int  # final-5 papers not in the question-only top 20 (ADR-023)
+    planner_added_evidence: int  # final-5 papers not in the question-only top 20
     rerank_skipped: bool  # evidence is the question's dense top 5; the gate uses its dense fallback
     rerank_error: str | None
     gate_passed: bool

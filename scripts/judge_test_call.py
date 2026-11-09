@@ -1,4 +1,4 @@
-"""M4-T0: one paid test call to the independent judge, on made-up data only.
+"""One paid test call to the independent judge, on made-up data only.
 
 Run: uv run python -m scripts.judge_test_call --ceiling 0.05 --approval "<the owner's approval>"
 
@@ -90,7 +90,7 @@ def main(argv=None) -> None:
     out = REPO_ROOT / "eval" / "results" / f"judge-testcall-{datetime.now(UTC):%Y%m%d-%H%M%S}"
     out.mkdir(parents=True, exist_ok=False)
     result = {
-        "purpose": "M4-T0 judge test call on fictional data (no project, dev or test data)",
+        "purpose": "Judge test call on fictional data (no project, dev or test data)",
         "owner_approval": args.approval.strip(),
         "ceiling_usd": args.ceiling,
         "worst_case_usd": round(worst, 6),

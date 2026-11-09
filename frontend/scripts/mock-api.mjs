@@ -8,7 +8,7 @@
 // no error event, __down__ -> error event before any stage (database unreachable at the start),
 // __norerank__ -> retriever message with the reranker-unavailable note,
 // __slow__ -> 3 s per stage, __fast__ -> every event and the result in one chunk,
-// __advice__ -> the personal-advice screen refuses before any stage (ADR-042: one result event, no stages).
+// __advice__ -> the personal-advice screen refuses before any stage (one result event, no stages).
 // Planner/retriever counts vary with the question length, so the page must take them from the events.
 import http from "node:http";
 

@@ -1,4 +1,4 @@
-"""Integrity tests on the committed, frozen manifests (M0-T3, ADR-008). Offline."""
+"""Integrity tests on the committed, frozen manifests. Offline."""
 
 import hashlib
 import json
@@ -10,7 +10,7 @@ from scripts import prepare_dataset as pd
 
 MANIFESTS = Path(__file__).resolve().parents[3] / "data" / "manifests"
 
-# Frozen at M0-T3 (2026-10-21). Changing the test set requires a new ADR; never edit this to match.
+# Frozen on 2026-10-21. Changing the test set requires a recorded reason; never edit this to match.
 FROZEN_TEST_SHA256 = "41f10a29ddc5126c62dcfe8e6d1141979e35022be246dca8c51eaa51ae224f2f"
 
 

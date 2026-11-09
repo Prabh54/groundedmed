@@ -1,6 +1,6 @@
-"""Synthesizer (PROMPTS.md, version in SYNTHESIZER_VERSION): question + evidence -> DraftAnswer.
+"""Synthesizer (version in SYNTHESIZER_VERSION): question + evidence -> DraftAnswer.
 
-Shared by the baseline and, from M3, the agent graph (ADR-015). Evidence is wrapped as untrusted
+Shared by the baseline and the agent graph. Evidence is wrapped as untrusted
 data (ARCHITECTURE §14.1); the call has no tools.
 """
 
@@ -15,8 +15,8 @@ from backend.app.llm.client import Effort, structured_call
 from backend.app.models.answer import DraftAnswer, LLMUsage
 from backend.app.models.retrieval import Candidate
 
-SYNTHESIZER_VERSION = "v3"  # earlier versions kept on disk for their runs (ADR-029, ADR-030)
-SYNTHESIZER_EFFORT: Effort = "medium"  # ADR-022 starting point
+SYNTHESIZER_VERSION = "v3"  # earlier versions kept on disk for their runs
+SYNTHESIZER_EFFORT: Effort = "medium"  # starting point
 SYSTEM_PROMPT = (
     REPO_ROOT / "backend" / "app" / "prompts" / f"synthesizer_{SYNTHESIZER_VERSION}.txt"
 ).read_text(encoding="utf-8")

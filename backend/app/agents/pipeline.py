@@ -109,7 +109,7 @@ def _announced(name: str, node: Node, emit: Emit) -> Node:
 
 
 def _stoppable(name: str, node: Node, should_stop: ShouldStop) -> Node:
-    """Start the node only if the visitor is still there (M6-F2); a running node always finishes."""
+    """Start the node only if the visitor is still there; a running node always finishes."""
 
     def run(state: ResearchState) -> dict:
         if should_stop():
@@ -155,7 +155,7 @@ def answer_agent(
     and the final state (sub-queries, candidates, critic results for logs and eval).
 
     An exception that escapes the graph (retrieval/database failure, bug) gets `usage`: the calls
-    already made, e.g. the planner's, so a failed question still counts its cost (M3 review S3).
+    already made, e.g. the planner's, so a failed question still counts its cost.
     That includes `Cancelled`, raised when `should_stop()` is true before a node starts."""
     start = time.perf_counter()
     graph = build_agent_graph(llm, voyage, conn, emit, should_stop)

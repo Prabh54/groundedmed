@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { checkEvalHtml } from "./checkEval.ts";
 import { loadEval } from "./evalData.ts";
-import { formatRefs, type Format, type Ref } from "./evalFormat.ts";
+import { formatRefs, resolve, type Format, type Ref } from "./evalFormat.ts";
 
 // A small page in the built format (React's <span data-src data-fmt>), made from the real stored values.
 const data = loadEval()!;
@@ -19,7 +19,7 @@ test("a correct page passes", () => {
   assert.deepEqual(check(page("")), []);
 });
 
-// The reviewer's sabotages (session 13): each must be caught.
+// Deliberately broken pages: each must be caught.
 const SABOTAGES: [string, (h: string) => string, RegExp][] = [
   ["wrong text in a sourced number", (h) => h.replace(">76.5%<", ">77.5%<"), /page shows "77.5%"/],
   ["hard-coded range next to '95% range'", (h) => h.replace(page(""), page("<p>95% range +3.8 to +9.6</p>")), /unsourced number/],
@@ -52,6 +52,18 @@ test("the cross-check sample held findings only (the page says its limitation la
   const ids = rows.filter((r) => r.length > 1).map((r) => r[header.indexOf("claim_id")]);
   assert.equal(ids.length, 30);
   assert.ok(ids.every((id) => /^c\d+$/.test(id)), JSON.stringify(ids));
+});
+
+test("commit IDs on the page are checked through the commit map", () => {
+  const recorded = resolve(data, "final_config:git_commit") as string;
+  const current = "c".repeat(40);
+  const mapped = { ...data, commit_map: { commits: { [recorded]: current } } };
+  const html = page(`<span data-src="final_config:git_commit" data-fmt="commit">ccccccc, recorded as ${recorded.slice(0, 7)}</span>`);
+  assert.deepEqual(checkEvalHtml(html, mapped, 3).problems, []);
+  assert.ok(checkEvalHtml(html.replace("ccccccc", "ddddddd"), mapped, 3).problems.some((p) => /page shows/.test(p)));
+  assert.ok(checkEvalHtml(html, { ...data, commit_map: { commits: {} } }, 3).problems.some((p) => /no entry/.test(p)));
+  const shortened = { ...data, commit_map: { commits: { [recorded]: current, abc1234: "def5678" } } };
+  assert.ok(checkEvalHtml(html, shortened, 3).problems.some((p) => /two full IDs/.test(p)));
 });
 
 /** Minimal RFC 4180 reader (quoted fields may hold commas, quotes and newlines). */

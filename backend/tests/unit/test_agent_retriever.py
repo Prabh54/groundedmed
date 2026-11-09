@@ -1,4 +1,4 @@
-"""M3-T3: agent retriever (ADR-023) with fakes for Voyage and the database (no network)."""
+"""Agent retriever with fakes for Voyage and the database (no network)."""
 
 import json
 import logging

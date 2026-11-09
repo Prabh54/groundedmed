@@ -4,7 +4,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { loadEval } from "./evalData.ts";
-import { FORMATS, formatRefs, parseSrc, resolve, signed } from "./evalFormat.ts";
+import { FORMATS, commitLabel, formatRefs, parseSrc, resolve, signed, type EvalData } from "./evalFormat.ts";
 
 test("formats: one decimal for percentages, 2 for seconds, 4 for dollars (expected values worked out by hand)", () => {
   assert.equal(FORMATS.pct(0.765), "76.5%");
@@ -52,4 +52,14 @@ test("the shown results are the final test run, not a dev run", () => {
   assert.equal(resolve(data, "final_config:git_dirty"), false);
   assert.equal(resolve(data, "cross_config:name"), "second-AI cross-check");
   for (const s of ["baseline", "agent", "closed_book"]) assert.equal(resolve(data, `summary:systems.${s}.n_questions`), 200);
+});
+
+test("commit labels: recorded ID alone without a map; current ID first with one; a missing entry fails loudly", () => {
+  const recorded = "498b76a615422e88def981d09fa98f6d7e328eff";
+  const current = "c".repeat(40);
+  const data = (commits?: Record<string, string>) => ({ commit_map: commits && { commits } }) as unknown as EvalData;
+  assert.equal(commitLabel(data(), recorded), "498b76a");
+  assert.equal(commitLabel(data({ [recorded]: current }), recorded), "ccccccc, recorded as 498b76a");
+  assert.equal(commitLabel(data({ [recorded]: recorded }), recorded), "498b76a");
+  assert.throws(() => commitLabel(data({}), recorded), /no entry/);
 });

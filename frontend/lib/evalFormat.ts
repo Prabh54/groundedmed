@@ -1,6 +1,6 @@
-// /eval page numbers (M5-T5, approved mockup docs/design/m5-eval-mockup.html). Pure, unit-tested.
+// /eval page numbers (approved mockup docs/design/m5-eval-mockup.html). Pure, unit-tested.
 // Every displayed number is a Ref list + a format name; the page writes both into data-src / data-fmt,
-// and scripts/check-eval-page.ts re-reads the stored files to prove each built number matches (ADR-016).
+// and scripts/check-eval-page.ts re-reads the stored files to prove each built number matches.
 
 // Stored result files the page reads at build time (repo-relative). Never recalculated on page load.
 const FINAL = "eval/results/m4-final-20261026-222211-498b76a";
@@ -18,8 +18,13 @@ export const EVAL_FILES = {
   corpus: "data/manifests/corpus.json",
 } as const;
 
+// Result files keep the commit IDs they recorded. When a later history rewrite changes the IDs, this optional file
+// maps each recorded full ID to the current one, and the page shows both. No file: the recorded ID alone.
+export const COMMIT_MAP_FILE = "eval/COMMIT_ID_MAP.json";
+export type CommitMap = { commits: Record<string, string> };
+
 export type FileKey = keyof typeof EVAL_FILES;
-export type EvalData = Record<FileKey, unknown>;
+export type EvalData = Record<FileKey, unknown> & { commit_map?: CommitMap };
 export type Ref = `${FileKey}:${string}`; // "summary:systems.agent.accuracy.value"
 
 export const FORMATS = {
@@ -59,8 +64,18 @@ export function resolve(data: EvalData, ref: Ref): unknown {
   return node;
 }
 
+/** The recorded commit ID, with its current ID first when the commit map says it has changed. */
+export function commitLabel(data: EvalData, recorded: string): string {
+  const short = FORMATS.commit(recorded);
+  if (!data.commit_map) return short;
+  const current = data.commit_map.commits[recorded];
+  if (!current) throw new Error(`commit map has no entry for ${recorded}`);
+  return current === recorded ? short : `${FORMATS.commit(current)}, recorded as ${short}`;
+}
+
 export function formatRefs(data: EvalData, fmt: Format, refs: Ref[]): string {
   const values = refs.map((r) => resolve(data, r));
+  if (fmt === "commit") return commitLabel(data, values[0] as string);
   return (FORMATS[fmt] as (...args: never[]) => string)(...(values as never[]));
 }
 

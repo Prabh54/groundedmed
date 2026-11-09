@@ -1,4 +1,4 @@
-// Browser (E2E) tests, M5-T6. $0: the app talks only to the fake API (scripts/mock-api.mjs), never the real one.
+// Browser (E2E) tests. $0: the app talks only to the fake API (scripts/mock-api.mjs), never the real one.
 // Own ports and build folder, so a dev server on :3000 / mock on :8001 can keep running alongside.
 // Run: npm run test:e2e   (first time on a new machine: npx playwright install chromium)
 import { defineConfig, devices } from "@playwright/test";

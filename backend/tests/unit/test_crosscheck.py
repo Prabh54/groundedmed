@@ -1,4 +1,4 @@
-"""Second-AI cross-check (eval/runners/crosscheck.py, ADR-037): join on the committed blind sheet,
+"""Second-AI cross-check (eval/runners/crosscheck.py): join on the committed blind sheet,
 binary agreement per judge group, refusals. Fake judge run, sheet and answers in tmp_path."""
 
 import csv

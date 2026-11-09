@@ -1,4 +1,4 @@
-"""Citation validator and the claims-only answer (ARCHITECTURE §7, PLAN.md M2-T2, ADR-030)."""
+"""Citation validator and the claims-only answer (ARCHITECTURE §7)."""
 
 import pytest
 

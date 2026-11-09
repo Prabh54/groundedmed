@@ -1,4 +1,4 @@
-"""Connectivity check (M1-T0, M2-T0): Voyage key, Supabase admin connection, Anthropic key.
+"""Connectivity check: Voyage key, Supabase admin connection, Anthropic key.
 
 Run: uv run python -m scripts.check_services
 Prints OK/FAIL per service and never prints keys, URLs or passwords. Costs a few Voyage tokens

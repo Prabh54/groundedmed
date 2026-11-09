@@ -1,4 +1,4 @@
-"""ADR-026: runtime code must not know which papers are labeled (only `pqa_l` papers can be gold).
+"""Runtime code must not know which papers are labeled (only `pqa_l` papers can be gold).
 
 `source` stays in corpus.jsonl / corpus.json for auditing; it is not loaded into the runtime
 database and no runtime code may refer to it. This scans `backend/app/` (runtime code and prompts).

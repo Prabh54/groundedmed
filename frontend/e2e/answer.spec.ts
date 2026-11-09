@@ -1,4 +1,4 @@
-// Home page flows against the fake API: answer, refusals, citation opening, failures (M5-T6).
+// Home page flows against the fake API: answer, refusals, citation opening, failures.
 import { expect, test } from "@playwright/test";
 import { BUTTON_COUNT, EXAMPLES } from "../lib/examples";
 import { API_URL, ask, clearScrolls, errorBox, glows, recordScrolls, scrolls, waitForAnswer } from "./helpers";
@@ -20,7 +20,7 @@ test("an example question gets a cited answer with sources", async ({ page }) =>
   await expect(page.locator(".source")).toHaveCount(2); // a card per cited source; the other 3 only counted below
   await expect(page.locator(".sources-count")).toHaveText("Becky read 5 abstracts and used 2 of them.");
   await expect(page.locator(".try-instead")).toHaveCount(0);
-  // no disclaimer note under the answer (owner, M5-T6); the site footer carries it
+  // no disclaimer note under the answer; the site footer carries it
   await expect(page.locator(".result")).not.toContainText(/advice/i);
   await expect(page.locator(".site-footer")).toHaveText(
     "GroundedMed is a portfolio research demo · not medical advice" +

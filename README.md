@@ -48,7 +48,7 @@ and about twice the cost of the baseline and with slightly lower overall accurac
 flowchart TD
     U[Browser] --> FE["Next.js on Vercel<br/>question box, stage progress, source cards"]
     FE -- "question; progress streamed back" --> API["FastAPI on Render<br/>limits: 10 questions/hour per visitor, 100/day site-wide"]
-    API --> ADV["Personal-advice screen (Claude Haiku 5.5)<br/>live site only, not benchmarked (ADR-042)"]
+    API --> ADV["Personal-advice screen (Claude Haiku 5.5)<br/>live site only, not benchmarked"]
     ADV -- "personal advice" --> REF["Polite refusal, no search"]
     ADV -- "screen fails" --> ERR["Error (503), no answer"]
     ADV -- "research question" --> PL
@@ -177,6 +177,6 @@ cd frontend && NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 npm run dev
 ## More detail
 
 - [docs/methodology.md](docs/methodology.md): the evaluation method in full, the evaluation diagram, each pipeline
-  step and what code enforces, and references to the recorded design decisions (ADR-nnn)
-- [ARCHITECTURE.md](ARCHITECTURE.md): the full design · [DECISIONS.md](DECISIONS.md): every decision and why
+  step and what code enforces
+- [ARCHITECTURE.md](ARCHITECTURE.md): the full design
 - [docs/operations.md](docs/operations.md): live checks and upkeep for maintainers

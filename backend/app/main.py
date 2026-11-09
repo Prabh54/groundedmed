@@ -64,7 +64,7 @@ DAILY_LIMIT_MESSAGE = (
     "please try again after that."
 )
 TOO_LARGE_MESSAGE = "Request too large."
-# A question is at most 500 characters, so a real request is well under 8 KB (M7-T4).
+# A question is at most 500 characters, so a real request is well under 8 KB.
 MAX_BODY_BYTES = 8 * 1024
 UNAVAILABLE_MESSAGE = "The service is temporarily unavailable, please try again later."
 INTERNAL_MESSAGE = "Something went wrong while answering, please try again later."
@@ -88,7 +88,7 @@ def daily_cap(env_value: str | None) -> int:
 
 class BodyLimit:
     """Refuses any request body over `max_bytes` with 413 before the app reads or parses it, so a
-    huge upload cannot use up the instance's memory (M7-T4). A declared Content-Length is checked
+    huge upload cannot use up the instance's memory. A declared Content-Length is checked
     first; a body without one is read only up to the limit, then handed on unchanged."""
 
     def __init__(self, app, max_bytes: int):
@@ -130,7 +130,7 @@ class BodyLimit:
         await response(scope, receive, send)
 
 
-# No public /docs, /redoc or /openapi.json: the site needs none of them (M7-T4).
+# No public /docs, /redoc or /openapi.json: the site needs none of them.
 app = FastAPI(title="GroundedMed API", description="Research demonstration, not medical advice.",
               docs_url=None, redoc_url=None, openapi_url=None)  # fmt: skip
 app.add_middleware(BodyLimit, max_bytes=MAX_BODY_BYTES)  # added first, so CORS still wraps it
@@ -142,11 +142,11 @@ app.add_middleware(
 )
 # In-memory limits: run a single uvicorn worker, or each worker gets its own counters.
 limiter = RateLimiter(PER_IP_QUERIES_PER_HOUR, daily_cap(os.environ.get("DAILY_QUERY_CAP")))
-# The header holding the visitor's address, believed only from these proxy addresses (ADR-039,
-# ADR-041; both measured on the host at M6-T4). Either one empty = believe no header.
+# The header holding the visitor's address, believed only from these proxy addresses (both
+# measured on the deployed host). Either one empty = believe no header.
 CLIENT_IP_HEADER = os.environ.get("CLIENT_IP_HEADER", "").strip().lower()
 TRUSTED_PROXIES, _invalid_proxies = trusted_networks(os.environ.get("TRUSTED_PROXY_CIDRS", ""))
-# Off unless DEBUG_CLIENT_IP=1: lets a caller see how the server sees their own request (M6-T4).
+# Off unless DEBUG_CLIENT_IP=1: lets a caller see how the server sees their own request.
 DEBUG_CLIENT_IP = os.environ.get("DEBUG_CLIENT_IP", "").strip() == "1"
 
 
@@ -174,7 +174,7 @@ def advice_llm():
 
 
 def screen(question: str) -> tuple[bool, LLMUsage, float]:
-    """The personal-advice check (ADR-042); tests replace this one function."""
+    """The personal-advice check; tests replace this one function."""
     return check_advice(advice_llm(), question)
 
 
@@ -292,8 +292,8 @@ def ip_header_counts(request: Request) -> dict[str, int]:
 
 def check_limits(request: Request, request_id: str) -> None:
     peer, ip = limit_key(request)
-    # The peer is the hosting proxy's address in production (how TRUSTED_PROXY_CIDRS is measured,
-    # M6-T4); header values and the visitor's own address are never logged, only a pseudonym.
+    # The peer is the hosting proxy's address in production (how TRUSTED_PROXY_CIDRS is measured);
+    # header values and the visitor's own address are never logged, only a pseudonym.
     xff = [e for v in request.headers.getlist("x-forwarded-for") for e in v.split(",") if e.strip()]
     log({"request_id": request_id, "event": "client", "peer": peer,
          "trusted_peer": is_trusted(peer, TRUSTED_PROXIES), "ip_headers": ip_header_counts(request),
@@ -306,13 +306,13 @@ def check_limits(request: Request, request_id: str) -> None:
 
 
 def advice_refusal(body: QueryRequest, request_id: str) -> tuple[QueryResponse | None, LLMUsage]:
-    """Run the personal-advice screen before any search (ADR-042). Returns (the refusal if the
+    """Run the personal-advice screen before any search. Returns (the refusal if the
     question asks for personal advice, else None; the screen's usage). Fails closed: if the screen
     errors or times out, no answer is given (503). A refused question's text is not logged, since
     it may describe someone's health; only its length is."""
     try:
         flagged, usage, ms = screen(body.question)
-    except Exception as exc:  # fail closed (owner, 2026-11-02): a failed check is never "fine"
+    except Exception as exc:  # fail closed: a failed check is never "fine"
         spent = [exc.usage] if getattr(exc, "usage", None) else []
         log({"request_id": request_id, "mode": body.mode, "event": "error", "stage": "advice_check",
              "error": redact(f"{type(exc).__name__}: {exc}")[:300],
@@ -345,7 +345,7 @@ def answer(
     """Run one question in the requested mode, log it, and build the response. Raises 503 for a
     retrieval/database failure or a model failure (never a partial answer), and Cancelled (logged
     with the cost so far) when `should_stop()` turned true before a step started. The
-    personal-advice screen runs first and can refuse before any search (ADR-042)."""
+    personal-advice screen runs first and can refuse before any search."""
     refusal, advice_usage = advice_refusal(body, request_id)
     if refusal is not None:
         return refusal
@@ -431,7 +431,7 @@ def sse(event: str, data: dict) -> str:
 
 class StopOnExit(StreamingResponse):
     """Sets `stop` however the response ends: answer sent, visitor disconnected (the server
-    cancels the response) or a failed write (M6-F2)."""
+    cancels the response) or a failed write."""
 
     def __init__(self, content, stop: threading.Event, **kwargs):
         super().__init__(content, **kwargs)
@@ -451,7 +451,7 @@ def query_stream(body: QueryRequest, request: Request):
     still answered as HTTP 429/422 before the stream starts.
 
     If the visitor disconnects, `stop` is set: the step already running finishes, no later step
-    (so no further model call) starts, and the cost so far is logged (M6-F2)."""
+    (so no further model call) starts, and the cost so far is logged."""
     request_id = str(uuid.uuid4())
     check_limits(request, request_id)
     events: queue.Queue = queue.Queue()
@@ -497,7 +497,7 @@ def query_stream(body: QueryRequest, request: Request):
 
 @app.get("/debug/client-ip")
 def debug_client_ip(request: Request):
-    """The caller's own request as the server sees it, for measuring the proxy (M6-T4). Returns
+    """The caller's own request as the server sees it, for measuring the proxy. Returns
     only what the caller sent or their own proxy chain; nothing is logged or counted. 404 unless
     DEBUG_CLIENT_IP=1."""
     if not DEBUG_CLIENT_IP:

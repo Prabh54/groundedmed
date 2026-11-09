@@ -1,5 +1,5 @@
-"""Synthesizer node: the baseline's `synthesize()` (same prompt, user turn, schema and effort,
-ADR-015) over the retriever's selected evidence. Only the evidence passages differ between modes.
+"""Synthesizer node: the baseline's `synthesize()` (same prompt, user turn, schema and effort)
+over the retriever's selected evidence. Only the evidence passages differ between modes.
 
 An LLMError propagates to the graph wrapper, which turns it into an `error` abstention with the
 failed call's cost counted.

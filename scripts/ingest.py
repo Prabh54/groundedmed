@@ -1,4 +1,4 @@
-"""Embed the frozen corpus and load it into Postgres + pgvector (PLAN.md M1-T1, M1-T2).
+"""Embed the frozen corpus and load it into Postgres + pgvector.
 
 Run: uv run python -m scripts.ingest
 
@@ -7,7 +7,7 @@ sources, MeSH terms and section labels are never embedded. Embeddings are cached
 data/cache/embeddings/<model>.jsonl keyed by content SHA-256, so a re-run embeds 0 new tokens.
 
 Loading uses DATABASE_ADMIN_URL (the only write connection). It creates the `documents` table
-(ARCHITECTURE §2; no `source` column, ADR-026) and a read-only login role for the runtime. The
+(ARCHITECTURE §2; no `source` column) and a read-only login role for the runtime. The
 first time, that role gets a random password and DATABASE_URL is written to .env, never printed.
 """
 

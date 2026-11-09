@@ -1,4 +1,4 @@
-"""Agent retriever (ADR-023, ARCHITECTURE §4): question + planner sub-queries -> dense top 20 each
+"""Agent retriever (ARCHITECTURE §4): question + planner sub-queries -> dense top 20 each
 -> union, dedupe by PMID -> rerank against the question -> top 5.
 
 Each query is embedded in its own Voyage call: on 2026-10-23 any multi-input embedding request

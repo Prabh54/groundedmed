@@ -1,4 +1,4 @@
-"""Print baseline answers with their citations for a few questions (smoke test, PLAN.md M2-T1).
+"""Print baseline answers with their citations for a few questions (smoke test).
 
 Run: uv run python -m scripts.answer_debug --dev 5      # first N dev questions
      uv run python -m scripts.answer_debug "question"   # any question

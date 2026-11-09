@@ -1,4 +1,4 @@
-"""Critic (PROMPTS.md Critic, version in CRITIC_VERSION): checks each claim and limitation against
+"""Critic (version in CRITIC_VERSION): checks each claim and limitation against
 only the passages it cites. It can only remove items, never add or rewrite text (ARCHITECTURE §6).
 
 The model returns a verdict per item ID; `apply_critic` (deterministic) keeps an item only if its
@@ -22,7 +22,7 @@ from backend.app.models.answer import Claim, DraftAnswer, LLMUsage
 from backend.app.models.retrieval import Candidate
 
 CRITIC_VERSION = "v1"
-CRITIC_EFFORT: Effort = "low"  # ADR-022 starting point
+CRITIC_EFFORT: Effort = "low"  # starting point
 SYSTEM_PROMPT = (
     REPO_ROOT / "backend" / "app" / "prompts" / f"critic_{CRITIC_VERSION}.txt"
 ).read_text(encoding="utf-8")

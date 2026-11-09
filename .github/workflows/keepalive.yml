@@ -1,4 +1,4 @@
-# Supabase Free pauses a project after 7 days without activity (ADR-017 risk). One read-only query every
+# Supabase Free pauses a project after 7 days without activity. One read-only query every
 # 3 days keeps it awake ($0: a few free Actions minutes per month). Uses only the read-only DATABASE_URL secret.
 # GitHub may start scheduled runs late (and, for public repositories only, turns schedules off after 60 idle days).
 name: Supabase keep-alive

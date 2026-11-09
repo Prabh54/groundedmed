@@ -1,4 +1,4 @@
-// Becky, the original mascot (owner-approved mockup: docs/design/m5-home-mockup.html).
+// Becky, the original mascot (approved mockup: docs/design/m5-home-mockup.html).
 // Three poses: "normal" (stack of books), "working" (reading, page flip), "noAnswer" (apologetic shrug).
 import { useId } from "react";
 

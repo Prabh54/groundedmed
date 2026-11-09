@@ -1,4 +1,4 @@
-"""Answer metrics and the eval runner's test-split guard (PLAN.md M2-T5, ARCHITECTURE §9)."""
+"""Answer metrics and the eval runner's test-split guard (ARCHITECTURE §9)."""
 
 import pytest
 

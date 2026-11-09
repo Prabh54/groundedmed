@@ -31,7 +31,7 @@ const NO_ANSWER_TEXT: Record<string, string> = {
   model_abstained: "The abstracts Becky found don't answer this question directly, so she won't guess.",
 };
 const NO_ANSWER_FALLBACK = "The abstracts Becky found don't answer this clearly, so she won't guess.";
-// The API's personal-advice screen (ADR-042): refused before any search, so no steps and no sources.
+// The API's personal-advice screen: refused before any search, so no steps and no sources.
 const ADVICE_TITLE = "Becky can't give medical advice";
 const ADVICE_TEXT =
   "This looks like a question about someone's own health or treatment. Becky only summarises research, so she " +

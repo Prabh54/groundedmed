@@ -1,4 +1,4 @@
-"""`.env.example` must list variable names only, never values (CLAUDE.md: never commit secrets)."""
+"""`.env.example` must list variable names only, never values."""
 
 import subprocess
 from pathlib import Path

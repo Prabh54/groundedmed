@@ -1,4 +1,4 @@
-"""M3-T6: final validator + gate nodes, and the whole fixed graph wired with real nodes over fake
+"""Final validator + gate nodes, and the whole fixed graph wired with real nodes over fake
 model / Voyage / database (no network)."""
 
 import json
@@ -98,7 +98,7 @@ def test_invalid_citation_is_removed_and_counted():
     final, _ = finalize(state(d, keep("c1", "c2", "l1")))
     assert [c.id for c in final.claims] == ["c1"]
     assert final.validation.removed_invalid_citation == ["c2"]
-    assert final.validation == validate(d, [c.citation_id for c in EVIDENCE])[1]  # same as M2
+    assert final.validation == validate(d, [c.citation_id for c in EVIDENCE])[1]  # same as baseline
 
 
 def test_only_invalid_citations_abstain():

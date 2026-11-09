@@ -1,4 +1,4 @@
-// Source cards (M5-T4, approved mockup docs/design/m5-sources-mockup.html): pure logic, unit-tested.
+// Source cards (approved mockup docs/design/m5-sources-mockup.html): pure logic, unit-tested.
 // `citations` from the API are all the evidence passages Becky selected; cards are only the cited ones.
 
 import type { Citation, Claim, QueryResponse } from "./stream.ts";

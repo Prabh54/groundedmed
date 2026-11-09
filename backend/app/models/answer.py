@@ -1,5 +1,5 @@
 """Answer types: the synthesizer's structured output and the validated final answer
-(ARCHITECTURE §5–8, PROMPTS.md Synthesizer)."""
+(ARCHITECTURE §5–8)."""
 
 from typing import Literal
 
@@ -20,7 +20,7 @@ class Claim(BaseModel):
 class DraftAnswer(BaseModel):
     """Exactly the JSON the synthesizer must return (sent to the API as the output schema).
 
-    No free-text summary (ADR-030): the displayed answer is built from validated claims only, and
+    No free-text summary: the displayed answer is built from validated claims only, and
     limitations are cited items checked the same way."""
 
     verdict: Verdict

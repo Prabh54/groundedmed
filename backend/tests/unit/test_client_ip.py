@@ -1,8 +1,8 @@
-"""M6-F1: the per-IP limit counts the visitor behind the hosting proxy, never a spoofed header.
+"""The per-IP limit counts the visitor behind the hosting proxy, never a spoofed header.
 
 The API believes the CLIENT_IP_HEADER header only when the connecting peer is in TRUSTED_PROXY_CIDRS
-(ADR-039, ADR-041). The tests set the header name to X-Real-IP; any name works the same way (the
-production name is measured on the host at M6-T4). Fakes for the pipeline and DB, no network.
+. The tests set the header name to X-Real-IP; any name works the same way (the
+production name is measured on the deployed host). Fakes for the pipeline and DB, no network.
 """
 
 import ipaddress

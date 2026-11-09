@@ -2,7 +2,7 @@
 
 Final validator, in order (pure Python, never calls an LLM):
 1. A node failure -> abstain `error`. A failed gate -> abstain `weak_evidence`.
-2. The M2 citation validator on the synthesizer's draft (same checks and report as the baseline).
+2. The citation validator on the synthesizer's draft (same checks and report as the baseline).
 3. The critic's removals on what survived (`apply_critic`; claims and limitations).
 4. Abstain `no_supported_claims` if a yes/no/maybe verdict has no claim left (validator or critic)
    or the critic said `answer_supported: false`; `model_abstained` if the synthesizer said
@@ -35,7 +35,7 @@ def make_gate_node(
     threshold: float = EVIDENCE_GATE_THRESHOLD,
     dense_threshold: float = EVIDENCE_GATE_DENSE_THRESHOLD,
 ) -> Node:
-    """Same gate and frozen thresholds as the baseline (ADR-015, ADR-028)."""
+    """Same gate and frozen thresholds as the baseline."""
 
     def gate(state: ResearchState) -> dict:
         return {"gate_passed": gate_passes(state["selected_evidence"], threshold, dense_threshold)}

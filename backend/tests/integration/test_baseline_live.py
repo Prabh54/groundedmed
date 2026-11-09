@@ -1,4 +1,4 @@
-"""Live baseline checks (PLAN.md M2-T3). Needs VOYAGE_API_KEY and DATABASE_URL; costs ~nothing:
+"""Live baseline checks. Needs VOYAGE_API_KEY and DATABASE_URL; costs ~nothing:
 the out-of-scope question is refused by the evidence gate before any LLM call."""
 
 import os

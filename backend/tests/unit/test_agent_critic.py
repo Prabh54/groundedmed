@@ -1,4 +1,4 @@
-"""M3-T5: critic prompt v1, its rendering and the deterministic keep/remove rule (no network)."""
+"""Critic prompt v1, its rendering and the deterministic keep/remove rule (no network)."""
 
 import json
 import os
@@ -215,6 +215,7 @@ def test_node_makes_no_call_when_there_is_nothing_to_check():
     assert llm.calls == [] and update == {"critic_results": [], "answer_supported": None}
 
 
+@pytest.mark.skipif(not (REPO_ROOT / "PROMPTS.md").exists(), reason="reference doc absent")
 def test_prompt_matches_its_prompts_md_section():
     doc = (REPO_ROOT / "PROMPTS.md").read_text(encoding="utf-8")
     section = doc.split(f"## Critic — {CRITIC_VERSION}\n", 1)[1].split("\n## ", 1)[0]

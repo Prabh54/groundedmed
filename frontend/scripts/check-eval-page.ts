@@ -1,4 +1,4 @@
-// M5-T5 acceptance check, run after `npm run build` (CI does): see lib/checkEval.ts for what it proves.
+// Acceptance check, run after `npm run build` (CI does): see lib/checkEval.ts for what it proves.
 // Run: node scripts/check-eval-page.ts [path/to/eval.html]   (default: the Next.js build output)
 
 import { readFileSync } from "node:fs";

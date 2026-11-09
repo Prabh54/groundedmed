@@ -1,4 +1,4 @@
-# M0-T5: lint + unit/leakage tests on every push. One secret: DATABASE_URL (read-only DB role) for the live-DB checks.
+# Lint + unit/leakage tests on every push. One secret: DATABASE_URL (read-only DB role) for the live-DB checks.
 name: CI
 
 on:
@@ -46,7 +46,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: uv run pytest -v
 
-  # M5: frontend type check, unit tests, production build, /eval number check and browser tests
+  # Frontend type check, unit tests, production build, /eval number check and browser tests
   # (no secrets; the API URL is a placeholder; the browser tests use the fake API only).
   frontend:
     runs-on: ubuntu-latest
@@ -72,7 +72,7 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      # Fonts are self-hosted (M6-F3); block Google Fonts so a build that downloads them fails here.
+      # Fonts are self-hosted; block Google Fonts so a build that downloads them fails here.
       - name: Block Google Fonts
         run: |
           echo "0.0.0.0 fonts.googleapis.com fonts.gstatic.com" | sudo tee -a /etc/hosts
@@ -83,11 +83,11 @@ jobs:
         env:
           NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
 
-      # M5-T5: every number on the built /eval page equals its stored result-file value (ADR-016).
+      # Every number on the built /eval page equals its stored result-file value.
       - name: Check /eval numbers against the result files
         run: npm run check:eval
 
-      # M5-T6: browser tests (Playwright, e2e/) against the fake API only (scripts/mock-api.mjs): no paid calls.
+      # Browser tests (Playwright, e2e/) against the fake API only (scripts/mock-api.mjs): no paid calls.
       # They build their own copy of the app into .next-e2e (playwright.config.ts).
       - name: Install the test browser
         run: npx playwright install --with-deps chromium

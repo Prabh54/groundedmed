@@ -1,7 +1,7 @@
 """Fixed agent graph (ARCHITECTURE §5–6): planner -> retriever -> gate -> synthesizer -> critic ->
 validator -> END. A failed gate or a failed node goes straight to the validator, which abstains.
 
-Nodes are passed in, so tests can run the graph with stubs and each M3 task swaps in a real node.
+Nodes are passed in, so tests can run the graph with stubs and production wires in the real ones.
 """
 
 import time

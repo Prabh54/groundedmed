@@ -1,4 +1,4 @@
-"""Grounding spot-check v1 is frozen and reproduces the M2 baseline (grounding_spotcheck_v1.md)."""
+"""Grounding spot-check v1 is frozen and reproduces the baseline (grounding_spotcheck_v1.md)."""
 
 import hashlib
 import json

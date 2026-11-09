@@ -1,11 +1,11 @@
-"""Spend protection (ARCHITECTURE §14.7, ADR-021): per-IP hourly limit and a global daily cap.
+"""Spend protection (ARCHITECTURE §14.7): per-IP hourly limit and a global daily cap.
 
 In-memory, so limits reset when the single API instance restarts; the Anthropic console spend
 limit is the hard backstop.
 
 Behind a hosting proxy the connecting address is the proxy, so the visitor's address comes from a
 header the proxy sets. Which header, and which proxy addresses to believe it from, are settings
-(CLIENT_IP_HEADER, TRUSTED_PROXY_CIDRS) measured on the deployed host (ADR-039, ADR-041). The header
+(CLIENT_IP_HEADER, TRUSTED_PROXY_CIDRS) measured on the deployed host. The header
 is read only when the direct peer is inside TRUSTED_PROXY_CIDRS; from anyone else it is ignored, so
 a visitor cannot pick their own key. With either setting empty, no header is believed.
 """
@@ -20,7 +20,7 @@ from collections import defaultdict, deque
 from datetime import UTC, datetime
 
 # Headers a proxy may use for the visitor's address. Only their presence and copy counts are logged
-# (M6-T4 measurement); none is believed unless named in CLIENT_IP_HEADER.
+# (for measuring the proxy); none is believed unless named in CLIENT_IP_HEADER.
 CANDIDATE_IP_HEADERS = (
     "x-forwarded-for",
     "x-real-ip",
@@ -81,7 +81,7 @@ def client_key(peer: str | None, header_value: str | None, trusted: list[Network
 
     The header is used only when the direct peer is a trusted proxy and the header holds one valid
     IP; otherwise the peer itself is counted. A bad header from the proxy is therefore counted
-    against the proxy's address. On Render that address changes from request to request (ADR-041),
+    against the proxy's address. On Render that address changes from request to request,
     so this fallback does not share one strict count: it spreads requests over several. In
     production it is reachable only by a request that skips Cloudflare, which always sets the
     header; the daily cap still bounds it."""

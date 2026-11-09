@@ -1,7 +1,7 @@
-// M5-T5 acceptance check on the built /eval HTML (run by scripts/check-eval-page.ts after `npm run build`).
+// Acceptance check on the built /eval HTML (run by scripts/check-eval-page.ts after `npm run build`).
 // 1. every <N> number equals its stored value; 2. no number appears anywhere else (text or attributes);
 // 3. refs point at the agreed fields (strict claim support, test split); 4. the page's wording claims
-// ("clear", "no clear difference", "less often") still hold for the stored data; 5. ADR-037 wording.
+// ("clear", "no clear difference", "less often") still hold for the stored data; 5. required wording.
 
 import { FORMATS, formatRefs, parseSrc, resolve, type EvalData, type Format, type Ref } from "./evalFormat.ts";
 
@@ -29,7 +29,7 @@ export function checkEvalHtml(html: string, data: EvalData, minCount = 100): { c
       continue;
     }
     for (const r of refs) {
-      if (/_lenient/.test(r)) problems.push(`${r}: lenient claim support is never shown (CLAUDE.md)`);
+      if (/_lenient/.test(r)) problems.push(`${r}: lenient claim support is never shown`);
       if (r.startsWith("claims:") && r.includes("wilson95")) problems.push(`${r}: claim-support ranges are the question bootstrap`);
     }
     let expected: string;
@@ -40,6 +40,10 @@ export function checkEvalHtml(html: string, data: EvalData, minCount = 100): { c
       continue;
     }
     if (decode(text) !== expected) problems.push(`${rawSrc}: page shows "${decode(text)}", stored value formats as "${expected}"`);
+  }
+  const FULL_ID = /^[0-9a-f]{40}$/;
+  for (const [recorded, current] of Object.entries(data.commit_map?.commits ?? {})) {
+    if (!FULL_ID.test(recorded) || !FULL_ID.test(current)) problems.push(`commit map entry is not two full IDs: ${recorded}`);
   }
   if (count < minCount) problems.push(`only ${count} sourced numbers found (expected the full report)`);
 
@@ -76,7 +80,7 @@ export function checkEvalHtml(html: string, data: EvalData, minCount = 100): { c
   ];
   for (const [claim, ok] of truth) if (!ok) problems.push(`page wording no longer true: ${claim}`);
 
-  // Wording rules (CLAUDE.md, ADR-037): no person checked the claims; strict support is the headline.
+  // Wording rules: no person checked the claims; strict support is the headline.
   const text = decode(main.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ");
   for (const banned of [/manual/i, /human audit/i, /checked by a person/i, /\bhuman\b(?! annotations)/i, /at least partly/i, /lenient/i, /hallucination rate/i]) {
     if (banned.test(text)) problems.push(`forbidden wording ${banned}`);

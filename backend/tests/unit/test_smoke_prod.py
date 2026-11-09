@@ -1,4 +1,4 @@
-"""M6-T5: the production smoke script against a fake API and site (httpx.MockTransport, no
+"""The production smoke script against a fake API and site (httpx.MockTransport, no
 network), and the rule that it and the live browser test are manual only (never CI or on push)."""
 
 import json

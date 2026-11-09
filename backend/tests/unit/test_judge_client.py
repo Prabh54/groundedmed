@@ -1,4 +1,4 @@
-"""Judge client and response check (M4-T0/T2): offline, with a fake HTTP layer. No paid calls."""
+"""Judge client and response check: offline, with a fake HTTP layer. No paid calls."""
 
 import io
 import json
@@ -94,7 +94,7 @@ def test_check_response_reports_each_problem(obj, expected):
     assert any(expected in p for p in problems), problems
 
 
-def test_pinned_judge_is_the_adr_035_model_and_version():
+def test_pinned_judge_model_and_version():
     assert jc.JUDGE_MODEL == "gemini-3.1-pro-preview"
     assert jc.EXPECTED_MODEL_VERSION == "3.1-pro-preview-01-2026"
     assert jc.EXPECTED_RESPONSE_MODEL_VERSION == "gemini-3.1-pro-preview"  # seen at the test call

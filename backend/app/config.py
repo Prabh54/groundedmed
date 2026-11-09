@@ -13,21 +13,21 @@ from dotenv import load_dotenv
 REPO_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(REPO_ROOT / ".env")
 
-# Models (ADR-019).
+# Models.
 EMBEDDING_MODEL = "voyage-4"
 EMBEDDING_DIMS = 1024
 RERANK_MODEL = "rerank-3"
-LLM_MODEL = "claude-sonnet-5-5"  # every LLM call in the measured pipelines (ADR-022)
-# The API's personal-advice screen only, outside the benchmark (ADR-042).
+LLM_MODEL = "claude-sonnet-5-5"  # every LLM call in the measured pipelines
+# The API's personal-advice screen only, outside the benchmark.
 ADVICE_MODEL = "claude-haiku-5-5"
 
-# USD per million tokens, checked 2026-10-21 (ADR-019). Free allocations are not subtracted here.
+# USD per million tokens, checked 2026-10-21. Free allocations are not subtracted here.
 PRICE_PER_M_TOKENS = {
     EMBEDDING_MODEL: 0.06,
     RERANK_MODEL: 0.05,
 }
-# Anthropic list prices, USD per million tokens (ADR-022). Thinking tokens bill as output.
-# Haiku 5.5: prompts up to 100,000 tokens (the screen's are ~600), checked 2026-11-02 (ADR-042).
+# Anthropic list prices, USD per million tokens. Thinking tokens bill as output.
+# Haiku 5.5: prompts up to 100,000 tokens (the screen's are ~600), checked 2026-11-02.
 LLM_PRICE_PER_M_TOKENS = {
     LLM_MODEL: {"input": 2.00, "output": 10.00},
     ADVICE_MODEL: {"input": 0.10, "output": 0.50},
@@ -74,13 +74,13 @@ def env(name: str) -> str:
     return value
 
 
-# Evidence gate (ARCHITECTURE §7, ADR-028): abstain when the top rerank score is below this.
+# Evidence gate (ARCHITECTURE §7): abstain when the top rerank score is below this.
 # Chosen on dev data only by eval/runners/gate_calibration.py; frozen before any test run.
 EVIDENCE_GATE_THRESHOLD = 0.72  # top rerank-3 score
 EVIDENCE_GATE_DENSE_THRESHOLD = 0.62  # top cosine score, used only when reranking failed
 EVIDENCE_GATE_DEV_RUN = "dev-gate-20261023-030256-4455e98"
 
-# API spend protection (ADR-021). Values come from the environment on the backend host.
+# API spend protection. Values come from the environment on the backend host.
 PER_IP_QUERIES_PER_HOUR = 10
 DEFAULT_DAILY_QUERY_CAP = 100
 LOCAL_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]

@@ -12,7 +12,7 @@ Runs on every answer, baseline and agent:
 Limitations go through the same checks (`removed_limitations`) but never change the verdict.
 Item IDs are model-written and reach the API, so they must be short and unique (`c1`, `c2`... for
 claims, `l1`... for limitations); other IDs remove the item (`removed_bad_id`, by position only).
-There is no free-text summary: the displayed answer is built from the surviving claims (ADR-030).
+There is no free-text summary: the displayed answer is built from the surviving claims.
 """
 
 import re

@@ -1,4 +1,4 @@
-// The four visible steps (M5-T3) built from /query/stream stage events. The server runs six nodes
+// The four visible steps built from /query/stream stage events. The server runs six nodes
 // (backend/app/agents/pipeline.py): Retrieving = retriever + gate, Checking claims = critic + validator.
 // Every count shown comes from a server message; nothing here invents progress or shows reasoning.
 import type { StageEvent } from "./stream";

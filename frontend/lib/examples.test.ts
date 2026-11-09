@@ -34,7 +34,7 @@ test("every example passed the recorded agent check: cited yes/no answer matchin
   }
 });
 
-// PLAN.md's "3-6 examples" are the clickable buttons; the placeholder also rotates through the other checked ones.
+// The "3-6 examples" are the clickable buttons; the placeholder also rotates through the other checked ones.
 test("3 to 6 example buttons, no duplicate examples, and the scope card's abstract count matches the corpus", () => {
   assert.ok(BUTTON_COUNT >= 3 && BUTTON_COUNT <= 6 && BUTTON_COUNT <= EXAMPLES.length);
   assert.equal(new Set(EXAMPLES.map((e) => e.question)).size, EXAMPLES.length);

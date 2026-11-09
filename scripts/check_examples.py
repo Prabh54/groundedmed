@@ -1,4 +1,4 @@
-"""Check candidate demo example questions by running each through the agent (M5 example picking).
+"""Check candidate demo example questions by running each through the agent.
 
 Run: uv run python -m scripts.check_examples                     (all candidates, $1 cap)
      uv run python -m scripts.check_examples --only PMID --cap 0.05  (one candidate)
@@ -40,22 +40,21 @@ CANDIDATES = [
     ("21194998", "Does keyhole surgery hurt newborns less than open surgery?"),
     ("16809243", "Does a baby's sex affect asthma ER visits during pregnancy?"),
     ("28027677", "Do recorded lectures make medical students skip class?"),
-    # 24669960 (rt-PA stroke drug) was checked on 2026-10-28; the owner removed it from the page on
+    # 24669960 (rt-PA stroke drug) was checked on 2026-10-28; it was removed from the page on
     # 2026-10-29 (reads closest to treatment advice). Its recorded result stays in the file.
     ("11138995", "Is trouble putting feelings into words linked to unexplained physical symptoms?"),
-    # Owner 2026-10-30 UTC: replace keyhole surgery (a treatment comparison); fill the rt-PA slot.
+    # replace keyhole surgery (a treatment comparison); fill the rt-PA slot.
     (
         "22680064",
         "Can third-trimester ultrasound predict the position of the first twin at delivery?",
     ),
     ("17598882", "Is breast cancer prognosis inherited?"),
-    # Owner 2026-11-02: replace 25819796 (gate margin only 0.03); picked by gate margin
-    # (PROGRESS session 16 part 5).
+    # replace 25819796 (gate margin only 0.03); picked by gate margin.
     (
         "21368683",
         "Are people with serious mental illness more likely to end up in worse nursing homes?",
     ),
-    # Owner 2026-11-02: replace twins 22680064 (1 claim in its re-check), next by the same rule.
+    # replace twins 22680064 (1 claim in its re-check), next by the same rule.
     ("20121683", "Are rural Australian patients willing to help teach medical students?"),
 ]
 
@@ -63,7 +62,7 @@ CANDIDATES = [
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", help="check just this candidate PMID and merge it into the file")
-    parser.add_argument("--cap", type=float, default=CAP_USD, help="owner-approved USD cap")
+    parser.add_argument("--cap", type=float, default=CAP_USD, help="approved USD cap")
     args = parser.parse_args()
     candidates = [c for c in CANDIDATES if args.only in (None, c[0])]
     if not candidates:

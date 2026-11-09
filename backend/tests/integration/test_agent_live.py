@@ -1,4 +1,4 @@
-"""Live agent check (M3 review S2): an off-topic question is refused by the evidence gate in agent
+"""Live agent check: an off-topic question is refused by the evidence gate in agent
 mode too, although the agent reranks a larger pool than T was calibrated on. Needs Voyage, the
 database and Anthropic; opt-in with RUN_LIVE_LLM=1 (~$0.003: only the planner is called)."""
 

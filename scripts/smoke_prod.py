@@ -1,11 +1,11 @@
-"""Production smoke test (M6-T5): checks the live API and site, and saves what it saw.
+"""Production smoke test: checks the live API and site, and saves what it saw.
 
 MANUAL ONLY. Never run by CI or on push (a test checks the workflows); the paid part needs --paid.
 Run: uv run python -m scripts.smoke_prod            free checks only ($0)
      uv run python -m scripts.smoke_prod --paid     + 3 agent questions (~$0.03; $0.05 cap)
 Free: /health (ok, database ok, the latest commit Render deploys), /debug/client-ip off, CORS
 refuses another site and allows ours, the site's / and /eval, an empty question refused, a request
-over 8 KB refused (413) and the API docs pages off (M7-T4), one source abstract with no conclusion
+over 8 KB refused (413) and the API docs pages off, one source abstract with no conclusion
 fields. Paid, in agent mode as the site sends them, cheapest first: an
 advice question (refused before any search), a casual wording that must stop at the evidence gate,
 and a home-page example (cited answer that cites its own paper, every step done). The cap is checked

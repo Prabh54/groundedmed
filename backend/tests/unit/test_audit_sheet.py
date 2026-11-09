@@ -1,4 +1,4 @@
-"""M4-T5 blind audit sheet (eval/runners/audit_sheet.py): rubric v2 §7 draw and ADR-036 blinding.
+"""Blind audit sheet (eval/runners/audit_sheet.py): rubric v2 §7 draw and blinding.
 Fake judgments and corpus in tmp_path; no network."""
 
 import csv

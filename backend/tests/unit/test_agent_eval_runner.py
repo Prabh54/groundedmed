@@ -1,4 +1,4 @@
-"""M3-T8: the eval runner's agent system and its hard cost cap, over the real graph with a fake
+"""The eval runner's agent system and its hard cost cap, over the real graph with a fake
 model, fake Voyage and a fake database (no network)."""
 
 import json
@@ -150,7 +150,7 @@ def test_non_positive_cap_is_refused(runner):
 
 
 def test_failed_question_still_counts_the_planner_cost(runner, monkeypatch):
-    """M3 review S3: retrieval fails after the paid planner call -> the error row keeps its cost."""
+    """Retrieval fails after the paid planner call -> the error row keeps its cost."""
     calls = []
 
     def flaky(conn, vector, k):
@@ -178,7 +178,7 @@ def test_cost_stop_margin_grows_with_the_most_expensive_question(runner, monkeyp
     assert len(rows) == 2 and sum(r["cost_usd"] for r in rows) <= 0.03
 
 
-# --- approval guard (owner instruction 2026-10-24) ---------------------------------------------
+# --- approval guard ---------------------------------------------
 
 APPROVAL = "Yes, run the agent on the 100 dev questions with a hard cap of $5."
 
@@ -205,7 +205,7 @@ def test_smoke_run_needs_no_approval_and_records_none(runner):
     assert len(rows) == 1 and config["owner_approval"] is None and summary["owner_approval"] is None
 
 
-# --- cost-based trigger (owner instruction 2026-10-24: --limit 100 must not skip the guard) -----
+# --- cost-based trigger (--limit 100 must not skip the guard) -----
 
 
 @pytest.mark.parametrize("limit", ["100", "20", "15"])  # agent est. $3.50, $0.70, $0.525

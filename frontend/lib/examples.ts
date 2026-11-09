@@ -2,11 +2,11 @@
 // (2026-10-28; the twins and breast-cancer ones 2026-10-30 UTC) and kept only if it gave a cited yes/no answer
 // matching the dev label (docs/design/example-questions-check.json). lib/examples.test.ts checks this list against that file and
 // the frozen manifests. The first BUTTON_COUNT are also the buttons; all of them rotate in the placeholder.
-// Removed by the owner as treatment-flavoured: rt-PA stroke drug (24669960, 2026-10-29) and keyhole vs open
+// Removed as treatment-flavoured: rt-PA stroke drug (24669960, 2026-10-29) and keyhole vs open
 // surgery in newborns (21194998, 2026-10-30 UTC). Candidate 11138995 answered "maybe" in its one check: not added.
 // Brain's right half (25819796) replaced 2026-11-02 by the nursing-homes question: it cleared the evidence gate by only
-// 0.03, so casual retypes were refused. The replacement was picked by a rule fixed in advance (PROGRESS session 16
-// part 5): gate margin >= 0.10 for this wording and a casual retype still passing. Twins (22680064, margin 0.04) was
+// 0.03, so casual retypes were refused. The replacement was picked by a rule fixed in advance:
+// gate margin >= 0.10 for this wording and a casual retype still passing. Twins (22680064, margin 0.04) was
 // replaced the same day by the rural-Australia question (next by that rule) after its re-check made only 1 claim.
 export const EXAMPLES: { question: string; pmid: string }[] = [
   { question: "Are rural Australian patients willing to help teach medical students?", pmid: "20121683" },

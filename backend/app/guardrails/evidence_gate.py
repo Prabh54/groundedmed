@@ -1,8 +1,8 @@
-"""Evidence gate (ARCHITECTURE §7, ADR-015): abstain when the best rerank score is below T.
+"""Evidence gate (ARCHITECTURE §7): abstain when the best rerank score is below T.
 
 Shared by baseline and agent. T is chosen on dev data only (config.EVIDENCE_GATE_THRESHOLD).
 If reranking was skipped there is no rerank score, so the top dense (cosine) score is compared with
-a fallback threshold chosen by the same dev rule (ADR-028); the answer is flagged `rerank_skipped`.
+a fallback threshold chosen by the same dev rule; the answer is flagged `rerank_skipped`.
 """
 
 from backend.app.models.retrieval import Candidate

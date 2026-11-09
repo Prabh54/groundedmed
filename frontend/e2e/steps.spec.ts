@@ -1,4 +1,4 @@
-// The four-step list (M5-T3) drawn in a real browser: ticks in order; a failing step shows ✕ and later ones "not started".
+// The four-step list drawn in a real browser: ticks in order; a failing step shows ✕ and later ones "not started".
 import { expect, test } from "@playwright/test";
 import { STEP_LABELS } from "../lib/timeline";
 import { ask, errorBox, recordSteps, steps, waitForAnswer } from "./helpers";

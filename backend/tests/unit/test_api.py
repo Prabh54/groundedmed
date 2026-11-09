@@ -1,4 +1,4 @@
-"""API schemas and error paths with fakes for the pipeline and DB (PLAN.md M2-T4)."""
+"""API schemas and error paths with fakes for the pipeline and DB."""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -202,7 +202,7 @@ def test_unexpected_bug_is_500_not_disguised_as_503(monkeypatch, capsys):
     )
     assert r.status_code == 500 and r.json()["detail"] == main.INTERNAL_MESSAGE
     out = capsys.readouterr()
-    # The plain /query path now logs like the stream: one redacted line, no traceback (M7-T4).
+    # The plain /query path now logs like the stream: one redacted line, no traceback.
     assert "secret" not in out.out + out.err and "Traceback" not in out.out + out.err
     assert '"stage": "query"' in out.out and "KeyError" in out.out
 

@@ -1,4 +1,4 @@
-"""Evidence gate and its dev calibration rule (ARCHITECTURE §7, PLAN.md M2-T3)."""
+"""Evidence gate and its dev calibration rule (ARCHITECTURE §7)."""
 
 import json
 

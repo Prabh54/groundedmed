@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "Measured results of GroundedMed on frozen PubMedQA test questions, with ranges and limitations.",
 };
 
-// Static: the stored result files are read once at build time (ADR-016), never on page load.
+// Static: the stored result files are read once at build time, never on page load.
 export const dynamic = "force-static";
 
 export default function EvalPage() {

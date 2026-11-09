@@ -1,4 +1,4 @@
-"""retrieve() ordering and the rerank failure path, with fakes for Voyage and the DB (M1-T4)."""
+"""retrieve() ordering and the rerank failure path, with fakes for Voyage and the DB."""
 
 from types import SimpleNamespace
 

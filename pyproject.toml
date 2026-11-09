@@ -25,7 +25,7 @@ dev = [
 ]
 
 [tool.uv]
-# Not installed as a package (ADR-024): code runs from the repo root, so `backend.app`, `eval`
+# Not installed as a package: code runs from the repo root, so `backend.app`, `eval`
 # and `scripts` import the same way under pytest, `python -m scripts.x` and uvicorn.
 package = false
 

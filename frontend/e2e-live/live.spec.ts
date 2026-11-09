@@ -1,4 +1,4 @@
-// The live site from a clean browser (M6-T6): free checks first, then exactly 3 paid questions.
+// The live site from a clean browser: free checks first, then exactly 3 paid questions.
 import { expect, test } from "@playwright/test";
 import { EXAMPLES } from "../lib/examples";
 import { ask, expectNoSidewaysScroll, waitForAnswer } from "../e2e/helpers";

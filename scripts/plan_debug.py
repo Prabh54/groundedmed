@@ -1,4 +1,4 @@
-"""Print the planner's real output for a few questions (smoke test, PLAN.md M3-T2).
+"""Print the planner's real output for a few questions (smoke test).
 
 Run: uv run python -m scripts.plan_debug --dev 3      # first N dev questions
      uv run python -m scripts.plan_debug "question"   # any question

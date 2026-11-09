@@ -24,7 +24,7 @@ test("cards are numbered by first use in the answer, not by the API's evidence o
   assert.equal(views[1].citation?.passage, "passage 222");
 });
 
-test("every citation in the answer has a card with its own passage and a unique anchor (M5-T4 accept)", () => {
+test("every citation in the answer has a card with its own passage and a unique anchor", () => {
   const views = sourceViews(RESULT);
   const cited = [...RESULT.claims, ...RESULT.limitations].flatMap((c) => c.citation_ids);
   for (const id of cited) {

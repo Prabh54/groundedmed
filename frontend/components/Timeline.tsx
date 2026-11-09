@@ -1,4 +1,4 @@
-// The four-step progress timeline (M5-T3, approved mockup docs/design/m5-timeline-mockup.html).
+// The four-step progress timeline (approved mockup docs/design/m5-timeline-mockup.html).
 // "list": the full steps while Becky works or after an error. "trail": the slim row above an answer.
 import { stepViews, type Step } from "@/lib/timeline";
 

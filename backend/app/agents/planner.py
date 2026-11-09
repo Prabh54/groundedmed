@@ -1,8 +1,8 @@
-"""Planner (PROMPTS.md Planner, version in PLANNER_VERSION): question -> 1–3 search sub-queries.
+"""Planner (version in PLANNER_VERSION): question -> 1–3 search sub-queries.
 
 The model only proposes queries; the cleanup below is deterministic. If no usable query survives,
 the planner falls back to the original question (ARCHITECTURE §13). The retriever always searches
-with the original question as well (ADR-023), so the planner can only widen the candidate pool.
+with the original question as well, so the planner can only widen the candidate pool.
 """
 
 import re
@@ -18,7 +18,7 @@ from backend.app.models.agent import ResearchState, SubQuestion
 from backend.app.models.answer import LLMUsage
 
 PLANNER_VERSION = "v1"
-PLANNER_EFFORT: Effort = "low"  # ADR-022 starting point
+PLANNER_EFFORT: Effort = "low"  # starting point
 SYSTEM_PROMPT = (
     REPO_ROOT / "backend" / "app" / "prompts" / f"planner_{PLANNER_VERSION}.txt"
 ).read_text(encoding="utf-8")

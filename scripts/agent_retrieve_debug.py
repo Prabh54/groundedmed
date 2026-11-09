@@ -1,5 +1,5 @@
 """Print an agent retrieval trace: planner sub-queries -> per-query hits -> pooled, reranked top 5
-(smoke test, PLAN.md M3-T3).
+(smoke test).
 
 Run: uv run python -m scripts.agent_retrieve_debug --dev 3      # first N dev questions
      uv run python -m scripts.agent_retrieve_debug "question"   # any question

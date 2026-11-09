@@ -8,7 +8,7 @@ test("the /eval page loads with its numbers, the gain cards and its limitations"
   expect(await page.locator("[data-src]").count()).toBeGreaterThan(100);
   for (const text of await page.locator("[data-src]").allTextContents()) expect(text.trim()).not.toBe("");
 
-  // M5-T6: the two "vs closed-book" gains are large cards
+  // The two "vs closed-book" gains are large cards
   const gains = page.locator(".gains .gain");
   await expect(gains).toHaveCount(2);
   for (const gain of await gains.all()) {

@@ -1,4 +1,4 @@
-"""Benchmark-integrity (leakage) tests on the real corpus (M0-T4, ADR-008/009/025).
+"""Benchmark-integrity (leakage) tests on the real corpus.
 
 Needs `data/corpus.jsonl` (run `uv run python -m scripts.prepare_dataset`) and the pinned dataset
 (downloaded once, then cached). Skipped locally if the corpus is missing; fails in CI.
@@ -18,8 +18,8 @@ from scripts import prepare_dataset as pd
 
 DATA = Path(__file__).resolve().parents[3] / "data"
 CORPUS = DATA / "corpus.jsonl"
-KNOWN_DUPLICATES = {"18270496", "17491578"}  # copies of labeled paper 18019905 (ADR-009)
-# ADR-025: PMID 24519615's conclusion repeats two of its own RESULTS sentences verbatim. These are
+KNOWN_DUPLICATES = {"18270496", "17491578"}  # copies of labeled paper 18019905
+# PMID 24519615's conclusion repeats two of its own RESULTS sentences verbatim. These are
 # results, not the conclusion's inference; the context is the dataset's conclusion-free text as-is.
 ALLOWED_CONCLUSION_SENTENCE_HITS = {("24519615", "24519615"): 2}
 MIN_SENTENCE_CHARS = 60
@@ -151,4 +151,4 @@ def test_no_duplicates_of_labeled_papers(corpus, labeled_raw):
         assert prefix not in labeled_prefixes
     # Not asserted: a distractor's own question absent from its passage. 2 of 1,500 abstracts
     # contain that wording themselves; we add no question text (passage == section texts, tested
-    # above) and distractor questions are never benchmark queries (ADR-025).
+    # above) and distractor questions are never benchmark queries.

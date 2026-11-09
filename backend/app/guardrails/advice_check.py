@@ -1,5 +1,5 @@
-"""Personal-advice screen for the public API (PROMPTS.md Advice check, version in ADVICE_VERSION;
-ADR-042): question -> is it asking for personal medical advice?
+"""Personal-advice screen for the public API (version in ADVICE_VERSION):
+question -> is it asking for personal medical advice?
 
 Runs in front of the agent and the baseline, in `backend/app/main.py` only. The benchmark runners
 call the pipelines directly, so this screen is not part of any measured result. A failed check is

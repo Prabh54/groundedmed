@@ -12,7 +12,7 @@ test("home: fits, Ask button on the first screen, cards stacked, footer present"
   const cards = await page.locator(".scope > div").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().left));
   expect(new Set(cards.map(Math.round)).size).toBe(1); // one column
   await expect(page.locator(".site-footer")).toContainText("not medical advice");
-  await expect(page.locator(".disclaimer")).toHaveCount(0); // the top bar is gone (owner, M5-T6)
+  await expect(page.locator(".disclaimer")).toHaveCount(0); // the top bar is gone
 });
 
 test("answer fits", async ({ page }) => {

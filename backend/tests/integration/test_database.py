@@ -1,4 +1,4 @@
-"""Live checks of the loaded `documents` table and the read-only runtime role (PLAN.md M1-T2).
+"""Live checks of the loaded `documents` table and the read-only runtime role.
 
 Needs DATABASE_URL (read-only runtime role): local .env, and a GitHub Actions secret so CI runs
 them too.

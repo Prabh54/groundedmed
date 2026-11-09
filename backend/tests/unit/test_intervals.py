@@ -1,6 +1,6 @@
-"""Interval functions for M4-T4 against hand-checked examples (eval/metrics/intervals.py).
+"""Interval functions against hand-checked examples (eval/metrics/intervals.py).
 
-Wilson values worked out by hand from the playbook formula
+Wilson values worked out by hand from the formula
 center = (p + z²/2n) / (1 + z²/n), half = z·sqrt(p(1-p)/n + z²/4n²) / (1 + z²/n), z = 1.96."""
 
 import random

@@ -1,4 +1,4 @@
-"""The frozen test split runs once per system unless overridden with a reason (ADR-031).
+"""The frozen test split runs once per system unless overridden with a reason.
 
 Uses a fake test manifest and results folder in tmp_path: the real test set is never read."""
 

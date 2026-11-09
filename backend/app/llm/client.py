@@ -28,7 +28,7 @@ class LLMError(RuntimeError):
 
 
 class Cancelled(RuntimeError):
-    """The visitor left mid-answer (M6-F2), so step `before` and everything after it never started.
+    """The visitor left mid-answer, so step `before` and everything after it never started.
 
     `usage` is set by the caller to the calls already made, so their cost is still logged.
     """

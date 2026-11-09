@@ -1,4 +1,4 @@
-"""Judge runner (M4-T2): blinding, version checks, token logging, retries, void runs, setup sample.
+"""Judge runner: blinding, version checks, token logging, retries, void runs, setup sample.
 Fake Gemini, fake corpus and fake source runs in tmp_path; no network."""
 
 import datetime as dt
@@ -329,7 +329,7 @@ def test_rejudge_after_a_void_run_needs_a_fresh_typed_approval(env, monkeypatch)
     assert config["earlier_void_judge_runs"] == [void_dir.name]
 
 
-# --- checkpoint resume: only with the owner's fresh typed approval ---------------------------
+# --- checkpoint resume: only with a fresh typed approval ---------------------------
 
 FRESH = "Owner: resume the stopped judge run from its checkpoint."
 
@@ -393,7 +393,7 @@ def test_resume_refused_if_what_the_judge_reads_has_changed(env, monkeypatch):
         resume(d)
 
 
-# --- daily request quota (owner, 2026-10-25: 130/250 used; 197 needed) ------------------------
+# --- daily request quota ------------------------
 
 QUOTA_ARGS = ["--baseline-run", "dev-baseline-x", "--agent-run", "dev-agent-x", "--max-cost", "5"]
 

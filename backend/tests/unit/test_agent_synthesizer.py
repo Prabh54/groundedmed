@@ -1,5 +1,5 @@
-"""M3-T4: synthesizer node with fixed evidence and a fake model (no network). The model request
-must be byte-identical to the baseline's for the same evidence (ADR-015)."""
+"""Synthesizer node with fixed evidence and a fake model (no network). The model request
+must be byte-identical to the baseline's for the same evidence."""
 
 import json
 from types import SimpleNamespace

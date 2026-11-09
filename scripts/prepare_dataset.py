@@ -1,4 +1,4 @@
-"""Build the PubMedQA manifests and corpus (ADR-008, ADR-009).
+"""Build the PubMedQA manifests and corpus.
 
 Run from the repo root: uv run python -m scripts.prepare_dataset
 
@@ -24,18 +24,18 @@ DATASET_REVISION = "9001f2853fb87cab8d220904e0de81ac6973b318"
 LABELED, UNLABELED = "pqa_labeled", "pqa_unlabeled"
 SOURCE_TAG = {LABELED: "pqa_l", UNLABELED: "pqa_u"}
 
-# Fields that carry the answer. Never indexed or shown to a runtime model (CLAUDE.md, ADR-009).
+# Fields that carry the answer. Never indexed or shown to a runtime model.
 ANSWER_FIELDS = ("long_answer", "final_decision", "reasoning_required_pred", "reasoning_free_pred")
 # The only context keys a Document is built from.
 CONTEXT_KEYS = ("contexts", "labels", "meshes")
 LABEL_ORDER = ("yes", "no", "maybe")
 
-# Split (ADR-008): per label, 20% test, next 10% dev, rest reserve.
+# Split: per label, 20% test, next 10% dev, rest reserve.
 SPLIT_SEED = 20261021
 TEST_FRACTION, DEV_FRACTION = 0.2, 0.1
 SPLITS = ("test", "dev", "reserve")
 
-# Corpus (ADR-008, ADR-025): all labeled contexts + MeSH-similar unlabeled distractors.
+# Corpus: all labeled contexts + MeSH-similar unlabeled distractors.
 CORPUS_VERSION = "v1-seed20261021"
 N_DISTRACTORS = 1500
 # A MeSH term tagging more than this share of unlabeled papers is generic (Humans, Female,
@@ -52,7 +52,7 @@ DATA_DIR = REPO_ROOT / "data"
 
 
 class FrozenManifestError(RuntimeError):
-    """A committed manifest would change. Frozen files are never overwritten (ADR-008)."""
+    """A committed manifest would change. Frozen files are never overwritten."""
 
 
 @dataclass(frozen=True)

@@ -53,7 +53,7 @@ export async function recordSteps(page: Page) {
 export const steps = (page: Page) => page.evaluate(() => (window as unknown as { __steps: string[] }).__steps.slice());
 
 /** Number of running glow animations on an element: Web Animations whose keyframes animate box-shadow
- *  (the card's border-colour CSS transition is not counted; reviewer finding). */
+ *  (the card's border-colour CSS transition is not counted). */
 export const glows = (locator: Locator) =>
   locator.evaluate((el) =>
     el.getAnimations().filter((a) => a.effect instanceof KeyframeEffect && a.effect.getKeyframes().some((k) => "boxShadow" in k)).length,

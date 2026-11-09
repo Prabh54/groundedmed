@@ -1,4 +1,4 @@
-// Browser tests against the LIVE site (M6-T6). MANUAL ONLY and PAID: 3 real questions per run (~$0.035).
+// Browser tests against the LIVE site. MANUAL ONLY and PAID: 3 real questions per run (~$0.035).
 // Never run by CI or on push: CI's `npm run test:e2e` uses playwright.config.ts (testDir e2e), and this file
 // refuses to load unless LIVE_E2E=1 (a backend test checks both). Run: npm run test:e2e:live
 // Each test gets a fresh browser context (no cookies or storage), as a first-time visitor would.

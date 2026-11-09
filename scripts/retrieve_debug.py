@@ -1,4 +1,4 @@
-"""Print what retrieval returns for a question: PMIDs, scores, ranks, text (PLAN.md M1-T3).
+"""Print what retrieval returns for a question: PMIDs, scores, ranks, text.
 
 Run:
   uv run python -m scripts.retrieve_debug "Does aspirin reduce ...?"

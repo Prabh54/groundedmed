@@ -1,4 +1,4 @@
-"""Prompt-injection regression for agent mode (M3 review S4; ARCHITECTURE §14.6, milestone 02).
+"""Prompt-injection regression for agent mode (ARCHITECTURE §14.6).
 
 The same hostile passage as the baseline test sits among the retrieved evidence, and the whole
 agent graph runs (real nodes, fake model / Voyage / database; runs in CI). Retrieved text now

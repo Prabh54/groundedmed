@@ -1,4 +1,4 @@
-"""M3-T2: planner prompt v1 and its deterministic cleanup (no network: a fake client returns
+"""Planner prompt v1 and its deterministic cleanup (no network: a fake client returns
 fixed model output)."""
 
 import json
@@ -138,6 +138,7 @@ def test_question_cannot_break_out_of_its_wrapper():
     assert message.count("</QUESTION>") == 1 and message.count("<QUESTION>") == 1
 
 
+@pytest.mark.skipif(not (REPO_ROOT / "PROMPTS.md").exists(), reason="reference doc absent")
 def test_prompt_matches_its_prompts_md_section():
     doc = (REPO_ROOT / "PROMPTS.md").read_text(encoding="utf-8")
     heading = f"## Planner — {PLANNER_VERSION}\n"
