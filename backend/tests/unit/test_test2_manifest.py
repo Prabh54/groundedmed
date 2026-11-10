@@ -78,14 +78,15 @@ def test_lock_script_refuses_to_change_an_existing_test2(tmp_path, monkeypatch):
         lock_test2.main()
 
 
-def test_no_runner_accepts_test2_until_its_final_run():
-    """Until M15-T9 adds its guards, nothing may load test2 (lock_test2 only writes it)."""
-    with pytest.raises(SystemExit):
-        run_system.main(["--system", "agent", "--split", "test2"])
+def test_only_the_lock_script_and_the_guarded_runner_read_test2():
+    """M15-T9: the runner accepts test2 behind the final-test guards (test_test2_runner_guards.py);
+    nothing else (scorers, judge, app, scripts) may load it."""
+    with pytest.raises(SystemExit, match="without --i-understand-this-is-the-final-test"):
+        run_system.main(["--system", "agent", "--split", "test2"])  # refused before any read
     readers = [
         p.relative_to(ROOT).as_posix()
         for folder in ("eval/runners", "eval/metrics", "scripts", "backend/app")
         for p in (ROOT / folder).rglob("*.py")
         if "test2" in p.read_text(encoding="utf-8")
     ]
-    assert readers == ["scripts/lock_test2.py"]
+    assert sorted(readers) == ["eval/runners/run_system.py", "scripts/lock_test2.py"]

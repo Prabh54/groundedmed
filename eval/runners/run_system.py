@@ -25,13 +25,16 @@ change between the two. `require_complete_run` and `require_same_questions` are 
 scorer runs before computing anything.
 
 Calls the same Python function the API uses (not HTTP), sequentially. The gold label is read here
-only, after the answer is produced; the pipeline never sees it. The test split additionally needs
---i-understand-this-is-the-final-test, a clean Git tree, the manifest matching test.sha256, and no
---limit. Each system runs on the test split once (ADR-031): if a completed test run of that system
-exists, the script refuses unless given both --rerun-final-test and --reason "<why>"; the reason and
-the earlier run IDs are written to override.json in the new run directory. A question that fails
-(provider or database outage) is stored as an error row, counted as incorrect; the run continues
-unless MAX_CONSECUTIVE_ERRORS questions fail in a row (an outage), which makes the run void.
+only, after the answer is produced; the pipeline never sees it. The frozen test splits
+(FINAL_SPLITS: `test`, and `test2` from M15-T9, ADR-043) additionally need
+--i-understand-this-is-the-final-test, a clean Git tree, the manifest matching its frozen
+<split>.sha256, and no --limit. Each system runs on each frozen test split once (ADR-031): if a
+completed run of that system on that split exists, the script refuses unless given both
+--rerun-final-test and --reason "<why>"; the reason and the earlier run IDs are written to
+override.json in the new run directory. Runs of one split never count for the other. A question
+that fails (provider or database outage) is stored as an error row, counted as incorrect; the run
+continues unless MAX_CONSECUTIVE_ERRORS questions fail in a row (an outage), which makes the run
+void.
 Results go to eval/results/<run-id>/ (raw.jsonl, summary.json, run_config.json); a run is never
 overwritten.
 """
@@ -78,6 +81,8 @@ from eval.metrics.retrieval import gold_rank, mean_hit_at_k
 from eval.runners.retrieval import CORPUS_MANIFEST, RESULTS_DIR, git_state
 
 MANIFESTS = REPO_ROOT / "data" / "manifests"
+# Frozen test splits: guarded, once per system each. test2 = ADR-043 (M15-T9).
+FINAL_SPLITS = ("test", "test2")
 FINAL_TEST_FLAG = "--i-understand-this-is-the-final-test"
 RERUN_FLAG = "--rerun-final-test"
 MIN_REASON_CHARS = 20
@@ -98,16 +103,19 @@ IDENTITY_KEYS = (
     "evidence_gate_threshold", "embedding_model", "rerank_model", "planner_prompt_sha256",
     "planner_user_template_sha256", "planner_effort", "critic_prompt_sha256",
     "critic_user_template_sha256", "critic_effort", "closed_book_prompt_sha256",
-    "closed_book_user_template_sha256", "closed_book_effort",
+    "closed_book_user_template_sha256", "closed_book_effort", "agent_synthesizer_effort",
+    "retry_prompt", "retry_user_template_sha256", "veto_rule",
 )  # fmt: skip
 
 
 def load_manifest(split: str) -> dict:
     data = (MANIFESTS / f"{split}.json").read_bytes()
-    if split == "test":
-        frozen = (MANIFESTS / "test.sha256").read_text(encoding="utf-8").split()[0]
+    if split in FINAL_SPLITS:
+        frozen = (MANIFESTS / f"{split}.sha256").read_text(encoding="utf-8").split()[0]
         if hashlib.sha256(data).hexdigest() != frozen:
-            raise SystemExit("test.json does not match the frozen test.sha256; refusing to run.")
+            raise SystemExit(
+                f"{split}.json does not match the frozen {split}.sha256; refusing to run."
+            )
     manifest = json.loads(data)
     if manifest["split"] != split:
         raise RuntimeError(f"{split}.json does not declare split {split!r}")
@@ -115,12 +123,13 @@ def load_manifest(split: str) -> dict:
 
 
 def check_allowed(split: str, final_test_ok: bool, git: dict, limit: int | None = None) -> None:
-    if split == "test" and not final_test_ok:
-        raise SystemExit(f"Refusing the frozen test split without {FINAL_TEST_FLAG}.")
-    if split == "test" and git["git_dirty"]:
-        raise SystemExit("Refusing the frozen test split from a dirty Git tree; commit first.")
-    if split == "test" and limit is not None:
-        raise SystemExit("Refusing a partial run of the frozen test split (--limit).")
+    final = split in FINAL_SPLITS
+    if final and not final_test_ok:
+        raise SystemExit(f"Refusing the frozen {split} split without {FINAL_TEST_FLAG}.")
+    if final and git["git_dirty"]:
+        raise SystemExit(f"Refusing the frozen {split} split from a dirty Git tree; commit first.")
+    if final and limit is not None:
+        raise SystemExit(f"Refusing a partial run of the frozen {split} split (--limit).")
     if limit is not None and limit < 1:
         raise SystemExit("--limit must be at least 1.")
 
@@ -146,40 +155,41 @@ def check_approval(estimate: float, max_cost: float | None, approval: str | None
         )
 
 
-def test_run_configs(system: str) -> list[tuple[dict, bool]]:
-    """(run_config, completed) for every test-split run directory of `system`. Completed = it has
-    summary.json and no VOID.json; anything else (void, crashed) is not a completed run."""
+def test_run_configs(system: str, split: str = "test") -> list[tuple[dict, bool]]:
+    """(run_config, completed) for every run directory of `system` on the frozen `split`. Completed
+    = it has summary.json and no VOID.json; anything else (void, crashed) is not a completed run."""
     found = []
     for config_path in sorted(RESULTS_DIR.glob("*/run_config.json")):
         config = json.loads(config_path.read_text(encoding="utf-8"))
-        if config.get("split") == "test" and config.get("system") == system:
+        if config.get("split") == split and config.get("system") == system:
             run_dir = config_path.parent
             done = (run_dir / "summary.json").exists() and not (run_dir / VOID_FILE).exists()
             found.append((config, done))
     return found
 
 
-def completed_test_runs(system: str) -> list[str]:
-    """Run IDs of finished test-split runs of `system` (void and crashed runs excluded)."""
-    return [config["run_id"] for config, done in test_run_configs(system) if done]
+def completed_test_runs(system: str, split: str = "test") -> list[str]:
+    """Run IDs of finished runs of `system` on the frozen `split` (void and crashed excluded)."""
+    return [config["run_id"] for config, done in test_run_configs(system, split) if done]
 
 
 def check_same_identity_as_void_runs(config: dict) -> list[str]:
     """A rerun after a void test run must test the identical system (ADR-034) and carry a fresh
     owner approval, not the one the void run spent. Returns the void run IDs (recorded in the new
     run's config)."""
-    void = [c for c, done in test_run_configs(config["system"]) if not done]
+    void = [c for c, done in test_run_configs(config["system"], config["split"]) if not done]
     for earlier in void:
         if earlier.get("owner_approval") == config.get("owner_approval"):
             raise SystemExit(
-                f"Void test run {earlier['run_id']} used this same approval. A rerun after a void "
-                "run needs the owner's fresh typed approval (ADR-034); refusing."
+                f"Void {config['split']} run {earlier['run_id']} used this same approval. A rerun "
+                "after a void run needs the owner's fresh typed approval (ADR-034); refusing."
             )
         changed = [k for k in IDENTITY_KEYS if earlier.get(k) != config.get(k)]
         if changed:
             raise SystemExit(
-                f"Void test run {earlier['run_id']} tested a different system ({', '.join(changed)}"
-                "). A rerun after a void run must not change the system; refusing."
+                f"Void {config['split']} run {earlier['run_id']} tested a different system "
+                f"({', '.join(changed)}). A rerun after a void run must not change the system; "
+                "refusing."
             )
     return [c["run_id"] for c in void]
 
@@ -222,19 +232,22 @@ def require_same_questions(*run_dirs) -> list[str]:
 
 
 def check_once_only(split: str, system: str, rerun: bool, reason: str | None) -> dict | None:
-    """The frozen test split runs once per system (ADR-031). Returns the override record, if any."""
-    if split != "test":
+    """Each frozen test split runs once per system (ADR-031). Returns the override record, if any.
+    Completed runs of one frozen split never count for another."""
+    if split not in FINAL_SPLITS:
         if rerun or reason is not None:
-            raise SystemExit(f"{RERUN_FLAG} and --reason apply only to the test split.")
+            raise SystemExit(f"{RERUN_FLAG} and --reason apply only to the frozen test splits.")
         return None
-    previous = completed_test_runs(system)
+    previous = completed_test_runs(system, split)
     if not previous:
         if rerun or reason is not None:
-            raise SystemExit(f"No completed {system} test run exists; drop {RERUN_FLAG}/--reason.")
+            raise SystemExit(
+                f"No completed {system} {split} run exists; drop {RERUN_FLAG}/--reason."
+            )
         return None
     if not rerun or reason is None:
         raise SystemExit(
-            f"A completed {system} test run already exists ({', '.join(previous)}). The frozen "
+            f"A completed {system} {split} run already exists ({', '.join(previous)}). A frozen "
             f'test set runs once; to override, pass {RERUN_FLAG} and --reason "<why>".'
         )
     if len(reason.strip()) < MIN_REASON_CHARS:
@@ -440,17 +453,17 @@ def summarize(rows: list[dict]) -> dict:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--system", choices=["baseline", "agent", "closed_book"], required=True)
-    parser.add_argument("--split", choices=["dev", "test"], required=True)
+    parser.add_argument("--split", choices=["dev", *FINAL_SPLITS], required=True)
     parser.add_argument("--limit", type=int, help="first N dev questions only (smoke runs)")
     parser.add_argument(FINAL_TEST_FLAG, dest="final_test_ok", action="store_true")
     parser.add_argument(
         RERUN_FLAG,
         dest="rerun",
         action="store_true",
-        help="override the once-only rule for the test split (needs --reason)",
+        help="override the once-only rule for a frozen test split (needs --reason)",
     )
     parser.add_argument(
-        "--reason", help="why the test split is being run again (saved with the run)"
+        "--reason", help="why a frozen test split is being run again (saved with the run)"
     )
     parser.add_argument("--max-cost", type=float, help="soft spending stop for this run (USD)")
     parser.add_argument("--approval", help="the owner's approval text, word for word (saved)")
@@ -527,7 +540,7 @@ def main(argv: list[str] | None = None) -> None:
             ).hexdigest(),
             "closed_book_effort": closed_book.CLOSED_BOOK_EFFORT,
         }
-    if args.split == "test":  # before the new folder exists, so it is not compared with itself
+    if args.split in FINAL_SPLITS:  # before the new folder exists, so not compared with itself
         config["earlier_void_test_runs"] = check_same_identity_as_void_runs(config)
     out = create_run_dir(run_id)
     if override:
