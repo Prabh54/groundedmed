@@ -1,0 +1,105 @@
+{
+  "split": "test2",
+  "n_questions": 400,
+  "rules": {
+    "accuracy": "refusals and error rows count as incorrect",
+    "accuracy_interval": "Wilson 95%",
+    "difference": "paired bootstrap 95% over the same question IDs",
+    "sign_test": "exact two-sided, discordant pairs only",
+    "cost": "Anthropic LLM tokens at list price; Voyage not included"
+  },
+  "systems": {
+    "baseline": {
+      "n_questions": 400,
+      "correct": 306,
+      "refused": 16,
+      "refusal_reasons": {
+        "model_abstained": 2,
+        "weak_evidence": 14
+      },
+      "errors": 0,
+      "accuracy_pct": 76.5,
+      "accuracy_wilson95_pct": [
+        72.1,
+        80.39
+      ],
+      "cost_usd_total": 5.2368,
+      "cost_usd_per_question": 0.01309,
+      "median_time_per_answer_ms": 4673.4
+    },
+    "agent": {
+      "n_questions": 400,
+      "correct": 304,
+      "refused": 18,
+      "refusal_reasons": {
+        "model_abstained": 1,
+        "no_supported_claims": 3,
+        "weak_evidence": 14
+      },
+      "errors": 0,
+      "accuracy_pct": 76.0,
+      "accuracy_wilson95_pct": [
+        71.58,
+        79.93
+      ],
+      "cost_usd_total": 12.1631,
+      "cost_usd_per_question": 0.03041,
+      "median_time_per_answer_ms": 12579.2
+    }
+  },
+  "agent_vs_baseline": {
+    "agent_only_right": 8,
+    "baseline_only_right": 10,
+    "both_right": 296,
+    "both_wrong": 86,
+    "sign_test_p_exact_two_sided": 0.8145294189453125,
+    "accuracy_diff_agent_minus_baseline_points": -0.5,
+    "accuracy_diff_bootstrap95_points": [
+      -2.75,
+      1.75
+    ],
+    "bootstrap_range_excludes_zero": false,
+    "bootstrap_range_entirely_above_zero": false,
+    "bootstrap": {
+      "resamples": 2000,
+      "seed": 20261024,
+      "kind": "paired, by question"
+    }
+  },
+  "agent_retry": {
+    "questions_retried": 11,
+    "share_retried_pct": 2.75,
+    "first_pass_would_have_refused": 11,
+    "first_pass_would_have_answered": 0,
+    "retry_failed_first_pass_stood": 0,
+    "after_retry_right": 7,
+    "after_retry_answered_wrong": 1,
+    "after_retry_still_refused": 3,
+    "verdict_changes_first_draft_to_final": {
+      "no -> insufficient_evidence": 1,
+      "yes -> insufficient_evidence": 2,
+      "yes -> maybe": 1
+    },
+    "cost_usd_per_retried_question": 0.05617
+  },
+  "decision_rules": {
+    "adr_045_agent_at_or_above_baseline": {
+      "source": "DECISIONS.md ADR-045",
+      "quoted": "Supersedes for M15 the ADR-043 go/no-go \"DEV at least +3\" with the owner's \"at or above the same-day DEV baseline\".",
+      "applied_as": "agent correct >= baseline correct on the same test2 questions",
+      "note": "ADR-045 wrote this as the DEV go/no-go; applied to test2 at the owner's request (2026-11-10).",
+      "met": false
+    },
+    "adr_043_clearly_beats_preregistered": {
+      "source": "DECISIONS.md ADR-043 (not superseded)",
+      "quoted": "\"clearly beats\" = on test2, the paired bootstrap 95% range of agent minus baseline accuracy excludes zero AND the exact two-sided sign test p < 0.05.",
+      "applied_as": "bootstrap range excludes 0 AND sign test p < 0.05, with the agent ahead (\"beats\": a clear loss is not a win)",
+      "parts": {
+        "range_excludes_zero": false,
+        "sign_test_p_below_0_05": false,
+        "agent_ahead": false
+      },
+      "met": false
+    }
+  }
+}

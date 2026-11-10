@@ -1,0 +1,13 @@
+{
+  "run_id": "m15-test2-score-20261110-225734-bc0d65f",
+  "created_utc": "2026-11-10T22:57:34+00:00",
+  "git_commit": "bc0d65f08339126c975b98a91b6ff0a63a31fce1",
+  "git_dirty": false,
+  "git_diff_sha256": null,
+  "scored_split": "test2",
+  "inputs": {
+    "baseline": "test2-baseline-20261110-205943-9553791",
+    "agent": "test2-agent-20261110-213115-bd5773d"
+  },
+  "manifest_sha256": "de7021939eefe70781bec68ec2b9738472fa7dfc00f5abc588161cbdbaa36f06"
+}
