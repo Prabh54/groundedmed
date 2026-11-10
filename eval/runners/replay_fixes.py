@@ -9,7 +9,7 @@ validator with the real citation check and critic results, under four rule sets:
   B     = no veto when every validated claim was kept by the critic
   A+B   = both
 "none" must reproduce every stored verdict exactly, or the script stops and writes nothing.
-No model is called; DEV runs only (test and test2 are refused). Writes
+No model is called; DEV runs only (any other split is refused). Writes
 eval/results/dev-replay-<time>-<commit>/summary.json and rows.jsonl.
 """
 
