@@ -81,6 +81,7 @@ from eval.metrics.retrieval import gold_rank, mean_hit_at_k
 from eval.runners.retrieval import CORPUS_MANIFEST, RESULTS_DIR, git_state
 
 MANIFESTS = REPO_ROOT / "data" / "manifests"
+AGENT_RULES_FILE = REPO_ROOT / "backend" / "app" / "agents" / "rules.py"
 # Frozen test splits: guarded, once per system each. test2 = ADR-043 (M15-T9).
 FINAL_SPLITS = ("test", "test2")
 FINAL_TEST_FLAG = "--i-understand-this-is-the-final-test"
@@ -104,7 +105,7 @@ IDENTITY_KEYS = (
     "planner_user_template_sha256", "planner_effort", "critic_prompt_sha256",
     "critic_user_template_sha256", "critic_effort", "closed_book_prompt_sha256",
     "closed_book_user_template_sha256", "closed_book_effort", "agent_synthesizer_effort",
-    "retry_prompt", "retry_user_template_sha256", "veto_rule",
+    "retry_prompt", "retry_user_template_sha256", "veto_rule", "agent_rules_sha256",
 )  # fmt: skip
 
 
@@ -528,6 +529,8 @@ def main(argv: list[str] | None = None) -> None:
                 agent_reviser.RETRY_TEMPLATE.encode()
             ).hexdigest(),
             "veto_rule": "fix B: no veto when every citation-valid claim was kept",
+            # the deterministic keep/refuse rules themselves (ADR-045), not just their label
+            "agent_rules_sha256": hashlib.sha256(AGENT_RULES_FILE.read_bytes()).hexdigest(),
         }
     if args.system == "closed_book":
         config |= {

@@ -383,7 +383,7 @@ def main(argv: list[str] | None = None) -> None:
     dirs = {s: RESULTS_DIR / n for s, n in names.items()}
     for system, d in dirs.items():
         config = json.loads((d / "run_config.json").read_text(encoding="utf-8"))
-        if config["system"] != system or config["split"] != "test":
+        if config["system"] != system or config["split"] != "test":  # M4 set only (M15: own scorer)
             raise SystemExit(f"{d.name} is not a {system} test run; refusing.")
     ids = require_same_questions(*dirs.values())
     rows = {s: require_complete_run(d) for s, d in dirs.items()}

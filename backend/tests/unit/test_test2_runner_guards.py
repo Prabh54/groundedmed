@@ -76,7 +76,14 @@ def test_once_only_counts_each_frozen_split_separately(results):
 
 
 @pytest.mark.parametrize(
-    "key", ["agent_synthesizer_effort", "retry_prompt", "retry_user_template_sha256", "veto_rule"]
+    "key",
+    [
+        "agent_synthesizer_effort",
+        "retry_prompt",
+        "retry_user_template_sha256",
+        "veto_rule",
+        "agent_rules_sha256",
+    ],
 )
 def test_rerun_after_a_void_test2_run_cannot_change_the_adr044_settings(results, key):
     fake_run(results, "test2-agent-void", "test2", system="agent", completed=False,

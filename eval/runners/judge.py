@@ -40,7 +40,12 @@ from backend.app.config import REPO_ROOT
 from eval import judge_client as jc
 from eval import judge_rubric as jr
 from eval.runners.retrieval import RESULTS_DIR, git_state
-from eval.runners.run_system import check_approval, require_complete_run, require_same_questions
+from eval.runners.run_system import (
+    FINAL_SPLITS,
+    check_approval,
+    require_complete_run,
+    require_same_questions,
+)
 
 CORPUS = REPO_ROOT / "data" / "corpus.jsonl"
 VERSION_CHECK_EVERY = 25
@@ -564,15 +569,17 @@ def main(argv: list[str] | None = None) -> None:
     jr.check_frozen()
     split, question_ids, rows = load_pair(args.baseline_run, args.agent_run)
     if args.setup_check is not None and split != "dev":
-        raise SystemExit("--setup-check is for dev runs only; the test split is judged in full.")
+        raise SystemExit(
+            "--setup-check is for dev runs only; a frozen test split is judged in full."
+        )
     earlier_void = []
     if args.setup_check is None:
         runs = judge_runs_of_pair(args.baseline_run, args.agent_run)
         earlier = [c["run_id"] for c, s in runs if s == "complete"]
-        if split == "test" and earlier and (args.rerun_reason is None
+        if split in FINAL_SPLITS and earlier and (args.rerun_reason is None
                                             or len(args.rerun_reason.strip()) < 20):  # fmt: skip
-            raise SystemExit(f"Test pair already judged ({', '.join(earlier)}); a re-judge needs "
-                             "--rerun-reason (>= 20 chars), saved with the run.")  # fmt: skip
+            raise SystemExit(f"{split} pair already judged ({', '.join(earlier)}); a re-judge "
+                             "needs --rerun-reason (>= 20 chars), saved with the run.")  # fmt: skip
         earlier_void = [c for c, s in runs if s in ("void", "unfinished")]
         if earlier_void:
             check_fresh_approval(args.approval, earlier_void, "A re-judge")

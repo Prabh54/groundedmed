@@ -16,6 +16,8 @@ from scripts import lock_test2, prepare_dataset
 ROOT = Path(__file__).resolve().parents[3]
 MANIFESTS = ROOT / "data" / "manifests"
 
+FRONTEND_SOURCE = ("frontend/app", "frontend/components", "frontend/lib", "frontend/scripts")
+SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".mjs"}
 # Frozen on 2026-11-10 (M15-T1). Changing test2 needs a recorded reason; never edit this to match.
 FROZEN_TEST2_SHA256 = "de7021939eefe70781bec68ec2b9738472fa7dfc00f5abc588161cbdbaa36f06"
 
@@ -79,14 +81,18 @@ def test_lock_script_refuses_to_change_an_existing_test2(tmp_path, monkeypatch):
 
 
 def test_only_the_lock_script_and_the_guarded_runner_read_test2():
-    """M15-T9: the runner accepts test2 behind the final-test guards (test_test2_runner_guards.py);
-    nothing else (scorers, judge, app, scripts) may load it."""
+    """M15-T9: the runner accepts test2 behind the final-test guards (test_test2_runner_guards.py)
+    and score_test2 scores complete runs; nothing else (judge, app, frontend, scripts) loads it."""
     with pytest.raises(SystemExit, match="without --i-understand-this-is-the-final-test"):
         run_system.main(["--system", "agent", "--split", "test2"])  # refused before any read
     readers = [
         p.relative_to(ROOT).as_posix()
-        for folder in ("eval/runners", "eval/metrics", "scripts", "backend/app")
-        for p in (ROOT / folder).rglob("*.py")
-        if "test2" in p.read_text(encoding="utf-8")
+        for folder in ("eval", "scripts", "backend/app", *FRONTEND_SOURCE)
+        for p in (ROOT / folder).rglob("*")
+        if p.suffix in SOURCE_SUFFIXES and "test2" in p.read_text(encoding="utf-8")
     ]
-    assert sorted(readers) == ["eval/runners/run_system.py", "scripts/lock_test2.py"]
+    assert sorted(readers) == [
+        "eval/runners/run_system.py",
+        "eval/runners/score_test2.py",
+        "scripts/lock_test2.py",
+    ]
