@@ -155,7 +155,8 @@ def test_a_visitor_who_stays_gets_the_full_answer(fakes, capsys):
     llm, voyage = fakes(SlowLLM(None), SlowVoyage())
     sent = run_stream("agent", lambda text: False, "2.3")  # never leaves; the server finishes
     assert "event: result" in body_text(sent)
-    assert llm.calls == ["planner", "synthesizer", "critic"]
+    assert llm.calls[:3] == ["planner", "synthesizer", "critic"]
+    assert llm.calls[3:] in ([], ["synthesizer", "critic"])  # + the retry if the critic flagged
     assert '"event": "cancelled"' not in capsys.readouterr().out
 
 

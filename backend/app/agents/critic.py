@@ -5,6 +5,10 @@ The model returns a verdict per item ID; `apply_critic` (deterministic) keeps an
 result says keep + supported + citation_valid. `revise` counts as remove, an item without a result
 is removed (unverified), and results for unknown IDs are ignored. Kept items are the synthesizer's
 original objects, so critic text never reaches the answer.
+
+ADR-044: when the critic flags a draft, the critic stage runs one synthesizer retry with the
+critic's notes (agents/reviser.py) and checks the new draft once. The retry is the synthesizer
+writing, not the critic; its draft passes the same citation validator and critic rules.
 """
 
 import html
@@ -15,8 +19,9 @@ import anthropic
 from pydantic import BaseModel
 
 from backend.app.agents.graph import Node
+from backend.app.agents.reviser import needs_retry, revise
 from backend.app.config import REPO_ROOT
-from backend.app.llm.client import Effort, structured_call
+from backend.app.llm.client import Effort, LLMError, structured_call
 from backend.app.models.agent import CriticResult, ResearchState
 from backend.app.models.answer import Claim, DraftAnswer, LLMUsage
 from backend.app.models.retrieval import Candidate
@@ -123,17 +128,44 @@ def apply_critic(draft: DraftAnswer, results: list[CriticResult]) -> tuple[Draft
 
 
 def make_critic_node(client: anthropic.Anthropic) -> Node:
+    """Check the draft; if the critic flags it, one synthesizer retry with the critic's notes and
+    one re-check (ADR-044). The retry runs inside this stage, so the graph's stages are unchanged.
+    If the retry fails, the first pass stands (its cost is still counted)."""
+
     def critic(state: ResearchState) -> dict:
         draft = state["draft_answer"]
         if draft is None or not (draft.claims or draft.limitations):
             return {"critic_results": [], "answer_supported": None}  # nothing to check, no call
-        output, usage, _ = critique(client, state["question"], draft, state["selected_evidence"])
-        cleaned, _ = apply_critic(draft, output.results)
-        return {
-            "critic_results": output.results,
-            "answer_supported": output.answer_supported,
+        question, evidence = state["question"], state["selected_evidence"]
+        output, usage, _ = critique(client, question, draft, evidence)
+        update: dict = {"usage": [usage]}
+        final = (draft, output.results, output.answer_supported)
+        if needs_retry(draft, output.results, output.answer_supported, _kept):
+            update |= {"retry_used": True, "first_draft_answer": draft,
+                       "first_critic_results": output.results,
+                       "first_answer_supported": output.answer_supported}  # fmt: skip
+            try:
+                new_draft, retry_usage, _ = revise(
+                    client, question, draft, output.results, output.answer_supported, evidence
+                )
+                update["usage"].append(retry_usage)
+                if new_draft.claims or new_draft.limitations:
+                    recheck, recheck_usage, _ = critique(client, question, new_draft, evidence)
+                    update["usage"].append(recheck_usage)
+                    final = (new_draft, recheck.results, recheck.answer_supported)
+                else:  # e.g. the retry now says insufficient_evidence: nothing to re-check
+                    final = (new_draft, [], None)
+            except LLMError as exc:  # the first pass stands
+                update["retry_error"] = str(exc)[:300]
+                if exc.usage is not None:
+                    update["usage"].append(exc.usage)
+        final_draft, final_results, final_supported = final
+        cleaned, _ = apply_critic(final_draft, final_results)
+        return update | {
+            "draft_answer": final_draft,
+            "critic_results": final_results,
+            "answer_supported": final_supported,
             "claims": cleaned.claims,
-            "usage": [usage],
         }
 
     return critic

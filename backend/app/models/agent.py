@@ -74,6 +74,12 @@ class ResearchState(TypedDict):
     critic_results: list[CriticResult]
     answer_supported: bool | None  # critic's view of the verdict; None if the critic made no call
     critic_removed: list[str]  # item IDs the validator removed on the critic's results
+    # ADR-044 agent retry: set only when the critic flagged the first draft
+    retry_used: bool
+    retry_error: str | None
+    first_draft_answer: DraftAnswer | None
+    first_critic_results: list[CriticResult]
+    first_answer_supported: bool | None
     final_answer: FinalAnswer | None
     abstained: bool
     abstain_reason: AbstainReason | None
@@ -100,6 +106,11 @@ def initial_state(request_id: str, question: str) -> ResearchState:
         critic_results=[],
         answer_supported=None,
         critic_removed=[],
+        retry_used=False,
+        retry_error=None,
+        first_draft_answer=None,
+        first_critic_results=[],
+        first_answer_supported=None,
         final_answer=None,
         abstained=False,
         abstain_reason=None,

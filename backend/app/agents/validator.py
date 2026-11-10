@@ -5,7 +5,8 @@ Final validator, in order (pure Python, never calls an LLM):
 2. The citation validator on the synthesizer's draft (same checks and report as the baseline).
 3. The critic's removals on what survived (`apply_critic`; claims and limitations).
 4. Abstain `no_supported_claims` if a yes/no/maybe verdict has no claim left (validator or critic)
-   or the critic said `answer_supported: false`; `model_abstained` if the synthesizer said
+   or the critic said `answer_supported: false` while removing at least one claim (ADR-044 fix B:
+   no veto when every citation-valid claim was kept); `model_abstained` if the synthesizer said
    insufficient_evidence. The verdict is always the synthesizer's; nothing is ever added.
 """
 
@@ -85,8 +86,14 @@ def finalize(state: ResearchState) -> tuple[FinalAnswer, list[str]]:
         reason = "no_supported_claims"
     elif checked.verdict != "insufficient_evidence" and not checked.claims:
         reason = "no_supported_claims"  # the critic removed every claim
-    elif checked.verdict != "insufficient_evidence" and state["answer_supported"] is False:
-        reason = "no_supported_claims"  # claims survive but don't support the verdict
+    elif (
+        checked.verdict != "insufficient_evidence"
+        and state["answer_supported"] is False
+        and len(checked.claims) < len(validated.claims)
+    ):
+        # claims survive but don't support the verdict. Fix B (ADR-044): no veto when the critic
+        # kept every claim that passed the citation check.
+        reason = "no_supported_claims"
     elif checked.verdict == "insufficient_evidence":
         reason = "model_abstained"
     else:

@@ -65,12 +65,16 @@ def render_user_message(question: str, evidence: list[Candidate]) -> str:
 
 
 def synthesize(
-    client: anthropic.Anthropic, question: str, evidence: list[Candidate]
+    client: anthropic.Anthropic,
+    question: str,
+    evidence: list[Candidate],
+    effort: Effort = SYNTHESIZER_EFFORT,
 ) -> tuple[DraftAnswer, LLMUsage, float]:
+    """The baseline always uses SYNTHESIZER_EFFORT; the agent passes its own (ADR-044)."""
     return structured_call(
         client,
         system=SYSTEM_PROMPT,
         user=render_user_message(question, evidence),
         schema=DraftAnswer,
-        effort=SYNTHESIZER_EFFORT,
+        effort=effort,
     )

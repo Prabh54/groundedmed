@@ -178,7 +178,8 @@ def test_screen_failure_fails_closed_with_no_answer(api, capsys, fail):
 def test_research_question_is_answered_and_the_screen_cost_is_added(api, capsys):
     r = api.client.post("/query", json={"question": fakes_module.QUESTION, "mode": "agent"})
     assert r.status_code == 200 and not r.json()["abstained"]
-    assert api.llm.calls == ["planner", "synthesizer", "critic"]
+    # the fake critic flags a claim, so the agent's one retry and re-check run (ADR-044)
+    assert api.llm.calls == ["planner", "synthesizer", "critic", "synthesizer", "critic"]
     assert api.screen.calls[0]["model"] == ADVICE_MODEL
     line = [x for x in log_lines(capsys) if x.get("verdict") == "yes"][0]
     assert line["usage"][0]["model"] == ADVICE_MODEL

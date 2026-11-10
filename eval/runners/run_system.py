@@ -46,6 +46,7 @@ from datetime import UTC, datetime
 
 from backend.app.agents import critic as agent_critic
 from backend.app.agents import planner as agent_planner
+from backend.app.agents import reviser as agent_reviser
 from backend.app.agents.pipeline import answer_agent
 from backend.app.baseline.pipeline import answer_baseline
 from backend.app.baseline.synthesizer import (
@@ -324,6 +325,14 @@ def agent_fields(state) -> dict:
         # M15-T4: the synthesizer's draft (verdict, claims, limitations) before the critic and
         # validator, so rule-only changes can be replayed on stored runs. Eval records only.
         "draft_answer": state["draft_answer"].model_dump() if state["draft_answer"] else None,
+        # ADR-044 retry diagnostics (first pass kept only when a retry ran)
+        "retry_used": state["retry_used"],
+        "retry_error": state["retry_error"],
+        "first_draft_answer": (
+            state["first_draft_answer"].model_dump() if state["first_draft_answer"] else None
+        ),
+        "first_critic_results": [r.model_dump() for r in state["first_critic_results"]],
+        "first_answer_supported": state["first_answer_supported"],
         "_question_top20": sorted(question_top20),
     }
 
@@ -499,6 +508,13 @@ def main(argv: list[str] | None = None) -> None:
                 agent_critic.USER_TEMPLATE.encode()
             ).hexdigest(),
             "critic_effort": agent_critic.CRITIC_EFFORT,
+            # ADR-044: the agent's synthesizer effort (first pass and retry) and the retry turn
+            "agent_synthesizer_effort": agent_reviser.AGENT_SYNTHESIZER_EFFORT,
+            "retry_prompt": agent_reviser.RETRY_VERSION,
+            "retry_user_template_sha256": hashlib.sha256(
+                agent_reviser.RETRY_TEMPLATE.encode()
+            ).hexdigest(),
+            "veto_rule": "fix B: no veto when every citation-valid claim was kept",
         }
     if args.system == "closed_book":
         config |= {

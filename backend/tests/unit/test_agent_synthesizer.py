@@ -79,8 +79,13 @@ def test_model_request_is_identical_to_the_baseline_for_the_same_evidence(monkey
     pipeline.answer_baseline(QUESTION, llm=baseline_llm)
 
     assert len(agent_llm.calls) == len(baseline_llm.calls) == 1
-    assert agent_llm.calls[0] == baseline_llm.calls[0]  # system, user turn, schema, effort, model
-    assert "tools" not in agent_llm.calls[0]
+    agent_call, baseline_call = agent_llm.calls[0], baseline_llm.calls[0]
+    # ADR-044: same system prompt, user turn, schema and model; only the effort differs
+    assert agent_call["output_config"]["effort"] == "high"
+    assert baseline_call["output_config"]["effort"] == "medium"
+    strip = lambda call: {**call, "output_config": {**call["output_config"], "effort": None}}  # noqa: E731
+    assert strip(agent_call) == strip(baseline_call)
+    assert "tools" not in agent_call
 
 
 def test_only_the_selected_evidence_is_sent():
