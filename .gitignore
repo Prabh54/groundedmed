@@ -40,3 +40,5 @@ local-reports/
 # Free production check output (scripts/smoke_prod.py); the paid record smoke-prod-results.json IS committed
 docs/deploy/smoke-prod-results-free.json
 
+# R session history
+.Rhistory
