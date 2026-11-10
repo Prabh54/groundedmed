@@ -1,0 +1,170 @@
+{
+  "run_id": "failure-analysis-20261110-024657-7ef5fa8",
+  "created_at": "2026-11-10T02:46:57.108289+00:00",
+  "git_commit": "7ef5fa8d45336769de7f78c332e7fc1445eecc58",
+  "rubric": {
+    "file": "eval/rubric/failure_categories_v1.md",
+    "sha256": "4af5a06a24e238484b4ecc899d44cccbe7a464324c3bba7878504bc25b94c551"
+  },
+  "inputs": {
+    "agent": {
+      "file": "test-agent-20261025-200618-1f1e727/raw.jsonl",
+      "sha256": "773b19a980f3782b5ad78d351bd7f76f6fdc17a0338e10c5683cc3966dee46bf"
+    },
+    "baseline": {
+      "file": "test-baseline-20261025-194639-4ebd38d/raw.jsonl",
+      "sha256": "5b40cfb95d8dadb8b019594ef751e07ad64c34baafa68315cadafeb083eeaa57"
+    }
+  },
+  "n_questions": 200,
+  "agent_correct": 148,
+  "baseline_correct": 153,
+  "agent_accuracy": 0.74,
+  "baseline_accuracy": 0.765,
+  "agent_errors": 52,
+  "agent_answered_wrongly": 42,
+  "agent_refusals_scored_wrong": 10,
+  "agent_refusals_by_reason": {
+    "model_abstained": 2,
+    "no_supported_claims": 5,
+    "weak_evidence": 3
+  },
+  "answered_only": {
+    "agent": {
+      "answered": 190,
+      "correct": 148,
+      "accuracy": 0.7789473684210526
+    },
+    "baseline": {
+      "answered": 195,
+      "correct": 153,
+      "accuracy": 0.7846153846153846
+    }
+  },
+  "paired": {
+    "both_wrong": 47,
+    "agent_wrong_baseline_right": 5,
+    "baseline_wrong_agent_right": 0,
+    "exact_two_sided_sign_test_p": 0.0625
+  },
+  "categories": {
+    "refusal_evidence_gate": 3,
+    "refusal_model_abstained": 2,
+    "refusal_citation_check_left_no_claims": 0,
+    "refusal_critic_left_no_claims": 1,
+    "refusal_critic_rejected_answer": 4,
+    "answered_gold_not_rank_1": 3,
+    "answered_planner_added_baseline_right": 0,
+    "answered_maybe_boundary": 30,
+    "answered_yes_no_flip": 9
+  },
+  "categories_gap": {
+    "refusal_evidence_gate": 0,
+    "refusal_model_abstained": 0,
+    "refusal_citation_check_left_no_claims": 0,
+    "refusal_critic_left_no_claims": 1,
+    "refusal_critic_rejected_answer": 3,
+    "answered_gold_not_rank_1": 0,
+    "answered_planner_added_baseline_right": 0,
+    "answered_maybe_boundary": 1,
+    "answered_yes_no_flip": 0
+  },
+  "categories_shared": {
+    "refusal_evidence_gate": 3,
+    "refusal_model_abstained": 2,
+    "refusal_citation_check_left_no_claims": 0,
+    "refusal_critic_left_no_claims": 0,
+    "refusal_critic_rejected_answer": 1,
+    "answered_gold_not_rank_1": 3,
+    "answered_planner_added_baseline_right": 0,
+    "answered_maybe_boundary": 29,
+    "answered_yes_no_flip": 9
+  },
+  "overlaps_on_answered_errors": {
+    "answered_maybe_boundary": 1,
+    "answered_yes_no_flip": 2
+  },
+  "label_tables": {
+    "shared_gold_by_agent_verdict": {
+      "maybe": {
+        "insufficient_evidence": 1,
+        "no": 5,
+        "yes": 8
+      },
+      "no": {
+        "insufficient_evidence": 2,
+        "maybe": 4,
+        "yes": 6
+      },
+      "yes": {
+        "insufficient_evidence": 3,
+        "maybe": 13,
+        "no": 5
+      }
+    },
+    "shared_gold_by_baseline_verdict": {
+      "maybe": {
+        "no": 5,
+        "yes": 9
+      },
+      "no": {
+        "insufficient_evidence": 2,
+        "maybe": 4,
+        "yes": 6
+      },
+      "yes": {
+        "insufficient_evidence": 3,
+        "maybe": 13,
+        "no": 5
+      }
+    },
+    "gap_gold_by_agent_verdict": {
+      "maybe": {
+        "yes": 1
+      },
+      "no": {
+        "insufficient_evidence": 1
+      },
+      "yes": {
+        "insufficient_evidence": 3
+      }
+    }
+  },
+  "retrieval": {
+    "agent_gold_in_final_evidence": 200,
+    "errors_gold_not_rank_1": 3
+  },
+  "critic": {
+    "results_total": 897,
+    "results_not_keep": 103,
+    "questions_with_a_not_keep": 72,
+    "item_ids_removed": 102,
+    "questions_with_a_removal": 72
+  },
+  "stored_paired_bootstrap": {
+    "file": "m4-final-20261026-222211-498b76a/summary.json",
+    "sha256": "48be3903c63695733bcc54cbf486871c199c1957b11dc274927e8f277394c827",
+    "agent_minus_baseline_accuracy": {
+      "estimate": -0.025000000000000022,
+      "ci95": [
+        -0.050000000000000044,
+        -0.0050000000000000044
+      ],
+      "includes_zero": false,
+      "resamples_used": 2000,
+      "resamples": 2000,
+      "seed": 20261024
+    },
+    "agent_minus_baseline_answered_only_accuracy": {
+      "estimate": -0.005668016194331993,
+      "ci95": [
+        -0.02108668669752533,
+        0.006599912986088199
+      ],
+      "includes_zero": true,
+      "resamples_used": 2000,
+      "resamples": 2000,
+      "seed": 20261024
+    }
+  }
+}
