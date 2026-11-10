@@ -1,0 +1,52 @@
+{
+  "run_id": "test2-baseline-20261110-205943-9553791",
+  "system": "baseline",
+  "split": "test2",
+  "n_questions": 400,
+  "accuracy": 0.765,
+  "coverage": 0.96,
+  "answered_only_accuracy": 0.796875,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "insufficient_evidence": 16,
+    "maybe": 49,
+    "no": 119,
+    "yes": 216
+  },
+  "gold_counts": {
+    "maybe": 44,
+    "no": 136,
+    "yes": 220
+  },
+  "abstain_reasons": {
+    "weak_evidence": 14,
+    "model_abstained": 2
+  },
+  "hit_at_1": 0.98,
+  "hit_at_5": 0.995,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "limitations": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 4673.45,
+    "p95": 6018.09,
+    "p50_when_llm_called": 4712.0,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 1631412,
+    "output_incl_thinking": 184064
+  },
+  "cost_usd": {
+    "total": 5.2368,
+    "per_query": 0.01309
+  },
+  "complete": true,
+  "owner_approval": "Owner, 2026-11-10: \"OK, run the final test2 run, caps $6 (baseline, first) and $14 (agent).\" Then, after confirming the organisation limit is $55: \"Go ahead. Run the final test2 run exactly as in my last message: baseline first (cap $6), then agent (cap $14), all the same rules.\"",
+  "estimated_cost_usd": 6.0
+}
