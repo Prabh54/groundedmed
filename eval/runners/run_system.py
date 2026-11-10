@@ -321,6 +321,9 @@ def agent_fields(state) -> dict:
         "critic_results": [r.model_dump() for r in state["critic_results"]],
         "critic_removed": state["critic_removed"],
         "answer_supported": state["answer_supported"],
+        # M15-T4: the synthesizer's draft (verdict, claims, limitations) before the critic and
+        # validator, so rule-only changes can be replayed on stored runs. Eval records only.
+        "draft_answer": state["draft_answer"].model_dump() if state["draft_answer"] else None,
         "_question_top20": sorted(question_top20),
     }
 

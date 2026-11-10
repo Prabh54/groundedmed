@@ -109,6 +109,8 @@ def test_agent_run_stores_agent_diagnostics(runner):
     assert row["prompt_versions"] == {"planner": "v1", "synthesizer": "v3", "critic": "v1"}
     assert row["gold_in_question_top20"] is False and row["gold_in_pool"] is False
     assert row["correct"] == (row["verdict"] == row["gold_label"])
+    # M15-T4: the synthesizer's full draft is stored, including the item the critic removed
+    assert row["draft_answer"] == OUTPUTS["synthesizer"]
 
     agent = summary["agent"]
     assert agent["planner_added_evidence"] == {"mean": 1.0, "share_questions_gt0": 1.0,
@@ -162,6 +164,7 @@ def test_failed_question_still_counts_the_planner_cost(runner, monkeypatch):
     monkeypatch.setattr(retriever_module, "dense_search", flaky)
     rows, summary, _ = runner("--limit", "2")
     assert rows[0]["abstain_reason"] == "error" and rows[0]["error"]
+    assert rows[0].get("draft_answer") is None  # no synthesizer ran: nothing to store
     assert [u["model"] for u in rows[0]["usage"]] == ["claude-sonnet-5-5"]  # the planner call
     assert rows[0]["cost_usd"] == pytest.approx((1000 * 2 + 100 * 10) / 1e6)
     assert summary["cost_usd"]["total"] == pytest.approx(rows[0]["cost_usd"] + rows[1]["cost_usd"],
