@@ -231,6 +231,7 @@ a.logo { color: inherit; text-decoration: none; }
 .side li { margin: 6px 0; }
 .side.plus { background: #E8F6EF; }
 .side.minus { background: #FFF1E8; }
+.side.neutral { background: #F1F3F7; }
 .detail-title { font-size: 24px; font-weight: 600; margin: 36px 0 0; }
 .ci, .n { color: var(--navy-soft); font-size: 13px; }
 .table-wrap { overflow-x: auto; }

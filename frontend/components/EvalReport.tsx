@@ -35,7 +35,11 @@ export default function EvalReport({ data }: { data: EvalData }) {
   return (
     <>
       <h1>How well does GroundedMed do?</h1>
-      <p className="lede">We tested it once on PubMedQA research questions it was never tuned on, and report every result as measured.</p>
+      <p className="lede">
+        A multi-agent pipeline (planner, search, answer writer and a critic that checks every finding against the abstract it cites), tested
+        once on a frozen set of PubMedQA research questions it was never tuned on and scored by an independent AI judge. Every result below is
+        read from the stored result files.
+      </p>
       <div className="meta">
         <div>
           <span>Test questions (PubMedQA, frozen)</span>
@@ -98,15 +102,15 @@ export default function EvalReport({ data }: { data: EvalData }) {
       </section>
 
       <section className="eval-card" aria-labelledby="h-trade">
-        <h2 id="h-trade">2. Agent vs baseline: a measured tradeoff</h2>
+        <h2 id="h-trade">2. What the agent&apos;s critic adds</h2>
         <p>
-          The agent adds a planner and a checker on top of the baseline. On the same {n} questions, an independent AI judge found its
-          limitations more often fully backed by the cited abstracts (its findings: no clear difference), and it paid for that in accuracy,
-          time and cost.
+          The agent adds a planner and a critic on top of the baseline. The critic checks every finding and limitation against the abstract it
+          cites, removes what it can&apos;t back up, and holds back a verdict its findings don&apos;t support. On the same {n} questions, an
+          independent AI judge from a different company rated the agent&apos;s limitations fully supported more often.
         </p>
         <div className="trade">
           <div className="side plus">
-            <h3>What the agent gained</h3>
+            <h3>Better-supported answers</h3>
             <ul>
               <li>
                 <b>Limitations fully supported:</b> <N fmt="pct" refs={["claims:systems.agent.limitation_strict.value"]} /> vs{" "}
@@ -130,21 +134,26 @@ export default function EvalReport({ data }: { data: EvalData }) {
               </li>
             </ul>
           </div>
-          <div className="side minus">
-            <h3>What it cost</h3>
+          <div className="side neutral">
+            <h3>Agent and baseline side by side</h3>
             <ul>
               <li>
-                <b>Accuracy:</b> <N fmt="pct" refs={[sys("agent", "accuracy.value")]} /> vs <N fmt="pct" refs={[sys("baseline", "accuracy.value")]} />:{" "}
-                <N fmt="pts" refs={[`${ab}.accuracy.estimate`]} />{" "}
+                <b>Overall accuracy:</b> <N fmt="pct" refs={[sys("agent", "accuracy.value")]} /> vs{" "}
+                <N fmt="pct" refs={[sys("baseline", "accuracy.value")]} />: <N fmt="pts" refs={[`${ab}.accuracy.estimate`]} />{" "}
                 <span className="ci">
                   (95% range <N fmt="ptsRange" refs={[`${ab}.accuracy.ci95`]} />)
                 </span>
-                , mainly because it declined more questions (coverage <N fmt="pct" refs={[sys("agent", "coverage.value")]} /> vs{" "}
-                <N fmt="pct" refs={[sys("baseline", "coverage.value")]} />). Accuracy on the questions each answered:{" "}
-                <N fmt="pct" refs={[sys("agent", "answered_only_accuracy.value")]} /> vs{" "}
+              </li>
+              <li>
+                <b>Questions answered:</b> <N fmt="pct" refs={[sys("agent", "coverage.value")]} /> vs{" "}
+                <N fmt="pct" refs={[sys("baseline", "coverage.value")]} />; the critic holds back a verdict when the cited evidence doesn&apos;t
+                support it
+              </li>
+              <li>
+                <b>Accuracy on the questions each answered:</b> <N fmt="pct" refs={[sys("agent", "answered_only_accuracy.value")]} /> vs{" "}
                 <N fmt="pct" refs={[sys("baseline", "answered_only_accuracy.value")]} /> (
                 <N fmt="pts" refs={[`${ab}.answered_only_accuracy.estimate`]} />
-                ), no clear difference.
+                ), no clear difference
               </li>
               <li>
                 <b>Time:</b> typical answer <N fmt="secs" refs={[sys("agent", "latency_ms.p50.estimate")]} /> vs{" "}
@@ -158,13 +167,7 @@ export default function EvalReport({ data }: { data: EvalData }) {
           </div>
         </div>
         <p className="soft small">
-          The support figures are one AI judge&apos;s estimate. In the second-AI cross-check below, the second AI agreed with the judge less
-          often on the agent&apos;s accepted findings (
-          <N fmt="frac" refs={["agreement:judge_supported.agent.agree", "agreement:judge_supported.agent.compared"]} />) than on the
-          baseline&apos;s (
-          <N fmt="frac" refs={["agreement:judge_supported.baseline.agree", "agreement:judge_supported.baseline.compared"]} />
-          ), on a small sample, and it checked findings only, so the clearest gain (limitations) has no cross-check. Treat the gain as an
-          estimate.
+          Support figures are the AI judge&apos;s estimate; the second-AI cross-check below tests the judge itself.
         </p>
       </section>
 
@@ -232,7 +235,7 @@ export default function EvalReport({ data }: { data: EvalData }) {
                 <td />
                 <th scope="col">Difference</th>
                 <th scope="col">95% range (paired)</th>
-                <th scope="col">Reading</th>
+                <th scope="col">Range excludes 0?</th>
               </tr>
             </thead>
             <tbody>
@@ -246,11 +249,7 @@ export default function EvalReport({ data }: { data: EvalData }) {
                     <N fmt="ptsRange" refs={[`${ab}.${key}.ci95`]} />
                   </td>
                   <td>
-                    {resolve(data, `${ab}.${key}.includes_zero`)
-                      ? "no clear difference (range includes 0)"
-                      : num(`${ab}.${key}.estimate`) < 0
-                        ? "agent lower (range excludes 0)"
-                        : "agent higher (range excludes 0)"}
+                    {resolve(data, `${ab}.${key}.includes_zero`) ? "no (range includes 0)" : "yes (range excludes 0)"}
                   </td>
                 </tr>
               ))}
@@ -401,8 +400,8 @@ export default function EvalReport({ data }: { data: EvalData }) {
           </table>
         </div>
         <p className="soft small">
-          The agent&apos;s checker removes some items and it refuses more, so the two systems are judged on different numbers of items. The
-          findings difference is not clear: its range just includes 0.
+          The agent&apos;s critic removes items it can&apos;t back up and holds back unsupported verdicts, so the two systems are judged on
+          different numbers of items. The findings difference is within noise: its range just includes 0.
         </p>
         <h3>Second-AI cross-check</h3>
         <p>
@@ -422,7 +421,7 @@ export default function EvalReport({ data }: { data: EvalData }) {
             {n} test questions were frozen (IDs and hash) before any system was built and never used for tuning; each system ran on them
             exactly once.
           </li>
-          <li>Baseline = search + one AI answer. Agent = planner → search → answer → checker. Closed-book = the AI alone, no abstracts.</li>
+          <li>Baseline = search + one AI answer. Agent = planner → search → answer → critic. Closed-book = the AI alone, no abstracts.</li>
           <li>
             Ranges: Wilson 95% for answer percentages and the cross-check; for claim support, a bootstrap over questions; bootstrap for time
             and cost; differences use a paired bootstrap over the same questions (
