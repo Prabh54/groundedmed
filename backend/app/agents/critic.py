@@ -6,9 +6,10 @@ result says keep + supported + citation_valid. `revise` counts as remove, an ite
 is removed (unverified), and results for unknown IDs are ignored. Kept items are the synthesizer's
 original objects, so critic text never reaches the answer.
 
-ADR-044: when the critic flags a draft, the critic stage runs one synthesizer retry with the
-critic's notes (agents/reviser.py) and checks the new draft once. The retry is the synthesizer
-writing, not the critic; its draft passes the same citation validator and critic rules.
+ADR-044/045: when the critic flags a draft that would be refused, the critic stage runs one
+synthesizer retry with the critic's notes (agents/reviser.py) and checks the new draft once.
+The retry is the synthesizer writing, not the critic; its draft passes the same citation validator
+and critic rules. The deterministic rules live in agents/rules.py.
 """
 
 import html
@@ -20,6 +21,7 @@ from pydantic import BaseModel
 
 from backend.app.agents.graph import Node
 from backend.app.agents.reviser import needs_retry, revise
+from backend.app.agents.rules import _kept, apply_critic, refusal_reason  # noqa: F401 (re-exported)
 from backend.app.config import REPO_ROOT
 from backend.app.llm.client import Effort, LLMError, structured_call
 from backend.app.models.agent import CriticResult, ResearchState
@@ -103,34 +105,11 @@ def critique(
     )
 
 
-def _kept(result: CriticResult | None) -> bool:
-    return (
-        result is not None
-        and result.action == "keep"
-        and result.supported
-        and result.citation_valid
-    )
-
-
-def apply_critic(draft: DraftAnswer, results: list[CriticResult]) -> tuple[DraftAnswer, list[str]]:
-    """Return (draft with only kept items, removed item IDs). Never adds or edits text: the verdict
-    and every kept item are the synthesizer's own."""
-    by_id: dict[str, CriticResult] = {}
-    for r in results:
-        by_id.setdefault(r.claim_id, r)  # first result per ID wins; duplicates can't overrule it
-    removed = [i.id for i in draft.claims + draft.limitations if not _kept(by_id.get(i.id))]
-    cleaned = DraftAnswer(
-        verdict=draft.verdict,
-        claims=[c for c in draft.claims if c.id not in removed],
-        limitations=[item for item in draft.limitations if item.id not in removed],
-    )
-    return cleaned, removed
-
-
 def make_critic_node(client: anthropic.Anthropic) -> Node:
-    """Check the draft; if the critic flags it, one synthesizer retry with the critic's notes and
-    one re-check (ADR-044). The retry runs inside this stage, so the graph's stages are unchanged.
-    If the retry fails, the first pass stands (its cost is still counted)."""
+    """Check the draft. If the critic flags it AND the first pass would be refused, one synthesizer
+    retry with the critic's notes and one re-check (ADR-044, ADR-045: a first pass that would be
+    answered is kept as it is). The retry runs inside this stage, so the graph's stages are
+    unchanged. If the retry fails, the first pass stands (its cost is still counted)."""
 
     def critic(state: ResearchState) -> dict:
         draft = state["draft_answer"]
@@ -140,7 +119,11 @@ def make_critic_node(client: anthropic.Anthropic) -> Node:
         output, usage, _ = critique(client, question, draft, evidence)
         update: dict = {"usage": [usage]}
         final = (draft, output.results, output.answer_supported)
-        if needs_retry(draft, output.results, output.answer_supported, _kept):
+        evidence_ids = [c.citation_id for c in evidence]
+        first = refusal_reason(draft, evidence_ids, output.results, output.answer_supported)
+        if first[0] is not None and needs_retry(
+            draft, output.results, output.answer_supported, _kept
+        ):
             update |= {"retry_used": True, "first_draft_answer": draft,
                        "first_critic_results": output.results,
                        "first_answer_supported": output.answer_supported}  # fmt: skip

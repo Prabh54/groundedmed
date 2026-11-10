@@ -10,9 +10,10 @@ Final validator, in order (pure Python, never calls an LLM):
    insufficient_evidence. The verdict is always the synthesizer's; nothing is ever added.
 """
 
-from backend.app.agents.critic import CRITIC_VERSION, apply_critic
+from backend.app.agents.critic import CRITIC_VERSION
 from backend.app.agents.graph import Node
 from backend.app.agents.planner import PLANNER_VERSION
+from backend.app.agents.rules import refusal_reason
 from backend.app.baseline.pipeline import (
     ERROR_SUMMARY,
     WEAK_EVIDENCE_SUMMARY,
@@ -20,7 +21,6 @@ from backend.app.baseline.pipeline import (
 )
 from backend.app.baseline.synthesizer import SYNTHESIZER_VERSION
 from backend.app.config import EVIDENCE_GATE_DENSE_THRESHOLD, EVIDENCE_GATE_THRESHOLD
-from backend.app.guardrails.citation_validator import validate
 from backend.app.guardrails.evidence_gate import gate_passes, top_rerank_score
 from backend.app.models.agent import ResearchState
 from backend.app.models.answer import FinalAnswer, ValidationReport
@@ -79,25 +79,12 @@ def finalize(state: ResearchState) -> tuple[FinalAnswer, list[str]]:
     if draft is None:  # cannot happen in the fixed graph; never answer without a draft
         raise RuntimeError("validator reached without a draft answer")
 
-    validated, report = validate(draft, [c.citation_id for c in state["selected_evidence"]])
-    checked, critic_removed = apply_critic(validated, state["critic_results"])
-
-    if report.downgraded_to_insufficient:
-        reason = "no_supported_claims"
-    elif checked.verdict != "insufficient_evidence" and not checked.claims:
-        reason = "no_supported_claims"  # the critic removed every claim
-    elif (
-        checked.verdict != "insufficient_evidence"
-        and state["answer_supported"] is False
-        and len(checked.claims) < len(validated.claims)
-    ):
-        # claims survive but don't support the verdict. Fix B (ADR-044): no veto when the critic
-        # kept every claim that passed the citation check.
-        reason = "no_supported_claims"
-    elif checked.verdict == "insufficient_evidence":
-        reason = "model_abstained"
-    else:
-        reason = None
+    reason, checked, report, critic_removed = refusal_reason(
+        draft,
+        [c.citation_id for c in state["selected_evidence"]],
+        state["critic_results"],
+        state["answer_supported"],
+    )
 
     if reason == "no_supported_claims":
         verdict, claims, limitations = "insufficient_evidence", [], []

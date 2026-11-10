@@ -251,17 +251,16 @@ def test_graph_end_to_end_removes_the_unsupported_claim():
     llm = FakeLLM()
     final = run(llm)
     answer = final["final_answer"]
-    # the critic removed c2, so the agent ran its one retry and re-check (ADR-044); the fake
-    # synthesizer repeats its draft, so the re-check removes c2 again
-    assert llm.calls == ["planner", "synthesizer", "critic", "synthesizer", "critic"]
-    assert final["retry_used"] is True and final["first_draft_answer"] is not None
+    # the critic removed c2 but kept c1, so the first pass is answered and no retry runs (ADR-045)
+    assert llm.calls == ["planner", "synthesizer", "critic"]
+    assert final["retry_used"] is False and final["first_draft_answer"] is None
     assert answer.verdict == "yes" and not answer.abstained
     assert [c.id for c in answer.claims] == ["c1"] and answer.answer == "Delirium was shorter."
     assert final["critic_removed"] == ["c2"]
     assert [s.query for s in final["subquestions"]] == ["mobilization delirium trial"]
     assert len(final["retrieved_candidates"]) == 6  # 5 + paper 106 from the sub-query
     llm_cost = sum(u.cost_usd for u in answer.usage if isinstance(u, LLMUsage))
-    assert llm_cost == pytest.approx(5 * (1000 * 2 + 100 * 10) / 1e6)  # + retry and re-check
+    assert llm_cost == pytest.approx(3 * (1000 * 2 + 100 * 10) / 1e6)  # planner, synth, critic
     assert answer.estimated_cost_usd > llm_cost  # + Voyage embedding and rerank (list price)
     stages = {"planner", "retriever", "gate", "synthesizer", "critic", "validator"}
     assert stages <= set(final["timings"])

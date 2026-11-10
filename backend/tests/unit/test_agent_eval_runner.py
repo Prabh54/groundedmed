@@ -133,12 +133,12 @@ def void_run(tmp_path):
 
 
 def test_cost_cap_stops_before_exceeding_and_voids_the_run(runner, tmp_path):
-    # each fake question costs 5 x $0.003 (the fake critic flags c2, so the ADR-044 retry and
-    # re-check run) + Voyage list price; allowance $0.05 per question: q3 needs 0.03 + 0.05 > 0.07
+    # each fake question costs 3 x $0.003 + Voyage list price (c1 survives, so no ADR-045 retry);
+    # allowance $0.05 per question
     with pytest.raises(SystemExit, match="VOID run"):
         runner("--limit", "10", "--max-cost", "0.07")
     void, rows = void_run(tmp_path)
-    assert void["questions_done"] == 2 == len(rows) and void["questions_planned"] == 10
+    assert void["questions_done"] == 3 == len(rows) and void["questions_planned"] == 10
     assert "cost cap" in void["reason"] and sum(r["cost_usd"] for r in rows) <= 0.07
 
 
@@ -175,12 +175,11 @@ def test_failed_question_still_counts_the_planner_cost(runner, monkeypatch):
 def test_cost_stop_margin_grows_with_the_most_expensive_question(runner, monkeypatch, tmp_path):
     """Margin = max($0.05, 2 x the most expensive question so far)."""
     monkeypatch.setattr(run_system, "PER_QUESTION_ALLOWANCE", 0.001)
-    # each fake question costs ~$0.015 (with the ADR-044 retry), so the margin is ~$0.03:
-    # q2 needs 0.015 + 0.03 <= 0.05, q3 would need 0.03 + 0.03 > 0.05
+    # each fake question costs ~$0.009, so the margin is ~$0.018: q3 would need 0.018 + 0.018
     with pytest.raises(SystemExit, match="VOID run"):
-        runner("--limit", "10", "--max-cost", "0.05")
+        runner("--limit", "10", "--max-cost", "0.03")
     _, rows = void_run(tmp_path)
-    assert len(rows) == 2 and sum(r["cost_usd"] for r in rows) <= 0.05
+    assert len(rows) == 2 and sum(r["cost_usd"] for r in rows) <= 0.03
 
 
 # --- approval guard ---------------------------------------------

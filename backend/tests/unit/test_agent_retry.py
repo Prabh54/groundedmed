@@ -66,9 +66,24 @@ def test_no_flag_no_retry():
     assert [c.id for c in out["claims"]] == ["c1", "c2"] and len(out["usage"]) == 1
 
 
-def test_flagged_claim_gets_one_retry_at_high_effort_and_one_recheck():
+def test_flag_without_refusal_keeps_the_first_pass():
+    """ADR-045: c2 removed but c1 survives, so the first pass is answered: no retry."""
+    llm = ScriptedLLM(check("c1", ("c2", "remove")))
+    out = run(llm)
+    assert llm.calls == [("critic", "low")] and not out.get("retry_used")
+    assert [c.id for c in out["claims"]] == ["c1"]
+
+
+def test_veto_with_every_claim_kept_is_answered_without_retry():
+    """Fix B: the veto alone, with every claim kept, is not a refusal, so no retry."""
+    llm = ScriptedLLM(check("c1", "c2", supported=False))
+    out = run(llm)
+    assert len(llm.calls) == 1 and not out.get("retry_used")
+
+
+def test_would_be_refusal_gets_one_retry_at_high_effort_and_one_recheck():
     new = draft("maybe", ("c1",))
-    llm = ScriptedLLM(check("c1", ("c2", "revise")), new, check("c1"))
+    llm = ScriptedLLM(check(("c1", "revise"), ("c2", "remove")), new, check("c1"))
     out = run(llm)
     assert llm.calls == [("critic", "low"), ("synthesizer", "high"), ("critic", "low")]
     assert out["retry_used"] is True and out["draft_answer"].verdict == "maybe"  # verdict changed
@@ -76,28 +91,30 @@ def test_flagged_claim_gets_one_retry_at_high_effort_and_one_recheck():
     assert [c.id for c in out["claims"]] == ["c1"] and len(out["usage"]) == 3
 
 
-def test_veto_alone_triggers_the_retry():
-    llm = ScriptedLLM(check("c1", "c2", supported=False), draft("maybe"), check("c1", "c2"))
+def test_veto_with_a_removed_claim_triggers_the_retry():
+    llm = ScriptedLLM(check("c1", ("c2", "remove"), supported=False), draft("maybe"),
+                      check("c1", "c2"))  # fmt: skip
     out = run(llm)
     assert out["retry_used"] is True and out["answer_supported"] is True
 
 
 def test_never_more_than_one_retry():
-    llm = ScriptedLLM(check(("c1", "remove"), "c2"), draft(), check(("c1", "remove"), "c2"))
+    first = check(("c1", "remove"), ("c2", "remove"))
+    llm = ScriptedLLM(first, draft(), check(("c1", "remove"), "c2"))
     out = run(llm)
     assert len(llm.calls) == 3 and llm.outputs == []
     assert [c.id for c in out["claims"]] == ["c2"]  # the re-check's removal stands
 
 
 def test_failed_retry_keeps_the_first_pass_and_counts_its_cost():
-    llm = ScriptedLLM(check(("c1", "revise"), "c2"), "fail")
+    llm = ScriptedLLM(check(("c1", "revise"), ("c2", "remove")), "fail")
     out = run(llm)
     assert out["retry_error"] and out["draft_answer"].verdict == "yes"
-    assert [c.id for c in out["claims"]] == ["c2"] and len(out["usage"]) == 2
+    assert out["claims"] == [] and len(out["usage"]) == 2  # the validator will refuse, as before
 
 
 def test_retry_that_abstains_needs_no_recheck():
-    llm = ScriptedLLM(check("c1", "c2", supported=False), draft("insufficient_evidence", ()))
+    llm = ScriptedLLM(check(("c1", "remove"), ("c2", "remove")), draft("insufficient_evidence", ()))
     out = run(llm)
     assert len(llm.calls) == 2 and out["critic_results"] == [] and out["answer_supported"] is None
 
