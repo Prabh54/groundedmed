@@ -1,0 +1,76 @@
+{
+  "run_id": "test2-agent-20261110-213115-bd5773d",
+  "system": "agent",
+  "split": "test2",
+  "n_questions": 400,
+  "accuracy": 0.76,
+  "coverage": 0.955,
+  "answered_only_accuracy": 0.7958115183246073,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "insufficient_evidence": 18,
+    "maybe": 47,
+    "no": 118,
+    "yes": 217
+  },
+  "gold_counts": {
+    "maybe": 44,
+    "no": 136,
+    "yes": 220
+  },
+  "abstain_reasons": {
+    "weak_evidence": 14,
+    "no_supported_claims": 3,
+    "model_abstained": 1
+  },
+  "hit_at_1": 0.98,
+  "hit_at_5": 0.995,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "limitations": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 12579.2,
+    "p95": 17206.425,
+    "p50_when_llm_called": 12622.05,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 3500008,
+    "output_incl_thinking": 491853
+  },
+  "cost_usd": {
+    "total": 12.1631,
+    "per_query": 0.03041
+  },
+  "agent": {
+    "planner_added_evidence": {
+      "mean": 0.29,
+      "share_questions_gt0": 0.2375,
+      "questions_gt0": 95,
+      "gold_found_only_via_subqueries": 0
+    },
+    "mean_candidates": 36.1675,
+    "critic": {
+      "answers_checked": 386,
+      "items_checked": 1866,
+      "items_removed": 161,
+      "answers_with_removals": 119,
+      "answer_supported_false": 13,
+      "answers_abstained_by_critic": 3
+    },
+    "stage_latency_p50_ms": {
+      "planner": 2649.05,
+      "retriever": 1181.95,
+      "synthesizer": 4368.1,
+      "critic": 4256.15
+    }
+  },
+  "complete": true,
+  "owner_approval": "Owner, 2026-11-10: \"OK, run the final test2 run, caps $6 (baseline, first) and $14 (agent).\" Then, after confirming the organisation limit is $55: \"Go ahead. Run the final test2 run exactly as in my last message: baseline first (cap $6), then agent (cap $14), all the same rules.\"",
+  "estimated_cost_usd": 14.0
+}
