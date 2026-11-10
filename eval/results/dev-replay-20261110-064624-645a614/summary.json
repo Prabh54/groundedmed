@@ -1,0 +1,61 @@
+{
+  "run_id": "dev-replay-20261110-064624-645a614",
+  "created_at": "2026-11-10T06:46:24.392384+00:00",
+  "git_commit": "645a614efe2053d134d3e807d9959311b6f5cbb6",
+  "agent_run": "dev-agent-20261110-062447-c61777b",
+  "agent_run_cost_usd": 2.83528258,
+  "baseline_run": "dev-baseline-20261023-033422-9396a90",
+  "baseline_correct": 76,
+  "model_calls": 0,
+  "none_reproduces_stored_verdicts": true,
+  "rules": {
+    "none": {
+      "correct": 73,
+      "n": 100,
+      "accuracy": 0.73,
+      "refused": 10,
+      "vs_baseline": {
+        "agent_only_right": 0,
+        "baseline_only_right": 3,
+        "sign_test_p": 0.25
+      },
+      "published_items_marked_revise": 0
+    },
+    "A": {
+      "correct": 73,
+      "n": 100,
+      "accuracy": 0.73,
+      "refused": 10,
+      "vs_baseline": {
+        "agent_only_right": 0,
+        "baseline_only_right": 3,
+        "sign_test_p": 0.25
+      },
+      "published_items_marked_revise": 21
+    },
+    "B": {
+      "correct": 75,
+      "n": 100,
+      "accuracy": 0.75,
+      "refused": 6,
+      "vs_baseline": {
+        "agent_only_right": 0,
+        "baseline_only_right": 1,
+        "sign_test_p": 1.0
+      },
+      "published_items_marked_revise": 0
+    },
+    "A+B": {
+      "correct": 75,
+      "n": 100,
+      "accuracy": 0.75,
+      "refused": 6,
+      "vs_baseline": {
+        "agent_only_right": 0,
+        "baseline_only_right": 1,
+        "sign_test_p": 1.0
+      },
+      "published_items_marked_revise": 23
+    }
+  }
+}
