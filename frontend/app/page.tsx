@@ -10,7 +10,7 @@ export default function Home() {
           Grounded<span>Med</span>
         </div>
         <Link className="nav-pill" href="/eval">
-          How well does it work? →
+          How it&apos;s built and tested →
         </Link>
       </header>
       <Ask />

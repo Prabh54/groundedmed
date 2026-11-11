@@ -5,8 +5,8 @@ import EvalReport from "@/components/EvalReport";
 import { loadEval } from "@/lib/evalData";
 
 export const metadata: Metadata = {
-  title: "How well does it work? · GroundedMed",
-  description: "Measured results of GroundedMed on frozen PubMedQA test questions, with ranges and limitations.",
+  title: "How it's built and tested · GroundedMed",
+  description: "How GroundedMed's agentic RAG pipeline works and how it was tested on two frozen PubMedQA test sets, with ranges and limitations.",
 };
 
 // Static: the stored result files are read once at build time, never on page load.

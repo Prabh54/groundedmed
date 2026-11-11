@@ -8,7 +8,7 @@ import { formatRefs, resolve, type Format, type Ref } from "./evalFormat.ts";
 // A small page in the built format (React's <span data-src data-fmt>), made from the real stored values.
 const data = loadEval()!;
 const n = (fmt: Format, ...refs: Ref[]) => `<span data-src="${refs.join("|")}" data-fmt="${fmt}">${formatRefs(data, fmt, refs)}</span>`;
-const WORDING = "Second-AI cross-check No person checked these items. fully supported AI-judge estimate";
+const WORDING = "Second-AI cross-check No person checked these items. fully supported AI-judge estimate statistically tied";
 const page = (body: string) =>
   `<html><main><p>${n("pct", "summary:systems.baseline.accuracy.value")} ${n("frac", "summary:systems.agent.accuracy.count", "summary:systems.agent.accuracy.n")}` +
   ` (95% range ${n("ptsRange", "summary:comparisons.agent_minus_baseline.accuracy.ci95")}) Hit@5 (source paper in the top 5)</p>` +
@@ -31,6 +31,11 @@ const SABOTAGES: [string, (h: string) => string, RegExp][] = [
   ["a number dressed as an axis tick", (h) => h.replace('<text class="tick">40%</text>', '<text class="tick">99.9%</text>'), /unexpected axis tick/],
   ["'at least partly supported' wording", (h) => h.replace(WORDING, `${WORDING} at least partly supported`), /forbidden wording/],
   ["claiming a person checked the items", (h) => h.replace("No person checked these items.", "These items were manually checked."), /forbidden wording .*manual/],
+  ["the accuracy result worded as a win", (h) => h.replace(WORDING, `${WORDING} the agent beats the baseline`), /forbidden wording/],
+  ["the accuracy result worded as a loss", (h) => h.replace(WORDING, `${WORDING} the agent lost to the baseline`), /forbidden wording/],
+  ["'outperforms' wording", (h) => h.replace(WORDING, `${WORDING} it outperforms`), /forbidden wording/],
+  ["a test2 percent shown with the wrong value", (h) => h.replace(page(""), page(n("pctP", "t2_score:systems.agent.accuracy_pct").replace(">76.0%<", ">77.0%<"))), /page shows "77.0%"/],
+  ["a version label used to hide a number", (h) => h.replace(page(""), page("<p>v1.1.0 76.0%</p>")), /unsourced number/],
   ["a ref that does not exist", (h) => h.replace("accuracy.ci95", "accuracy.ci99"), /missing summary:/],
 ];
 for (const [name, sabotage, expected] of SABOTAGES) {
@@ -87,3 +92,27 @@ function parseCsv(text: string): string[][] {
   rows[rows.length - 1].push(field);
   return rows;
 }
+
+test("the latest test's reading words are checked against the stored test2 score", () => {
+  type T2 = { t2_score: { agent_vs_baseline: { bootstrap_range_excludes_zero: boolean; sign_test_p_exact_two_sided: number }; agent_retry: { questions_retried: number } } };
+  const clear = structuredClone(data) as typeof data & T2;
+  clear.t2_score.agent_vs_baseline.bootstrap_range_excludes_zero = true;
+  assert.ok(checkEvalHtml(page(""), clear, 3).problems.some((p) => /statistically tied/.test(p)));
+  const significant = structuredClone(data) as typeof data & T2;
+  significant.t2_score.agent_vs_baseline.sign_test_p_exact_two_sided = 0.01;
+  assert.ok(checkEvalHtml(page(""), significant, 3).problems.some((p) => /statistically tied/.test(p)));
+  const retried = structuredClone(data) as typeof data & T2;
+  retried.t2_score.agent_retry.questions_retried += 1;
+  assert.ok(checkEvalHtml(page(""), retried, 3).problems.some((p) => /otherwise have been refused/.test(p)));
+  const otherRun = structuredClone(data) as typeof data & { t2_agent: { run_id: string } };
+  otherRun.t2_agent.run_id = "test2-agent-other";
+  assert.ok(checkEvalHtml(page(""), otherRun, 3).problems.some((p) => /scored the runs the page reads/.test(p)));
+});
+
+test("test2 score values are percent and points already, formatted without scaling", () => {
+  assert.equal(formatRefs(data, "pctP", ["t2_score:systems.agent.accuracy_pct"]), "76.0%");
+  assert.equal(formatRefs(data, "pctPRange", ["t2_score:systems.baseline.accuracy_wilson95_pct"]), "72.1–80.4%");
+  assert.equal(formatRefs(data, "ptsP", ["t2_score:agent_vs_baseline.accuracy_diff_agent_minus_baseline_points"]), "−0.5 pts");
+  assert.equal(formatRefs(data, "ptsPRange", ["t2_score:agent_vs_baseline.accuracy_diff_bootstrap95_points"]), "−2.75 to +1.75");
+  assert.equal(formatRefs(data, "p2", ["t2_score:agent_vs_baseline.sign_test_p_exact_two_sided"]), "0.81");
+});

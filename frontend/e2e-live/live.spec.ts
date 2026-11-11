@@ -17,7 +17,7 @@ test("home page loads with its examples and footer", async ({ page }) => {
 
 test("/eval loads its numbers and the note that the advice screen is outside the benchmark", async ({ page }) => {
   await page.goto("/eval");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("How well does GroundedMed do?");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("How GroundedMed is built and tested");
   await expect(page.getByText("Evaluation not run")).toHaveCount(0);
   expect(await page.locator("[data-src]").count()).toBeGreaterThan(100);
   await expect(page.locator("body")).toContainText("screens out questions asking for personal medical advice");

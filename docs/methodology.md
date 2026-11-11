@@ -18,7 +18,9 @@ This page holds the detail behind the README: how each step works and how the ev
 The live site runs the **agent**. Its four stages are planner → retriever → synthesizer → critic, with a code
 check in between (the evidence gate) and a code validator at the end. The **baseline** it is compared with uses the same
 retriever, gate, synthesizer prompt and validator, but has no planner and no critic: it retrieves for the question
-alone and makes one model call.
+alone and makes one model call. Since v1.1.0 the agent's synthesizer runs at high reasoning effort (the baseline's
+stays at medium), and when the critic flags an answer that would otherwise be refused, the critic stage runs one
+guided rewrite and one re-check (ADR-044, ADR-045).
 
 The diagram of a live question is in the README.
 
@@ -26,7 +28,7 @@ How the published numbers are produced (on the developer machine; only the finis
 
 ```mermaid
 flowchart LR
-    MF["Frozen manifests<br/>200 test, 100 dev"] --> RUN["eval/runners/run_system.py<br/>baseline, agent, closed-book"]
+    MF["Frozen manifests<br/>200 test, 100 dev<br/>(400 test2: scored by score_test2.py, no judge)"] --> RUN["eval/runners/run_system.py<br/>baseline, agent, closed-book"]
     RUN --> RAW["raw.jsonl<br/>one row per question"]
     RAW --> JG["Independent judge<br/>Gemini 3.1 Pro, blinded"]
     RAW --> SC["eval/runners/score_m4.py<br/>metrics + 95% intervals"]
@@ -48,7 +50,8 @@ effect the validator, the critic and the offline judge check after the fact.
 | Evidence gate | Code | Refuses (`weak_evidence`) when the best rerank score is below 0.72 (or the best cosine score below 0.62 if reranking failed) | **Use test labels** (the threshold was set on dev only) |
 | Synthesizer | LLM | Returns a verdict plus short claims and limitations, each citing `PMID:` IDs; no free-text summary | Use anything outside the 5 passages; **cite an ID that is not one of the 5** |
 | Critic | LLM | Checks each claim against only the passages it cites, and whether the surviving claims support the verdict | **Add or rewrite text**: it can keep a claim, remove it, or reject the whole answer |
-| Validator | Code | Removes claims with no citation or an invalid one, applies the critic's removals; refuses (`no_supported_claims`) if no claim is left or the critic says the claims do not support the verdict | **Call an LLM** |
+| Guided rewrite (v1.1.0) | LLM | Only when the critic flags an answer that would otherwise be refused: the synthesizer writes one new answer from the same 5 passages with the critic's notes, and the critic checks it once | **Run more than once**, or skip the citation check and critic rules every answer passes |
+| Validator | Code | Removes claims with no citation or an invalid one, applies the critic's removals; refuses (`no_supported_claims`) if no claim is left, or if the critic says the claims do not support the verdict after removing at least one (since v1.1.0: no veto when it kept every claim) | **Call an LLM** |
 
 What keeps answers grounded:
 - **Citation IDs are checked by code, not by a model.** A claim reaches the user only if each of its citations is
@@ -94,7 +97,8 @@ Test labels were never used to tune anything.
    always one of the agent's queries, its candidate pool contains the question's own top 20, so a fixed passage
    count makes the comparison about *better* evidence plus the critic's checks, not *more* evidence. The baseline
    makes one model call per question; the agent makes three (planner and critic at low reasoning effort, synthesizer
-   at medium in both systems).
+   at medium in both systems at v1.0.0; at v1.1.0 the agent's synthesizer runs at high effort and a guided rewrite
+   adds two calls when it runs).
 3. **Closed-book control**: the same model, the question only, verdict only, no retrieval. It shows how
    well the model does on this public benchmark with no evidence at all, the floor that retrieval has to beat.
 
@@ -142,8 +146,32 @@ commit, prompt versions, threshold, model IDs and dataset revision. The runtime 
 repeats the procedure, not the exact outputs. That is why every raw output is stored: every number can be
 recomputed from the files in `eval/results/`.
 
-**What was not part of the benchmark.** The live site's personal-advice screen (it refuses questions asking for personal medical advice before any search) was added after the
-evaluation; latency was measured on a developer machine, one question at a time, not under production load.
+**What was not part of the benchmark.** The live site's personal-advice screen (it refuses questions asking for personal medical advice before any search) is not part of
+either test; latency was measured on a developer machine, one question at a time, not under production load.
+
+## Second test set (v1.1.0)
+
+**Why and how.** After v1.0.0 the agent was improved on dev only, so it needed a test set nobody had looked at. 400
+of the 700 reserve questions were locked as `test2` by code (`scripts/lock_test2.py`): label mix twice the first test
+(220 yes / 136 no / 44 maybe), a seeded shuffle (seed 20261110), one paper excluded by a rule written in advance, and a
+SHA-256 hash that a unit test checks. It was committed before any tuning commit, is disjoint from test and dev, and
+no question in it was read before the final run.
+
+**Rules before results.** Two decision rules were written down and coded into the scorer before the run: ADR-043's
+pre-registered "clearly beats" (the paired bootstrap 95% range of the accuracy difference excludes zero AND the exact
+two-sided sign test p < 0.05), and ADR-045's "at or above the baseline" go/no-go, written for dev and applied to test2
+at the owner's request.
+
+**Run and scoring.** The runner accepts `test2` only with the final-test flag, a clean Git tree, a hash match, no
+question limit and the owner's recorded spending approval, and once per system unless overridden with a recorded
+reason (not used). Baseline and agent each ran once on all
+400 questions. `eval/runners/score_test2.py` scores them: Wilson 95% ranges, a paired bootstrap (2,000 resamples, seed
+20261024), an exact sign test on the questions only one system got right, retry usage and cost per question. It
+refuses runs on a different question list, incomplete runs, a second completed run and an agent whose rules file has
+changed since the run. Results: `eval/results/m15-test2-score-20261110-225734-bc0d65f/`. There was no closed-book
+or judge run on test2, so every claim-support figure is from v1.0.0. The v1.0.0 result folders were checked
+byte-identical before and after. Outcome: statistically tied (difference −0.5 points, 95% range −2.75 to +1.75,
+sign test p = 0.81).
 
 ## Repository map
 

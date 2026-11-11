@@ -12,7 +12,7 @@ export const decode = (s: string) =>
 const NUM = /<(span|tspan) data-src="([^"]+)" data-fmt="([^"]+)">([^<]*)<\/\1>/g;
 export const AXIS_TICKS = ["40%", "50%", "60%", "70%", "80%", "90%", "100%"];
 // Fixed words that contain digits but are not results.
-const ALLOWED = [/top 5\b/g, /(in|ex)cludes 0\b/g, /95% range/g, /95%:/g, /Wilson 95%/g, /bootstrap 95%/g, /Hit@[15]/g, /p50/g, /p95/g, /Axis starts at 40%/g, /\b[12]\. /g];
+const ALLOWED = [/top 5\b/g, /(in|ex)cludes 0\b/g, /95% range/g, /95%:/g, /Wilson 95%/g, /bootstrap 95%/g, /Hit@[15]/g, /p50/g, /p95/g, /Axis starts at 40%/g, /\bv1\.[01]\.0\b/g];
 
 export function checkEvalHtml(html: string, data: EvalData, minCount = 100): { count: number; problems: string[] } {
   const problems: string[] = [];
@@ -74,7 +74,11 @@ export function checkEvalHtml(html: string, data: EvalData, minCount = 100): { c
     ["test split", resolve(data, "summary:split") === "test"],
     ["'limitations: clear' (range excludes 0)", resolve(data, "claims:agent_minus_baseline.limitation_strict.includes_zero") === false],
     ["'findings: no clear difference' (range includes 0)", resolve(data, "claims:agent_minus_baseline.claim_strict.includes_zero") === true],
-    ["'accuracy on the questions each answered: no clear difference'", resolve(data, "summary:comparisons.agent_minus_baseline.answered_only_accuracy.includes_zero") === true],
+    // Latest test (test2, v1.1.0): the score must be of test2 and of exactly the two runs the page reads.
+    ["latest test is the test2 split", resolve(data, "t2_config:scored_split") === "test2" && resolve(data, "t2_score:split") === "test2"],
+    ["latest test scored the runs the page reads", resolve(data, "t2_config:inputs.baseline") === resolve(data, "t2_baseline:run_id") && resolve(data, "t2_config:inputs.agent") === resolve(data, "t2_agent:run_id")],
+    ["'statistically tied' (range includes 0 and sign test p >= 0.05)", resolve(data, "t2_score:agent_vs_baseline.bootstrap_range_excludes_zero") === false && (resolve(data, "t2_score:agent_vs_baseline.sign_test_p_exact_two_sided") as number) >= 0.05],
+    ["'all of which would otherwise have been refused'", resolve(data, "t2_score:agent_retry.first_pass_would_have_refused") === resolve(data, "t2_score:agent_retry.questions_retried")],
     ["'both gains are well clear of zero'", ["baseline", "agent"].every((s) => (resolve(data, `summary:comparisons.${s}_minus_closed_book.accuracy.ci95` as Ref) as number[])[0] > 0)],
     ["'agreed less often on the agent's accepted findings'", (resolve(data, "agreement:judge_supported.agent.agree") as number) < (resolve(data, "agreement:judge_supported.baseline.agree") as number)],
   ];
@@ -82,10 +86,13 @@ export function checkEvalHtml(html: string, data: EvalData, minCount = 100): { c
 
   // Wording rules: no person checked the claims; strict support is the headline.
   const text = decode(main.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ");
-  for (const banned of [/manual/i, /human audit/i, /checked by a person/i, /\bhuman\b(?! annotations)/i, /at least partly/i, /lenient/i, /hallucination rate/i]) {
+  for (const banned of [/manual/i, /human audit/i, /checked by a person/i, /\bhuman\b(?! annotations)/i, /at least partly/i, /lenient/i, /hallucination rate/i,
+    // Owner rule (2026-11-10): the accuracy comparison is stated as measured, never as a loss or a win.
+    /\blost\b/i, /fell short/i, /failed to beat/i, /outperform/i, /underperform/i, /\bbeats?\b/i, /\bwins?\b/i,
+    /\bworse\b/i, /\btrails?\b/i, /more accurate than/i]) {
     if (banned.test(text)) problems.push(`forbidden wording ${banned}`);
   }
-  for (const needed of ["Second-AI cross-check", "No person checked these items.", "fully supported", "AI-judge estimate"]) {
+  for (const needed of ["Second-AI cross-check", "No person checked these items.", "fully supported", "AI-judge estimate", "statistically tied"]) {
     if (!text.includes(needed)) problems.push(`missing wording "${needed}"`);
   }
   return { count, problems };

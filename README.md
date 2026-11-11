@@ -4,45 +4,17 @@
 
 **Live demo: https://groundedmed.vercel.app** · Research demonstration only, not medical advice.
 
-Ask Becky, the site's assistant, a research question. A multi-agent pipeline (planner, retriever, answer writer and
-a critic) finds the relevant medical research abstracts, answers yes / no / maybe with every finding citing the
-abstract it is based on, has the critic check each finding against that abstract, and says "not enough evidence" when
-it can't back an answer up. It runs live (Next.js on Vercel, FastAPI on Render) and was evaluated once on a frozen
-PubMedQA test set, scored against the benchmark's answers and by an independent AI judge from a different company.
+Ask Becky, the site's assistant, a research question. An agentic RAG pipeline (planner, retriever, answer writer and
+critic) finds the relevant medical research abstracts and answers yes / no / maybe, with every finding citing the
+abstract it is based on. Code checks every citation, and the critic checks each finding against the abstract it
+cites. When the critic flags an answer that would otherwise be refused, the writer gets one guided rewrite and the
+critic checks it once more. When the evidence can't back an answer up, it says "not enough evidence". It runs live
+(Next.js on Vercel, FastAPI on Render) and was evaluated on two hash-locked PubMedQA test sets, the second a fresh set
+of 400 questions whose decision rules were written down before it ran.
 
 ![Silent demo: an example question gets a cited "Yes" with a source opened, then an unrelated question gets "Not enough evidence"](docs/assets/demo.gif)
 
 *Recorded on the live site, November 2026. The wait for the first answer plays at 3× speed, as the badge in the recording shows.*
-
-## Results
-
-Tested once on 200 frozen questions from PubMedQA (a public benchmark of yes / no / maybe questions about medical
-research papers) that were never used for tuning. Every number below is read
-from the stored result files and matches the live dashboard, which also shows 95% ranges:
-https://groundedmed.vercel.app/eval
-
-| | Closed-book (no retrieval) | Baseline | Agent | Agent minus baseline (95% range) | Range excludes 0? |
-|---|---|---|---|---|---|
-| Correct answers, refusals counted as wrong | 54.0% (108/200) | 76.5% (153/200) | 74.0% (148/200) | −2.5 pts (−5.0 to −0.5) | Yes |
-| Questions answered (not refused) | 100.0% (200/200) | 97.5% (195/200) | 95.0% (190/200) | −2.5 pts (−4.5 to −0.5) | Yes |
-| Correct, of the questions answered | 54.0% (108/200) | 78.5% (153/195) | 77.9% (148/190) | −0.6 pts (−2.1 to +0.7) | No |
-| Right abstract ranked 1st / in top 5 | — | 98.5% / 100.0% | 98.5% / 100.0% | none | No (identical) |
-| Findings fully supported by their cited abstract (AI-judged)* | — | 93.2% (455/488) | 95.0% (421/443) | +1.8 pts (−0.04 to +3.7) | No |
-| Limitations fully supported by their cited abstract (AI-judged)** | — | 86.2% (344/399) | 91.3% (306/335) | +5.1 pts (+1.8 to +8.6) | Yes (AI judge) |
-| Typical time per answer (median) | 1.00 s | 4.23 s | 11.79 s | +7.56 s (+7.22 to +7.84) | Yes |
-| AI cost per question, refusals included (mean) | $0.0011 | $0.0131 | $0.0287 | +$0.0156 (+$0.0151 to +$0.0161) | Yes |
-
-Closed-book is the same AI answering from the question alone, with no abstracts, so it has nothing to cite (—).
-"Range excludes 0?" asks whether the 95% range of the paired difference (a bootstrap over the same 200 questions)
-leaves out zero; each row is its own test. \* Judged by an independent AI from a different company (Google Gemini). A
-second-AI cross-check (ChatGPT) re-labelled 30 of these findings; no person checked them. \*\* Same judge; limitations
-were not in the second-AI cross-check. Cost counts AI model tokens at list price; times are from a laptop, one
-question at a time.
-
-**What this means:** retrieval is what makes the answers good, adding 22.5 points of accuracy over the same AI with
-no abstracts (95% range +15.0 to +29.5; closed-book scored 54.0%, no better than always answering "yes" at 55.0%).
-The agent's critic adds a second layer of checking on top: the independent judge rated its limitations fully
-supported more often (91.3% vs 86.2%), and it holds back a verdict when its cited findings don't support one.
 
 ## How it works
 
@@ -59,7 +31,7 @@ flowchart TD
         PL["1 Planner (LLM)<br/>1–3 search queries"] --> RT["2 Retriever (code)<br/>top 20 matches for the question and each query,<br/>pooled, reranked, best 5 kept"]
         RT --> GT{"Evidence gate (code)<br/>top rerank score at least 0.72?"}
         GT -- yes --> SY["3 Synthesizer (LLM)<br/>verdict + findings, each citing<br/>one of the 5 abstracts"]
-        SY --> CR["4 Critic (LLM)<br/>checks each finding against its cited abstract,<br/>and whether the findings support the verdict"]
+        SY --> CR["4 Critic (LLM)<br/>checks each finding against its cited abstract,<br/>and whether the findings support the verdict;<br/>if it flags an answer that would be refused:<br/>one guided rewrite, one re-check"]
         CR --> VA["Validator (code)<br/>drops findings with missing or invalid citations,<br/>applies the critic's removals and veto"]
         GT -- no --> VA
     end
@@ -77,7 +49,9 @@ flowchart TD
   match is weak, the system says "not enough evidence" instead of answering.
 - **Synthesizer** writes a yes / no / maybe verdict as short findings, each citing one of the 5 abstracts.
 - **Critic** checks each finding against the abstract it cites, and can remove findings or reject the whole answer,
-  but never add anything.
+  but never add anything. When it flags an answer that would otherwise be refused, the synthesizer writes one new
+  answer from the same 5 abstracts with the critic's notes, and the critic checks that once; the rewrite passes the
+  same checks as any answer, and there is never a second one.
 - **Validator** (plain code, no AI) drops any finding whose citation is missing or not one of the 5 abstracts.
 
 ## Tech stack
@@ -93,26 +67,90 @@ flowchart TD
 
 ## Key engineering decisions
 
-- **Refusals count as wrong.** Accuracy is out of all 200 questions, and "answered" is always shown next to "correct
-  when answered", so the system can't look better just by refusing hard questions.
+- **Refusals count as wrong.** Accuracy is out of all the test questions, so the system can't look better just by
+  refusing hard ones.
 - **The critic doesn't grade itself.** The agent's critic (Anthropic) is never the judge of the results; an AI from
-  a different company (Google) judged them offline, blinded to which system wrote what.
-- **Frozen test set.** The 200 test questions were locked by a hash before any system was built, each system ran on
-  them exactly once, and everything tuned was tuned on 100 separate questions.
+  a different company (Google) judged the v1.0.0 results offline, blinded to which system wrote what.
 - **Citations are checked by code.** A finding reaches the screen only if its citation points to one of the
   abstracts actually retrieved for that question. Whether the abstract really supports it is checked by AI, not code.
 - **No answers in the search index.** Only each abstract's text without its conclusion is searchable; the answer
   labels and conclusions are never stored where the system can see them, and tests check this.
 
+## How it's evaluated
+
+- **Locked test sets, each run once.** 200 test questions were locked by a hash before any system was built. Later,
+  a fresh set of 400 was locked the same way from questions nobody had looked at, before any tuning. Each system ran
+  once on each set (baseline and agent; the closed-book control on the first), and everything tuned was tuned on 100
+  separate dev questions.
+- **Rules before results.** The decision rules for the 400-question test were written down and coded into its scorer
+  before it ran, and code blocks a second run on a locked set unless it is overridden with a recorded reason (never
+  used).
+- **Refusals count as wrong**, and the scorer refuses result files that don't cover the same questions.
+- **Paired statistics.** Wilson 95% ranges for each system; for differences, a paired bootstrap over the same
+  questions (2,000 resamples) and an exact sign test.
+- **Independent judge (v1.0.0).** An AI from a different company (Google Gemini), never the system's own critic,
+  rated whether each finding is fully supported by the abstract it cites, blinded to which system wrote it; a
+  second-AI cross-check (ChatGPT) re-labelled a sample of its labels.
+
+## Results
+
+Every number below is read from the stored result files in `eval/results/`; the live dashboard shows them with their
+ranges: https://groundedmed.vercel.app/eval
+
+**Latest test (v1.1.0): 400 fresh questions**
+
+| | Baseline | Agent |
+|---|---|---|
+| Correct answers, refusals counted as wrong | 76.5% (306/400), 95% range 72.1–80.4% | 76.0% (304/400), 95% range 71.6–79.9% |
+| Refused ("not enough evidence") | 16 | 18 |
+| Right abstract ranked 1st / in top 5 | 98.0% / 99.5% | 98.0% / 99.5% |
+| Typical time per answer (median) | 4.67 s | 12.58 s |
+| AI cost per question (mean) | $0.0131 | $0.0304 |
+
+The guided rewrite ran on 11 of the 400 questions, all of which would otherwise have been refused; 7 of the 11 ended
+with the right answer. Agent and baseline were statistically tied: paired difference −0.5 points (95% range −2.75 to
++1.75), exact sign test p = 0.81.
+
+<details>
+<summary><b>First test (v1.0.0): 200 questions</b></summary>
+
+<br>
+
+The agent as it was at v1.0.0, with a closed-book control and the independent judge.
+
+| | Closed-book (no retrieval) | Baseline | Agent |
+|---|---|---|---|
+| Correct answers, refusals counted as wrong | 54.0% (108/200) | 76.5% (153/200) | 74.0% (148/200) |
+| Questions answered (not refused) | 100.0% (200/200) | 97.5% (195/200) | 95.0% (190/200) |
+| Correct, of the questions answered | 54.0% (108/200) | 78.5% (153/195) | 77.9% (148/190) |
+| Right abstract ranked 1st / in top 5 | — | 98.5% / 100.0% | 98.5% / 100.0% |
+| Findings fully supported by their cited abstract (AI-judged)* | — | 93.2% (455/488) | 95.0% (421/443) |
+| Limitations fully supported by their cited abstract (AI-judged)** | — | 86.2% (344/399) | 91.3% (306/335) |
+| Typical time per answer (median) | 1.00 s | 4.23 s | 11.79 s |
+| AI cost per question, refusals included (mean) | $0.0011 | $0.0131 | $0.0287 |
+
+Retrieval is what makes the answers good: it adds 22.5 points of accuracy over the same AI with no abstracts (95%
+range +15.0 to +29.5; closed-book scored 54.0%, no better than always answering "yes" at 55.0%). The agent's critic
+adds a second layer of checking: the independent judge rated its limitations fully supported more often (91.3% vs
+86.2%, +5.1 points, paired 95% range +1.8 to +8.6).
+
+Closed-book is the same AI answering from the question alone, with no abstracts, so it has nothing to cite (—).
+\* Judged by an independent AI from a different company (Google Gemini). A second-AI cross-check (ChatGPT)
+re-labelled 30 of these findings; no person checked them. \*\* Same judge; limitations were not in the second-AI
+cross-check. Cost counts AI model tokens at list price; times are from a laptop, one question at a time.
+
+</details>
+
 ## Limitations
 
 - **The benchmark makes search easy.** PubMedQA questions are often the paper's own title, so the right abstract is
-  found almost every time (top 5: 200/200). Real-world search would be harder.
-- **"Supported" is judged by AI.** No person checked the findings. The judge is one AI model, and the second-AI
+  found almost every time (in the top 5 for 100.0% and 99.5% of the two test sets). Real-world search would be harder.
+- **"Supported" is judged by AI, on the v1.0.0 test only.** The 400-question test had no judge run. No person checked
+  the findings. The judge is one AI model, and the second-AI
   cross-check covered only 30 findings: the second AI agreed with 14 of the 20 findings the judge accepted (6 of 10 for the agent) and
   8 of the 10 it rejected, so the support figures may be optimistic. Limitations were not cross-checked.
-- **Small test, one run.** 200 questions, one run per system: small differences fall inside the ranges on the
-  dashboard.
+- **Two tests, one run each.** 200 and 400 questions, one run per system on each: small differences fall inside the
+  ranges on the dashboard.
 - **The AI may know the answers.** PubMedQA is public and may be in the model's training data; the closed-book result
   suggests it does not simply remember them.
 - **Small, fixed library.** It answers only from 2,500 PubMedQA abstracts, not all of PubMed.
@@ -122,7 +160,7 @@ flowchart TD
   server's memory, so a redeploy, restart or crash starts them again from zero, and the daily count also resets at
   midnight UTC. A monthly spend limit set with the AI provider caps the total cost.
 - **Not medical advice.** The live site refuses questions about a person's own health, but that screen is an AI
-  check and can make mistakes. It was added after the evaluation, so the results above do not include it.
+  check and can make mistakes. It is not part of either test, so the results above do not include it.
 
 ## Run it locally
 

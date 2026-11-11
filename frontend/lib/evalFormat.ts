@@ -5,7 +5,17 @@
 // Stored result files the page reads at build time (repo-relative). Never recalculated on page load.
 const FINAL = "eval/results/m4-final-20261026-222211-498b76a";
 const CROSS = "eval/results/m4-crosscheck-20261026-233927-865624f";
+// v1.1.0: the second frozen test set (test2), scored by eval/runners/score_test2.py. Values there are already percent/points.
+const T2_SCORE = "eval/results/m15-test2-score-20261110-225734-bc0d65f";
+const T2_BASELINE = "eval/results/test2-baseline-20261110-205943-9553791";
+const T2_AGENT = "eval/results/test2-agent-20261110-213115-bd5773d";
 export const EVAL_FILES = {
+  t2_score: `${T2_SCORE}/summary.json`,
+  t2_config: `${T2_SCORE}/run_config.json`,
+  t2_baseline: `${T2_BASELINE}/summary.json`,
+  t2_agent: `${T2_AGENT}/summary.json`,
+  t2_baseline_config: `${T2_BASELINE}/run_config.json`,
+  t2_agent_config: `${T2_AGENT}/run_config.json`,
   summary: `${FINAL}/summary.json`,
   final_config: `${FINAL}/run_config.json`,
   claims: `${CROSS}/claim_support.json`,
@@ -31,6 +41,12 @@ export const FORMATS = {
   pct: (v: number) => `${(v * 100).toFixed(1)}%`,
   pctRange: ([lo, hi]: [number, number]) => `${(lo * 100).toFixed(1)}–${(hi * 100).toFixed(1)}%`,
   pts: (v: number) => `${signed(v)} pts`,
+  // test2 score values are stored as percent / points already (76.5, -0.5), not fractions.
+  pctP: (v: number) => `${v.toFixed(1)}%`,
+  pctPRange: ([lo, hi]: [number, number]) => `${lo.toFixed(1)}–${hi.toFixed(1)}%`,
+  ptsP: (v: number) => `${signed(v / 100)} pts`,
+  ptsPRange: ([lo, hi]: [number, number]) => `${signed2(lo)} to ${signed2(hi)}`,
+  p2: (v: number) => v.toFixed(2),
   ptsRange: ([lo, hi]: [number, number]) => `${signed(lo)} to ${signed(hi)}`,
   secs: (ms: number) => `${(ms / 1000).toFixed(2)} s`,
   secsRange: ([lo, hi]: [number, number]) => `${(lo / 1000).toFixed(2)}–${(hi / 1000).toFixed(2)} s`,
@@ -51,6 +67,11 @@ export function signed(v: number): string {
   const p = v * 100;
   const text = p !== 0 && Math.abs(p) < 0.05 ? Math.abs(p).toFixed(2) : Math.abs(p).toFixed(1);
   return `${p < 0 ? "−" : "+"}${text}`;
+}
+
+/** Points already in points, 2 decimals (the scorer's bootstrap range). Unicode minus. */
+export function signed2(p: number): string {
+  return `${p < 0 ? "−" : "+"}${Math.abs(p).toFixed(2)}`;
 }
 
 export function resolve(data: EvalData, ref: Ref): unknown {

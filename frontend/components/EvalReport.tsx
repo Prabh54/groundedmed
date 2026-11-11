@@ -9,6 +9,7 @@ const SYSTEMS: { key: Sys; name: string; color: string }[] = [
   { key: "agent", name: "Agent", color: "#C2562E" },
   { key: "closed_book", name: "Closed-book", color: "#7A7F8C" },
 ];
+const T2 = ["baseline", "agent"] as const;
 const ANSWER_ROWS = [
   { key: "accuracy", label: "Overall accuracy", chartLabel: "Overall accuracy" },
   { key: "coverage", label: "Coverage", chartLabel: "Coverage (answered)" },
@@ -29,44 +30,172 @@ export default function EvalReport({ data }: { data: EvalData }) {
   const sys = (s: Sys, rest: string) => `summary:systems.${s}.${rest}` as Ref;
   const frac = (ref: string) => <N fmt="frac" refs={[`${ref}.count` as Ref, `${ref}.n` as Ref]} />;
   const n = <N fmt="int" refs={["summary:n_questions"]} />;
-  const ab = "summary:comparisons.agent_minus_baseline";
   const cl = "claims:agent_minus_baseline";
+  const t2 = (s: "baseline" | "agent", rest: string) => `t2_score:systems.${s}.${rest}` as Ref;
+  const pv = "t2_score:agent_vs_baseline";
+  const rt = "t2_score:agent_retry";
 
   return (
     <>
-      <h1>How well does GroundedMed do?</h1>
+      <h1>How GroundedMed is built and tested</h1>
       <p className="lede">
-        A multi-agent pipeline (planner, search, answer writer and a critic that checks every finding against the abstract it cites), tested
-        once on a frozen set of PubMedQA research questions it was never tuned on and scored by an independent AI judge. Every result below is
-        read from the stored result files.
+        An agentic RAG pipeline that answers research questions from medical abstracts, with every finding cited and checked, tested on two
+        hash-locked PubMedQA test sets with the decision rules written before the runs. Every result below is read from the stored result files.
       </p>
-      <div className="meta">
-        <div>
-          <span>Test questions (PubMedQA, frozen)</span>
-          <b>{n}</b>
-        </div>
-        <div>
-          <span>Systems tested on</span>
-          <b>
-            <N fmt="date" refs={["baseline_config:created_utc", "agent_config:created_utc", "closed_config:created_utc"]} />
-          </b>
-        </div>
-        <div>
-          <span>Scored on</span>
-          <b>
-            <N fmt="date" refs={["final_config:created_utc"]} />
-          </b>
-        </div>
-        <div>
-          <span>Scoring code</span>
-          <b>
-            <N fmt="commit" refs={["final_config:git_commit"]} />
-          </b>
-        </div>
-      </div>
 
-      <section className="eval-card hero-result" aria-labelledby="h-retrieval">
-        <h2 id="h-retrieval">1. Reading the abstracts is what makes the answers good</h2>
+      <section className="eval-card" aria-labelledby="h-built">
+        <h2 id="h-built">What it does</h2>
+        <ul>
+          <li>
+            <b>Planner</b> (AI) turns the question into a few search queries.
+          </li>
+          <li>
+            <b>Retriever</b> (code) searches <N fmt="int" refs={["corpus:count"]} /> abstracts by meaning, reranks the best matches and keeps the
+            top 5. If even the best match is weak, an <b>evidence gate</b> says &quot;not enough evidence&quot; instead of answering.
+          </li>
+          <li>
+            <b>Synthesizer</b> (AI) writes a yes / no / maybe verdict as short findings, each citing one of those abstracts.
+          </li>
+          <li>
+            <b>Critic</b> (AI) checks each finding against the abstract it cites. It can remove findings or hold back the verdict, but never add
+            anything. When it flags an answer that would otherwise be refused, the synthesizer gets one guided rewrite with the critic&apos;s notes,
+            and the critic checks that once.
+          </li>
+          <li>
+            <b>Validator</b> (code) drops any finding whose citation is not one of the abstracts retrieved for that question, so every finding on
+            screen cites a source you can open.
+          </li>
+        </ul>
+      </section>
+
+      <section className="eval-card" aria-labelledby="h-method">
+        <h2 id="h-method">How it&apos;s tested</h2>
+        <ul>
+          <li>
+            <b>Locked test sets, each run once.</b> <N fmt="int" refs={["summary:n_questions"]} /> test questions were frozen (IDs and hash)
+            before any system was built. Later, a fresh set of <N fmt="int" refs={["t2_score:n_questions"]} /> was locked the same way from
+            questions nobody had looked at, before any tuning. Baseline and agent ran once on each set (the closed-book control on the first);
+            everything tuned was tuned on separate dev questions.
+          </li>
+          <li>
+            <b>Rules before results.</b> The decision rules for the latest test were written down and coded into its scorer before it ran,
+            and code blocks a second run on a locked set unless overridden with a recorded reason (never used).
+          </li>
+          <li>
+            <b>Refusals count as wrong</b>, so refusing hard questions can&apos;t look like skill.
+          </li>
+          <li>
+            <b>Paired statistics.</b> Wilson 95% ranges for each system&apos;s percentages; for differences, a paired bootstrap over the same
+            questions (<N fmt="plain" refs={["t2_score:agent_vs_baseline.bootstrap.resamples"]} /> resamples) and an exact sign test. Claim
+            support uses a bootstrap over questions; time and cost a bootstrap.
+          </li>
+          <li>
+            <b>Independent judge (v1.0.0).</b> An AI from a different company (<N fmt="text" refs={["judge_config:judge_model"]} />, Google),
+            never the system&apos;s own critic, rated each finding against the abstract it cites, blinded to which system wrote it.
+          </li>
+          <li>
+            All figures are produced by the evaluation code and shown here unchanged, only rounded for display (percentages to one decimal,
+            seconds to two, dollars to four; a value very close to zero keeps a second decimal so its sign stays visible).
+          </li>
+        </ul>
+      </section>
+
+      <section className="eval-card" aria-labelledby="h-latest">
+        <h2 id="h-latest">
+          Latest test (v1.1.0): <N fmt="int" refs={["t2_score:n_questions"]} /> fresh questions
+        </h2>
+        <p className="soft">
+          Run on <N fmt="date" refs={["t2_baseline_config:created_utc", "t2_agent_config:created_utc"]} />, scored on{" "}
+          <N fmt="date" refs={["t2_config:created_utc"]} />. Accuracy is against PubMedQA&apos;s own yes / no / maybe answers; a refusal counts
+          as wrong.
+        </p>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <td />
+                <th scope="col">Baseline</th>
+                <th scope="col">Agent</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Correct answers</th>
+                {T2.map((s) => (
+                  <td key={s}>
+                    <b>
+                      <N fmt="pctP" refs={[t2(s, "accuracy_pct")]} />
+                    </b>{" "}
+                    <span className="n">
+                      <N fmt="frac" refs={[t2(s, "correct"), t2(s, "n_questions")]} />
+                    </span>
+                    <br />
+                    <span className="ci">
+                      95%: <N fmt="pctPRange" refs={[t2(s, "accuracy_wilson95_pct")]} />
+                    </span>
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th scope="row">Refused (&quot;not enough evidence&quot;)</th>
+                {T2.map((s) => (
+                  <td key={s}>
+                    <N fmt="int" refs={[t2(s, "refused")]} />
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th scope="row">Hit@1 / Hit@5 (source paper ranked first / in the top 5)</th>
+                {T2.map((s) => (
+                  <td key={s}>
+                    <N fmt="pct" refs={[`t2_${s}:hit_at_1` as Ref]} /> / <N fmt="pct" refs={[`t2_${s}:hit_at_5` as Ref]} />
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th scope="row">Typical time (median)</th>
+                {T2.map((s) => (
+                  <td key={s}>
+                    <N fmt="secs" refs={[t2(s, "median_time_per_answer_ms")]} />
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th scope="row">AI cost per question (mean)</th>
+                {T2.map((s) => (
+                  <td key={s}>
+                    <N fmt="usd" refs={[t2(s, "cost_usd_per_question")]} />
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The guided rewrite ran on <N fmt="int" refs={[`${rt}.questions_retried`]} /> of the <N fmt="int" refs={["t2_score:n_questions"]} />{" "}
+          questions, all of which would otherwise have been refused; <N fmt="int" refs={[`${rt}.after_retry_right`]} /> of them ended with the
+          right answer.
+        </p>
+        <p className="soft small">
+          Agent and baseline were statistically tied: paired difference <N fmt="ptsP" refs={[`${pv}.accuracy_diff_agent_minus_baseline_points`]} />{" "}
+          (95% range <N fmt="ptsPRange" refs={[`${pv}.accuracy_diff_bootstrap95_points`]} />
+          ), exact sign test p = <N fmt="p2" refs={[`${pv}.sign_test_p_exact_two_sided`]} />. Measured on a developer laptop, one question at a
+          time; cost = Claude tokens at list price only. This test had no closed-book or AI-judge run.
+        </p>
+      </section>
+
+      <h2 className="detail-title">
+        First test (v1.0.0): <N fmt="int" refs={["summary:n_questions"]} /> questions
+      </h2>
+      <p className="soft">
+        The agent as it was at v1.0.0, with a closed-book control and the independent AI judge. Systems tested on{" "}
+        <N fmt="date" refs={["baseline_config:created_utc", "agent_config:created_utc", "closed_config:created_utc"]} />, scored on{" "}
+        <N fmt="date" refs={["final_config:created_utc"]} /> (scoring code <N fmt="commit" refs={["final_config:git_commit"]} />
+        ).
+      </p>
+
+      <section className="eval-card" aria-labelledby="h-retrieval">
+        <h2 id="h-retrieval">Reading the abstracts is what makes the answers good</h2>
         <p className="soft">
           Share of the {n} test questions answered correctly (PubMedQA&apos;s own yes / no / maybe answers; a refusal counts as wrong).
         </p>
@@ -102,7 +231,7 @@ export default function EvalReport({ data }: { data: EvalData }) {
       </section>
 
       <section className="eval-card" aria-labelledby="h-trade">
-        <h2 id="h-trade">2. What the agent&apos;s critic adds</h2>
+        <h2 id="h-trade">What the agent&apos;s critic adds</h2>
         <p>
           The agent adds a planner and a critic on top of the baseline. The critic checks every finding and limitation against the abstract it
           cites, removes what it can&apos;t back up, and holds back a verdict its findings don&apos;t support. On the same {n} questions, an
@@ -139,10 +268,7 @@ export default function EvalReport({ data }: { data: EvalData }) {
             <ul>
               <li>
                 <b>Overall accuracy:</b> <N fmt="pct" refs={[sys("agent", "accuracy.value")]} /> vs{" "}
-                <N fmt="pct" refs={[sys("baseline", "accuracy.value")]} />: <N fmt="pts" refs={[`${ab}.accuracy.estimate`]} />{" "}
-                <span className="ci">
-                  (95% range <N fmt="ptsRange" refs={[`${ab}.accuracy.ci95`]} />)
-                </span>
+                <N fmt="pct" refs={[sys("baseline", "accuracy.value")]} />
               </li>
               <li>
                 <b>Questions answered:</b> <N fmt="pct" refs={[sys("agent", "coverage.value")]} /> vs{" "}
@@ -151,9 +277,7 @@ export default function EvalReport({ data }: { data: EvalData }) {
               </li>
               <li>
                 <b>Accuracy on the questions each answered:</b> <N fmt="pct" refs={[sys("agent", "answered_only_accuracy.value")]} /> vs{" "}
-                <N fmt="pct" refs={[sys("baseline", "answered_only_accuracy.value")]} /> (
-                <N fmt="pts" refs={[`${ab}.answered_only_accuracy.estimate`]} />
-                ), no clear difference
+                <N fmt="pct" refs={[sys("baseline", "answered_only_accuracy.value")]} />
               </li>
               <li>
                 <b>Time:</b> typical answer <N fmt="secs" refs={[sys("agent", "latency_ms.p50.estimate")]} /> vs{" "}
@@ -170,8 +294,6 @@ export default function EvalReport({ data }: { data: EvalData }) {
           Support figures are the AI judge&apos;s estimate; the second-AI cross-check below tests the judge itself.
         </p>
       </section>
-
-      <h2 className="detail-title">The details</h2>
 
       <section className="eval-card" aria-labelledby="h-accuracy">
         <h2 id="h-accuracy">Answer accuracy against PubMedQA&apos;s answers</h2>
@@ -222,35 +344,6 @@ export default function EvalReport({ data }: { data: EvalData }) {
                       </span>
                     </td>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <h3>Agent minus baseline</h3>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <td />
-                <th scope="col">Difference</th>
-                <th scope="col">95% range (paired)</th>
-                <th scope="col">Range excludes 0?</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ANSWER_ROWS.map(({ key, label }) => (
-                <tr key={key}>
-                  <th scope="row">{label}</th>
-                  <td>
-                    <N fmt="pts" refs={[`${ab}.${key}.estimate`]} />
-                  </td>
-                  <td>
-                    <N fmt="ptsRange" refs={[`${ab}.${key}.ci95`]} />
-                  </td>
-                  <td>
-                    {resolve(data, `${ab}.${key}.includes_zero`) ? "no (range includes 0)" : "yes (range excludes 0)"}
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -414,33 +507,14 @@ export default function EvalReport({ data }: { data: EvalData }) {
         </p>
       </section>
 
-      <section className="eval-card" aria-labelledby="h-method">
-        <h2 id="h-method">How we tested</h2>
-        <ul>
-          <li>
-            {n} test questions were frozen (IDs and hash) before any system was built and never used for tuning; each system ran on them
-            exactly once.
-          </li>
-          <li>Baseline = search + one AI answer. Agent = planner → search → answer → critic. Closed-book = the AI alone, no abstracts.</li>
-          <li>
-            Ranges: Wilson 95% for answer percentages and the cross-check; for claim support, a bootstrap over questions; bootstrap for time
-            and cost; differences use a paired bootstrap over the same questions (
-            <N fmt="plain" refs={["summary:rules.resamples"]} /> resamples).
-          </li>
-          <li>
-            All figures are produced by the evaluation code and shown here unchanged, only rounded for display (percentages to one decimal,
-            seconds to two, dollars to four; a value very close to zero keeps a second decimal so its sign stays visible).
-          </li>
-        </ul>
-      </section>
-
       <section className="eval-card" aria-labelledby="h-limits">
         <h2 id="h-limits">Limitations</h2>
         <ul>
           <li>
             PubMedQA questions are often written from the article&apos;s title, so finding the right abstract is easier than real-world search.
             We left titles out of the searchable text and added <N fmt="int" refs={["corpus:source_counts.pqa_u"]} /> similar-topic abstracts as
-            distractors, but Hit@5 is still <N fmt="pct" refs={[sys("baseline", "hit_at_5.value")]} />.
+            distractors, but Hit@5 is still <N fmt="pct" refs={[sys("baseline", "hit_at_5.value")]} /> on the first test and{" "}
+            <N fmt="pct" refs={["t2_baseline:hit_at_5"]} /> on the latest.
           </li>
           <li>
             PubMedQA has no sentence-level labels showing which sentence supports an answer, so &quot;supported&quot; is judged by AI, not
@@ -448,24 +522,28 @@ export default function EvalReport({ data }: { data: EvalData }) {
           </li>
           <li>
             The claim-support judge is an AI (a preview model) and was cross-checked only by another AI on <Sample N={N} /> findings; its
-            limitation labels were not cross-checked.
+            limitation labels were not cross-checked. The judge ran on the first test (v1.0.0) only.
           </li>
-          <li>One run per system on {n} questions: small differences are within the ranges shown.</li>
+          <li>
+            One run per system on each test (<N fmt="int" refs={["summary:n_questions"]} /> and <N fmt="int" refs={["t2_score:n_questions"]} />{" "}
+            questions): small differences are within the ranges shown.
+          </li>
           <li>
             PubMedQA is public, so the AI may have seen it in training; the closed-book result suggests it does not simply remember the
             answers.
           </li>
           <li>Times are from a developer laptop; costs exclude search and reranking.</li>
           <li>
-            The live demo also screens out questions asking for personal medical advice before Becky answers. That screen was added after
-            this evaluation and is not part of the system measured here.
+            The live demo also screens out questions asking for personal medical advice before Becky answers. That screen is not part of
+            either test.
           </li>
         </ul>
       </section>
 
       <footer className="data">
-        Data: <code>{EVAL_FILES.summary}</code> (commit <N fmt="commit" refs={["final_config:git_commit"]} />), <code>{EVAL_FILES.claims}</code> and{" "}
-        <code>agreement.json</code> (commit <N fmt="commit" refs={["cross_config:git_commit"]} />
+        Data: latest test <code>{EVAL_FILES.t2_score}</code>, <code>{EVAL_FILES.t2_baseline}</code> and <code>{EVAL_FILES.t2_agent}</code>;
+        first test <code>{EVAL_FILES.summary}</code> (commit <N fmt="commit" refs={["final_config:git_commit"]} />), <code>{EVAL_FILES.claims}</code>{" "}
+        and <code>agreement.json</code> (commit <N fmt="commit" refs={["cross_config:git_commit"]} />
         ). Read when the page is built; never recalculated.
       </footer>
     </>

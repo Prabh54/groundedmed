@@ -6,6 +6,7 @@ an item.
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,20 @@ from scripts import lock_test2, prepare_dataset
 ROOT = Path(__file__).resolve().parents[3]
 MANIFESTS = ROOT / "data" / "manifests"
 
-FRONTEND_SOURCE = ("frontend/app", "frontend/components", "frontend/lib", "frontend/scripts")
+FRONTEND_SOURCE = (
+    "frontend/app",
+    "frontend/components",
+    "frontend/lib",
+    "frontend/scripts",
+    "frontend/e2e",
+    "frontend/e2e-live",
+)
+# M15-T10: the only test2 folders the /eval page may read (finished, scored runs).
+TEST2_RESULT_DIRS = {
+    "eval/results/m15-test2-score-20261110-225734-bc0d65f",
+    "eval/results/test2-baseline-20261110-205943-9553791",
+    "eval/results/test2-agent-20261110-213115-bd5773d",
+}
 SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".mjs"}
 # Frozen on 2026-11-10 (M15-T1). Changing test2 needs a recorded reason; never edit this to match.
 FROZEN_TEST2_SHA256 = "de7021939eefe70781bec68ec2b9738472fa7dfc00f5abc588161cbdbaa36f06"
@@ -82,7 +96,8 @@ def test_lock_script_refuses_to_change_an_existing_test2(tmp_path, monkeypatch):
 
 def test_only_the_lock_script_and_the_guarded_runner_read_test2():
     """M15-T9: the runner accepts test2 behind the final-test guards (test_test2_runner_guards.py)
-    and score_test2 scores complete runs; nothing else (judge, app, frontend, scripts) loads it."""
+    and score_test2 scores complete runs; nothing else (judge, app, scripts) loads it. M15-T10: the
+    /eval page reads the finished test2 *result* files (never the manifest or its questions)."""
     with pytest.raises(SystemExit, match="without --i-understand-this-is-the-final-test"):
         run_system.main(["--system", "agent", "--split", "test2"])  # refused before any read
     readers = [
@@ -94,5 +109,21 @@ def test_only_the_lock_script_and_the_guarded_runner_read_test2():
     assert sorted(readers) == [
         "eval/runners/run_system.py",
         "eval/runners/score_test2.py",
+        "frontend/lib/checkEval.test.ts",
+        "frontend/lib/checkEval.ts",
+        "frontend/lib/evalFormat.ts",
         "scripts/lock_test2.py",
     ]
+    for page_file in ("checkEval.test.ts", "checkEval.ts", "evalFormat.ts"):
+        text = (ROOT / "frontend" / "lib" / page_file).read_text(encoding="utf-8")
+        for banned in ("manifests/test2", "test2.json", "test2.sha256", ".jsonl", "raw."):
+            assert banned not in text, (page_file, banned)  # summaries only, never questions
+        for folder in re.findall(r"eval/results/[\w.-]*test2[\w.-]*", text):
+            assert folder in TEST2_RESULT_DIRS, (page_file, folder)
+
+
+def test_the_eval_page_reads_only_test2_summaries_and_run_configs():
+    text = (ROOT / "frontend" / "lib" / "evalFormat.ts").read_text(encoding="utf-8")
+    entries = re.findall(r"^\s*(t2_\w+): `\$\{T2_\w+\}/([^`]+)`,$", text, re.MULTILINE)
+    assert len(entries) == 6
+    assert {name for _, name in entries} == {"summary.json", "run_config.json"}

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 
 test("the /eval page loads with its numbers, the gain cards and its limitations", async ({ page }) => {
   await page.goto("/eval");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("How well does GroundedMed do?");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("How GroundedMed is built and tested");
   await expect(page.getByText("Evaluation not run")).toHaveCount(0);
   expect(await page.locator("[data-src]").count()).toBeGreaterThan(100);
   for (const text of await page.locator("[data-src]").allTextContents()) expect(text.trim()).not.toBe("");
@@ -18,6 +18,15 @@ test("the /eval page loads with its numbers, the gain cards and its limitations"
   }
   await expect(page.locator(".gains p").nth(0)).toContainText("baseline vs closed-book");
   await expect(page.locator(".gains p").nth(1)).toContainText("agent vs closed-book");
+
+  // Order: what it does, how it's tested, the latest test, then the first test (v1.0.0)
+  const order = await page.locator("main h2").allTextContents();
+  const at = (start: string) => order.findIndex((t) => t.startsWith(start));
+  expect(at("What it does")).toBe(0);
+  expect(at("How it")).toBe(1);
+  expect(at("Latest test (v1.1.0)")).toBe(2);
+  expect(at("First test (v1.0.0)")).toBeGreaterThan(2);
+  await expect(page.getByText("statistically tied", { exact: false })).toBeVisible();
 
   await expect(page.getByRole("heading", { name: "Limitations" })).toBeVisible();
   await expect(page.locator(".site-footer")).toContainText("not medical advice");
