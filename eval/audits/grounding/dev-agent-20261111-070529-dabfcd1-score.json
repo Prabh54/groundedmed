@@ -1,0 +1,32 @@
+{
+  "judgments_file": "eval/audits/grounding/dev-agent-20261111-070529-dabfcd1-judgments.jsonl",
+  "method": "grounding_spotcheck_v1",
+  "run_id": "dev-agent-20261111-070529-dabfcd1",
+  "questions": 18,
+  "items": 84,
+  "judged_items": 84,
+  "not_judged": 0,
+  "counts": {
+    "supported": 82,
+    "partly": 2,
+    "unsupported": 0,
+    "not_judged": 0
+  },
+  "flagged_items": 2,
+  "unsupported_detail_rate": 0.023809523809523808,
+  "rows_with_flagged_items": 1,
+  "flagged": [
+    {
+      "pmid": "19925761",
+      "id": "l1",
+      "label": "partly",
+      "note": "single-center"
+    },
+    {
+      "pmid": "19925761",
+      "id": "l2",
+      "label": "partly",
+      "note": "narrow or tortuous meatus, stricture (stricture was a reason for fluoroscopy, not dilatation)"
+    }
+  ]
+}

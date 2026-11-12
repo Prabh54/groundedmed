@@ -1,0 +1,32 @@
+{
+  "judgments_file": "eval/audits/grounding/dev-agent-20261111-222539-dabfcd1-judgments.jsonl",
+  "method": "grounding_spotcheck_v1",
+  "run_id": "dev-agent-20261111-222539-dabfcd1",
+  "questions": 18,
+  "items": 89,
+  "judged_items": 89,
+  "not_judged": 0,
+  "counts": {
+    "supported": 87,
+    "partly": 2,
+    "unsupported": 0,
+    "not_judged": 0
+  },
+  "flagged_items": 2,
+  "unsupported_detail_rate": 0.02247191011235955,
+  "rows_with_flagged_items": 2,
+  "flagged": [
+    {
+      "pmid": "2503176",
+      "id": "l1",
+      "label": "partly",
+      "note": "short follow-up (passage: followed up for six months)"
+    },
+    {
+      "pmid": "11411430",
+      "id": "c2",
+      "label": "partly",
+      "note": "antral follicle assessment added independent information beyond them (independence shown for pregnancy rate, not cancellation)"
+    }
+  ]
+}
