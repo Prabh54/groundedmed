@@ -275,8 +275,20 @@ def with_screen_cost(response: QueryResponse, usage: LLMUsage) -> QueryResponse:
     })  # fmt: skip
 
 
+WARNING_EVENTS = {"rate_limited", "cancelled", "config_warning"}
+
+
+def log_level(record: dict) -> str:
+    """ "error" for failures (an error event, or a request whose answer step failed), "warning" for
+    refused or abandoned requests, otherwise "info". Hosting log viewers read this `level` field."""
+    if record.get("event") == "error" or record.get("error"):
+        return "error"
+    return "warning" if record.get("event") in WARNING_EVENTS else "info"
+
+
 def log(record: dict) -> None:
-    print(json.dumps(record), flush=True)
+    """One JSON line to stdout with an explicit `level`, so normal requests are not errors."""
+    print(json.dumps({"level": log_level(record)} | record), flush=True)
 
 
 if _invalid_proxies:
