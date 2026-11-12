@@ -1,0 +1,9 @@
+{
+  "run_id": "dev-agent-20261111-213630-dabfcd1",
+  "void": true,
+  "reason": "network outage on the machine running the evaluation: 26 consecutive error rows (questions 48 to 73), 24 planner and 1 critic APIConnectionError plus 1 database connection error",
+  "questions_done": 100,
+  "questions_planned": 100,
+  "rule": "Marked void by the owner's ruling of 2026-11-11 after the run finished: the errors were a network fault, not model behaviour, so the run is not scored as a candidate result. The result files are unchanged. Not rerun: on its 74 error-free questions its cost per question was above the winning candidate's.",
+  "marked_void_utc": "2026-11-12T01:38:31+00:00"
+}

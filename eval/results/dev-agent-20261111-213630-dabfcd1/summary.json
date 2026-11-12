@@ -1,0 +1,84 @@
+{
+  "run_id": "dev-agent-20261111-213630-dabfcd1",
+  "system": "agent",
+  "split": "dev",
+  "n_questions": 100,
+  "accuracy": 0.57,
+  "coverage": 0.7,
+  "answered_only_accuracy": 0.8142857142857143,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "insufficient_evidence": 30,
+    "maybe": 8,
+    "no": 23,
+    "yes": 39
+  },
+  "gold_counts": {
+    "maybe": 11,
+    "no": 34,
+    "yes": 55
+  },
+  "abstain_reasons": {
+    "weak_evidence": 3,
+    "model_abstained": 1,
+    "error": 26
+  },
+  "hit_at_1": 0.72,
+  "hit_at_5": 0.75,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "limitations": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 26,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 10882.85,
+    "p95": 14348.365,
+    "p50_when_llm_called": 11462.45,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 645853,
+    "output_incl_thinking": 86285,
+    "cache_read_input": 0,
+    "cache_write_input": 0
+  },
+  "cost_usd_by_model": {
+    "claude-haiku-5-5": 0.0099,
+    "claude-sonnet-5-5": 1.9574,
+    "rerank-3": 0.0439,
+    "voyage-4": 0.0003
+  },
+  "cost_usd": {
+    "total": 2.0114,
+    "per_query": 0.02011
+  },
+  "agent": {
+    "planner_added_evidence": {
+      "mean": 0.22972972972972974,
+      "share_questions_gt0": 0.1891891891891892,
+      "questions_gt0": 14,
+      "gold_found_only_via_subqueries": 0
+    },
+    "mean_candidates": 35.12162162162162,
+    "critic": {
+      "answers_checked": 71,
+      "items_checked": 339,
+      "items_removed": 36,
+      "answers_with_removals": 26,
+      "answer_supported_false": 0,
+      "answers_abstained_by_critic": 0
+    },
+    "stage_latency_p50_ms": {
+      "planner": 1415.6,
+      "retriever": 1227.95,
+      "synthesizer": 4129.5,
+      "critic": 4257.4
+    }
+  },
+  "complete": true,
+  "owner_approval": "Approved: T2, T3, T4 and T5, with these hard caps: T3 $1.00, T4 $0.50, T5 $7.50. Stop after T5, before T6. ADR-046: each candidate exactly one DEV run. Candidate A planner on Haiku, soft stop $3.25. Console 2026-11-11: org $35.27 of $55, eval $30.53 of $45.",
+  "estimated_cost_usd": 3.5
+}
