@@ -1,0 +1,84 @@
+{
+  "run_id": "dev-agent-20261111-233215-dabfcd1",
+  "system": "agent",
+  "split": "dev",
+  "n_questions": 100,
+  "accuracy": 0.74,
+  "coverage": 0.94,
+  "answered_only_accuracy": 0.7872340425531915,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "insufficient_evidence": 6,
+    "maybe": 13,
+    "no": 34,
+    "yes": 47
+  },
+  "gold_counts": {
+    "maybe": 11,
+    "no": 34,
+    "yes": 55
+  },
+  "abstain_reasons": {
+    "weak_evidence": 3,
+    "model_abstained": 2,
+    "no_supported_claims": 1
+  },
+  "hit_at_1": 0.97,
+  "hit_at_5": 1.0,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "limitations": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 11653.0,
+    "p95": 19735.39,
+    "p50_when_llm_called": 11688.3,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 770484,
+    "output_incl_thinking": 152890,
+    "cache_read_input": 234726,
+    "cache_write_input": 2059
+  },
+  "cost_usd_by_model": {
+    "claude-haiku-5-5": 0.0732,
+    "claude-sonnet-5-5": 1.658,
+    "rerank-3": 0.0607,
+    "voyage-4": 0.0006
+  },
+  "cost_usd": {
+    "total": 1.7926,
+    "per_query": 0.01793
+  },
+  "agent": {
+    "planner_added_evidence": {
+      "mean": 0.44,
+      "share_questions_gt0": 0.3,
+      "questions_gt0": 30,
+      "gold_found_only_via_subqueries": 0
+    },
+    "mean_candidates": 36.17,
+    "critic": {
+      "answers_checked": 97,
+      "items_checked": 459,
+      "items_removed": 25,
+      "answers_with_removals": 22,
+      "answer_supported_false": 17,
+      "answers_abstained_by_critic": 1
+    },
+    "stage_latency_p50_ms": {
+      "planner": 2650.3,
+      "retriever": 1474.3,
+      "synthesizer": 3947.5,
+      "critic": 3079.4
+    }
+  },
+  "complete": true,
+  "owner_approval": "T6 approved: one DEV after run of B (critic on Haiku) + caching on synthesizer and critic, hard cap $2.60, under caffeinate. Result final, no rerun; network errors make it void. Console 2026-11-11: eval ~$37, org ~$41.70.",
+  "estimated_cost_usd": 3.5
+}

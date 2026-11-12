@@ -1,0 +1,83 @@
+{
+  "run_id": "dev-agent-20261112-003343-dabfcd1",
+  "system": "agent",
+  "split": "dev",
+  "n_questions": 100,
+  "accuracy": 0.75,
+  "coverage": 0.93,
+  "answered_only_accuracy": 0.8064516129032258,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "insufficient_evidence": 7,
+    "maybe": 11,
+    "no": 33,
+    "yes": 49
+  },
+  "gold_counts": {
+    "maybe": 11,
+    "no": 34,
+    "yes": 55
+  },
+  "abstain_reasons": {
+    "weak_evidence": 3,
+    "model_abstained": 2,
+    "no_supported_claims": 2
+  },
+  "hit_at_1": 0.97,
+  "hit_at_5": 1.0,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "limitations": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 12725.55,
+    "p95": 17164.989999999998,
+    "p50_when_llm_called": 12777.5,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 673578,
+    "output_incl_thinking": 121576,
+    "cache_read_input": 203841,
+    "cache_write_input": 2059
+  },
+  "cost_usd_by_model": {
+    "claude-sonnet-5-5": 2.6088,
+    "rerank-3": 0.0603,
+    "voyage-4": 0.0006
+  },
+  "cost_usd": {
+    "total": 2.6698,
+    "per_query": 0.0267
+  },
+  "agent": {
+    "planner_added_evidence": {
+      "mean": 0.44,
+      "share_questions_gt0": 0.31,
+      "questions_gt0": 31,
+      "gold_found_only_via_subqueries": 0
+    },
+    "mean_candidates": 36.14,
+    "critic": {
+      "answers_checked": 97,
+      "items_checked": 466,
+      "items_removed": 48,
+      "answers_with_removals": 31,
+      "answer_supported_false": 5,
+      "answers_abstained_by_critic": 2
+    },
+    "stage_latency_p50_ms": {
+      "planner": 2622.7,
+      "retriever": 1459.25,
+      "synthesizer": 4247.8,
+      "critic": 4170.4
+    }
+  },
+  "complete": true,
+  "owner_approval": "Run the final config (Sonnet critic + caching on synthesizer and critic): one 100-question DEV run, hard cap $3.30, under caffeinate. One run, no rerun; network errors make it void. Console 2026-11-11: eval ~$38.80, org ~$43.50.",
+  "estimated_cost_usd": 3.5
+}
