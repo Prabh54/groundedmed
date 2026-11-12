@@ -1,0 +1,81 @@
+{
+  "run_id": "dev-agent-20261111-212723-dabfcd1",
+  "system": "agent",
+  "split": "dev",
+  "n_questions": 20,
+  "accuracy": 0.75,
+  "coverage": 0.95,
+  "answered_only_accuracy": 0.7894736842105263,
+  "majority_class_reference": 0.65,
+  "verdict_counts": {
+    "insufficient_evidence": 1,
+    "maybe": 2,
+    "no": 6,
+    "yes": 11
+  },
+  "gold_counts": {
+    "maybe": 1,
+    "no": 6,
+    "yes": 13
+  },
+  "abstain_reasons": {
+    "weak_evidence": 1
+  },
+  "hit_at_1": 0.9,
+  "hit_at_5": 1.0,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "limitations": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 12134.4,
+    "p95": 15458.67,
+    "p50_when_llm_called": 12174.9,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 128909,
+    "output_incl_thinking": 24040,
+    "cache_read_input": 37062,
+    "cache_write_input": 2059
+  },
+  "cost_usd_by_model": {
+    "claude-sonnet-5-5": 0.5108,
+    "rerank-3": 0.0133,
+    "voyage-4": 0.0001
+  },
+  "cost_usd": {
+    "total": 0.5242,
+    "per_query": 0.02621
+  },
+  "agent": {
+    "planner_added_evidence": {
+      "mean": 0.3,
+      "share_questions_gt0": 0.25,
+      "questions_gt0": 5,
+      "gold_found_only_via_subqueries": 0
+    },
+    "mean_candidates": 38.7,
+    "critic": {
+      "answers_checked": 19,
+      "items_checked": 91,
+      "items_removed": 5,
+      "answers_with_removals": 5,
+      "answer_supported_false": 0,
+      "answers_abstained_by_critic": 0
+    },
+    "stage_latency_p50_ms": {
+      "planner": 2683.9,
+      "retriever": 1223.3,
+      "synthesizer": 4184.0,
+      "critic": 3915.0
+    }
+  },
+  "complete": true,
+  "owner_approval": "Approved: T2, T3, T4 and T5, with these hard caps: T3 $1.00, T4 $0.50, T5 $7.50. Stop after T5, before T6. Console 2026-11-11: org $35.27 of $55, eval $30.53 of $45.",
+  "estimated_cost_usd": 0.7
+}
