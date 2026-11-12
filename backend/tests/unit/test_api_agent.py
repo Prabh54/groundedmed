@@ -215,6 +215,7 @@ def test_stream_sends_stage_events_then_the_result(setup):
         stages = [{k: v for k, v in st.items() if k != "ms"} for st in body["stages"]]
         return {k: v for k, v in body.items() if k not in drop} | {"stages": stages}
 
+    main.response_cache.clear()  # the stream stored its answer; /query must run for real here
     assert stable(events[-1][1]) == stable(post(setup).json())  # same body as /query
     assert "SECRET-REASONING" not in r.text
 
@@ -256,3 +257,69 @@ def test_stream_rate_limit_is_http_429_before_streaming(setup, monkeypatch):
     monkeypatch.setattr(main, "limiter", RateLimiter(per_ip_per_hour=1, daily_cap=100))
     post(setup, "/query/stream")
     assert post(setup, "/query/stream").status_code == 429
+
+
+# --- exact-match response cache (M11-T4, ADR-046) --------------------------------------------
+
+
+def test_identical_question_is_answered_from_the_cache_without_any_model_call(setup):
+    first = post(setup).json()
+    calls_after_first = list(setup.llm.calls)
+    second = post(setup).json()
+    assert setup.llm.calls == calls_after_first  # no planner, synthesizer or critic call
+    assert second["request_id"] != first["request_id"]
+    for same in ("verdict", "answer", "claims", "citations", "limitations", "prompt_versions"):
+        assert second[same] == first[same]
+    assert second["estimated_cost_usd"] == 0.0 < first["estimated_cost_usd"]
+    assert set(second["timing_ms"]) == {"cache_lookup", "total"}
+    assert all(s["status"] == "done" and s["ms"] == 0.0 for s in second["stages"])
+
+
+def test_one_character_different_question_misses_the_cache(setup):
+    post(setup)
+    calls = len(setup.llm.calls)
+    r = setup.client.post("/query", json={"question": QUESTION + " ", "mode": "agent"})
+    assert len(setup.llm.calls) == calls  # outer whitespace is trimmed: still a hit
+    r = setup.client.post("/query", json={"question": QUESTION[:-1], "mode": "agent"})
+    assert r.status_code in (200, 503) and len(setup.llm.calls) > calls  # a miss: models ran
+
+
+def test_mode_is_part_of_the_cache_key(setup):
+    post(setup, mode="agent")
+    agent_calls = list(setup.llm.calls)
+    post(setup, mode="baseline")
+    assert len(setup.llm.calls) > len(agent_calls)  # the baseline did not reuse the agent's answer
+
+
+def test_refusals_are_never_stored(setup):
+    setup.voyage.score = 0.3  # weak evidence: abstains
+    assert post(setup).json()["abstain_reason"] == "weak_evidence"
+    post(setup)
+    assert setup.llm.calls == ["planner", "planner"]  # the second one searched again
+    assert len(main.response_cache) == 0
+
+
+def test_errors_are_never_stored(setup):
+    setup.llm.fail = "critic"
+    assert post(setup).status_code == 503
+    assert len(main.response_cache) == 0
+    setup.llm.fail = None
+    assert post(setup).status_code == 200  # a real answer after the error, not a stored failure
+
+
+def test_cached_answer_also_works_on_the_stream(setup):
+    post(setup)
+    calls = list(setup.llm.calls)
+    r = post(setup, "/query/stream")
+    events = parse_sse(r.text)
+    assert setup.llm.calls == calls
+    assert events[-1][0] == "result" and events[-1][1]["verdict"] == "yes"
+
+
+def test_evaluation_and_pipelines_never_touch_the_answer_cache():
+    import pathlib
+
+    root = pathlib.Path(main.__file__).resolve().parents[2]
+    for rel in ("backend/app/agents", "backend/app/baseline", "eval/runners", "eval"):
+        for path in (root / rel).glob("*.py"):
+            assert "response_cache" not in path.read_text(), path

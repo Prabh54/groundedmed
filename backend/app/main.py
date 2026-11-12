@@ -14,6 +14,7 @@ import os
 import queue
 import subprocess
 import threading
+import time
 import uuid
 
 import psycopg
@@ -55,6 +56,7 @@ from backend.app.models.api import (
     pubmed_url,
 )
 from backend.app.models.retrieval import RetrievalError
+from backend.app.response_cache import ResponseCache, make_key, storable
 from backend.app.retrieval.embed import voyage_client
 from backend.app.retrieval.vector_search import connect, get_document
 
@@ -142,6 +144,11 @@ app.add_middleware(
 )
 # In-memory limits: run a single uvicorn worker, or each worker gets its own counters.
 limiter = RateLimiter(PER_IP_QUERIES_PER_HOUR, daily_cap(os.environ.get("DAILY_QUERY_CAP")))
+# Exact-match answer cache (M11, ADR-046): in memory, so a restart empties it. 0 entries = off.
+response_cache = ResponseCache(
+    max_entries=int(os.environ.get("RESPONSE_CACHE_ENTRIES", "256") or 0),
+    ttl_seconds=float(os.environ.get("RESPONSE_CACHE_TTL_SECONDS", "3600") or 3600),
+)
 # The header holding the visitor's address, believed only from these proxy addresses (both
 # measured on the deployed host). Either one empty = believe no header.
 CLIENT_IP_HEADER = os.environ.get("CLIENT_IP_HEADER", "").strip().lower()
@@ -349,6 +356,24 @@ def answer(
     refusal, advice_usage = advice_refusal(body, request_id)
     if refusal is not None:
         return refusal
+    started = time.perf_counter()
+    cache_key = make_key(body.question, body.mode) if response_cache.max_entries > 0 else None
+    cached = response_cache.get(cache_key) if cache_key else None
+    if cached is not None:  # identical question, mode and system: no search, no model call
+        ms = (time.perf_counter() - started) * 1000
+        log({"request_id": request_id, "mode": body.mode, "question": body.question,
+             "event": "cache_hit", "verdict": cached.verdict, "cache_lookup_ms": round(ms, 2),
+             "usage": [advice_usage.model_dump()], "cost_usd": advice_usage.cost_usd})  # fmt: skip
+        hit = cached.model_copy(update={
+            "request_id": request_id,
+            "stages": [s.model_copy(update={"ms": 0.0}) for s in cached.stages],
+            "timing_ms": {"cache_lookup": round(ms, 3), "total": round(ms, 3)},
+            "estimated_cost_usd": 0.0,
+        })  # fmt: skip
+        if emit:
+            for s in hit.stages:
+                emit((s.name, s.status, s.message, s.ms))
+        return with_screen_cost(hit, advice_usage)
     events: list[StageEvent] = []
 
     def record(event: StageEvent) -> None:
@@ -403,8 +428,18 @@ def answer(
     if result.abstain_reason == "error":  # LLM failed: plain message, never a partial answer
         raise HTTPException(status_code=503, detail=UNAVAILABLE_MESSAGE)
     if body.mode == "agent":
-        return with_screen_cost(to_agent_response(request_id, result, events), advice_usage)
-    response = with_screen_cost(to_response(request_id, result), advice_usage)
+        built = to_agent_response(request_id, result, events)
+        if cache_key and storable(
+            abstained=result.abstained, error=result.error, rerank_skipped=result.rerank_skipped
+        ):
+            response_cache.put(cache_key, built)
+        return with_screen_cost(built, advice_usage)
+    built = to_response(request_id, result)
+    if cache_key and storable(
+        abstained=result.abstained, error=result.error, rerank_skipped=result.rerank_skipped
+    ):
+        response_cache.put(cache_key, built)
+    response = with_screen_cost(built, advice_usage)
     if emit:  # baseline has no live stages: report them once the answer is ready
         for s in response.stages:
             emit((s.name, s.status, s.message, s.ms))

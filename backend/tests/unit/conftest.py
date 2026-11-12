@@ -18,3 +18,12 @@ def advice_screen_passes(request, monkeypatch):
     from backend.app import main
 
     monkeypatch.setattr(main, "screen", lambda question: NO_ADVICE)
+
+
+@pytest.fixture(autouse=True)
+def fresh_response_cache(monkeypatch):
+    """The answer cache is process-wide; every test starts with an empty one."""
+    from backend.app import main
+    from backend.app.response_cache import ResponseCache
+
+    monkeypatch.setattr(main, "response_cache", ResponseCache())
