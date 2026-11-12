@@ -1,0 +1,212 @@
+[
+ {
+  "pass": 1,
+  "q": "Are rural Australian patients willing to help teach medical students?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 1,
+  "cost_usd": 0.027919,
+  "ms": 16344.0,
+  "timing_keys": [
+   "critic",
+   "planner",
+   "rerank",
+   "retrieval",
+   "synthesis",
+   "total"
+  ]
+ },
+ {
+  "pass": 1,
+  "q": "Are people with serious mental illness more likely to end up in worse nursing homes?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 3,
+  "cost_usd": 0.03033,
+  "ms": 13719.4,
+  "timing_keys": [
+   "critic",
+   "planner",
+   "rerank",
+   "retrieval",
+   "synthesis",
+   "total"
+  ]
+ },
+ {
+  "pass": 1,
+  "q": "Do recorded lectures make medical students skip class?",
+  "verdict": "no",
+  "abstained": false,
+  "claims": 1,
+  "cost_usd": 0.024048,
+  "ms": 13204.7,
+  "timing_keys": [
+   "critic",
+   "planner",
+   "rerank",
+   "retrieval",
+   "synthesis",
+   "total"
+  ]
+ },
+ {
+  "pass": 1,
+  "q": "Is paying pregnant smokers to quit worth the cost?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 2,
+  "cost_usd": 0.034507,
+  "ms": 14048.9,
+  "timing_keys": [
+   "critic",
+   "planner",
+   "rerank",
+   "retrieval",
+   "synthesis",
+   "total"
+  ]
+ },
+ {
+  "pass": 1,
+  "q": "Does a baby's sex affect asthma ER visits during pregnancy?",
+  "verdict": "no",
+  "abstained": false,
+  "claims": 3,
+  "cost_usd": 0.029001,
+  "ms": 14012.8,
+  "timing_keys": [
+   "critic",
+   "planner",
+   "rerank",
+   "retrieval",
+   "synthesis",
+   "total"
+  ]
+ },
+ {
+  "pass": 1,
+  "q": "Can adults with mild intellectual disabilities get better at reading comprehension?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 2,
+  "cost_usd": 0.029626,
+  "ms": 13518.5,
+  "timing_keys": [
+   "critic",
+   "planner",
+   "rerank",
+   "retrieval",
+   "synthesis",
+   "total"
+  ]
+ },
+ {
+  "pass": 1,
+  "q": "Is breast cancer prognosis inherited?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 3,
+  "cost_usd": 0.030906,
+  "ms": 13413.1,
+  "timing_keys": [
+   "critic",
+   "planner",
+   "rerank",
+   "retrieval",
+   "synthesis",
+   "total"
+  ]
+ },
+ {
+  "pass": 2,
+  "q": "Are rural Australian patients willing to help teach medical students?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 1,
+  "cost_usd": 7.8e-05,
+  "ms": 916.4,
+  "timing_keys": [
+   "cache_lookup",
+   "total"
+  ]
+ },
+ {
+  "pass": 2,
+  "q": "Are people with serious mental illness more likely to end up in worse nursing homes?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 3,
+  "cost_usd": 7.8e-05,
+  "ms": 924.4,
+  "timing_keys": [
+   "cache_lookup",
+   "total"
+  ]
+ },
+ {
+  "pass": 2,
+  "q": "Do recorded lectures make medical students skip class?",
+  "verdict": "no",
+  "abstained": false,
+  "claims": 1,
+  "cost_usd": 7.7e-05,
+  "ms": 1301.3,
+  "timing_keys": [
+   "cache_lookup",
+   "total"
+  ]
+ },
+ {
+  "pass": 2,
+  "q": "Is paying pregnant smokers to quit worth the cost?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 2,
+  "cost_usd": 7.8e-05,
+  "ms": 820.6,
+  "timing_keys": [
+   "cache_lookup",
+   "total"
+  ]
+ },
+ {
+  "pass": 2,
+  "q": "Does a baby's sex affect asthma ER visits during pregnancy?",
+  "verdict": "no",
+  "abstained": false,
+  "claims": 3,
+  "cost_usd": 7.8e-05,
+  "ms": 846.8,
+  "timing_keys": [
+   "cache_lookup",
+   "total"
+  ]
+ },
+ {
+  "pass": 2,
+  "q": "Can adults with mild intellectual disabilities get better at reading comprehension?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 2,
+  "cost_usd": 7.8e-05,
+  "ms": 1030.4,
+  "timing_keys": [
+   "cache_lookup",
+   "total"
+  ]
+ },
+ {
+  "pass": 2,
+  "q": "Is breast cancer prognosis inherited?",
+  "verdict": "yes",
+  "abstained": false,
+  "claims": 3,
+  "cost_usd": 7.7e-05,
+  "ms": 918.3,
+  "timing_keys": [
+   "cache_lookup",
+   "total"
+  ]
+ }
+]

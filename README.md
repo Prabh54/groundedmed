@@ -141,6 +141,23 @@ cross-check. Cost counts AI model tokens at list price; times are from a laptop,
 
 </details>
 
+## Cost engineering
+
+Added in v1.2.0, after the test results were locked. Everything here was tuned and measured on the 100 dev questions,
+never on a test set; the numbers are read from the stored runs in `eval/results/` and `docs/deploy/answer-cache-replay.json`.
+
+- **Repeat questions come back almost instantly, at almost no cost.** An exact-match answer cache returns the stored
+  answer when the same question arrives again: no search and no model call. In a replay of the seven home-page example
+  questions, the median time fell from 13.7 s to 0.9 s, and a repeat costs only the personal-advice screen (under
+  $0.0001). It matches the exact question text only (same models, prompts, library and settings), never a similar
+  question, because a near-miss question can need a different answer. Refusals and errors are never stored, and the
+  evaluations never use it.
+- **Prompt caching makes each answer about 11% cheaper.** The fixed instructions of the answer writer and the critic
+  are cached by the AI provider (the planner's are too short to cache). On a 100-question dev run, the AI cost per
+  question went from $0.0300 to $0.0267, with accuracy within run-to-run noise.
+- **Cheaper models were tested against a quality gate set in advance.** A smaller critic model was tested against a
+  quality gate set before any run; it didn't meet the bar, so the stronger critic was kept.
+
 ## Limitations
 
 - **The benchmark makes search easy.** PubMedQA questions are often the paper's own title, so the right abstract is
