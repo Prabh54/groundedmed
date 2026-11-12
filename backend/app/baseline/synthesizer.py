@@ -69,6 +69,7 @@ def synthesize(
     question: str,
     evidence: list[Candidate],
     effort: Effort = SYNTHESIZER_EFFORT,
+    cache: bool = False,
 ) -> tuple[DraftAnswer, LLMUsage, float]:
     """The baseline always uses SYNTHESIZER_EFFORT; the agent passes its own (ADR-044)."""
     return structured_call(
@@ -77,4 +78,5 @@ def synthesize(
         user=render_user_message(question, evidence),
         schema=DraftAnswer,
         effort=effort,
+        cache=cache,
     )

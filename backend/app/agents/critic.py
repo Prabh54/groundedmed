@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from backend.app.agents.graph import Node
 from backend.app.agents.reviser import needs_retry, revise
 from backend.app.agents.rules import _kept, apply_critic, refusal_reason  # noqa: F401 (re-exported)
-from backend.app.config import REPO_ROOT
+from backend.app.config import CRITIC_MODEL, PROMPT_CACHE_STAGES, REPO_ROOT
 from backend.app.llm.client import Effort, LLMError, structured_call
 from backend.app.models.agent import CriticResult, ResearchState
 from backend.app.models.answer import Claim, DraftAnswer, LLMUsage
@@ -102,6 +102,8 @@ def critique(
         user=render_user_message(question, draft, evidence),
         schema=CriticOutput,
         effort=CRITIC_EFFORT,
+        model=CRITIC_MODEL,
+        cache="critic" in PROMPT_CACHE_STAGES,
     )
 
 

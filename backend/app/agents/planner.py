@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from backend.app.agents.graph import Node
 from backend.app.baseline.synthesizer import _neutralize
-from backend.app.config import REPO_ROOT
+from backend.app.config import PLANNER_MODEL, PROMPT_CACHE_STAGES, REPO_ROOT
 from backend.app.llm.client import Effort, structured_call
 from backend.app.models.agent import ResearchState, SubQuestion
 from backend.app.models.answer import LLMUsage
@@ -84,6 +84,8 @@ def plan(
         user=render_user_message(question),
         schema=PlannerOutput,
         effort=PLANNER_EFFORT,
+        model=PLANNER_MODEL,
+        cache="planner" in PROMPT_CACHE_STAGES,
     )
     return clean_subquestions(output.subquestions, question), output.subquestions, usage, elapsed_ms
 

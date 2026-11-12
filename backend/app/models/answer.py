@@ -33,6 +33,9 @@ class LLMUsage(BaseModel):
     input_tokens: int
     output_tokens: int  # includes thinking tokens
     cost_usd: float
+    # Prompt-cache tokens (M11). `input_tokens` stays the uncached remainder; old runs lack these.
+    cache_read_input_tokens: int = 0
+    cache_write_input_tokens: int = 0
 
 
 class ValidationReport(BaseModel):

@@ -10,13 +10,18 @@ import anthropic
 from backend.app.agents.graph import Node
 from backend.app.agents.reviser import AGENT_SYNTHESIZER_EFFORT
 from backend.app.baseline.synthesizer import synthesize
+from backend.app.config import PROMPT_CACHE_STAGES
 from backend.app.models.agent import ResearchState
 
 
 def make_synthesizer_node(client: anthropic.Anthropic) -> Node:
     def synthesizer(state: ResearchState) -> dict:
         draft, usage, _ = synthesize(
-            client, state["question"], state["selected_evidence"], effort=AGENT_SYNTHESIZER_EFFORT
+            client,
+            state["question"],
+            state["selected_evidence"],
+            effort=AGENT_SYNTHESIZER_EFFORT,
+            cache="synthesizer" in PROMPT_CACHE_STAGES,
         )
         return {"draft_answer": draft, "claims": draft.claims, "usage": [usage]}
 

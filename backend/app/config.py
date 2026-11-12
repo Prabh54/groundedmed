@@ -28,10 +28,38 @@ PRICE_PER_M_TOKENS = {
 }
 # Anthropic list prices, USD per million tokens. Thinking tokens bill as output.
 # Haiku 5.5: prompts up to 100,000 tokens (the screen's are ~600), checked 2026-11-02.
+# `cache_read` is 0.1x and `cache_write` (5-minute entries) 1.25x the input price
+# (M11, checked 2026-11-11).
 LLM_PRICE_PER_M_TOKENS = {
-    LLM_MODEL: {"input": 2.00, "output": 10.00},
-    ADVICE_MODEL: {"input": 0.10, "output": 0.50},
+    LLM_MODEL: {"input": 2.00, "output": 10.00, "cache_read": 0.20, "cache_write": 2.50},
+    ADVICE_MODEL: {"input": 0.10, "output": 0.50, "cache_read": 0.01, "cache_write": 0.125},
 }
+
+# Per-stage model routing and prompt caching (M11, ADR-046). Defaults reproduce v1.1.0 exactly:
+# every stage on LLM_MODEL, no caching. Env overrides exist so an evaluation candidate is one
+# process setting, not a code edit; the evaluation runner records them in run_config.json.
+_STAGES = ("planner", "synthesizer", "critic")
+
+
+def _stage_model(var: str) -> str:
+    value = os.environ.get(var, "").strip() or LLM_MODEL
+    if value not in LLM_PRICE_PER_M_TOKENS:
+        raise RuntimeError(f"{var} must be one of {sorted(LLM_PRICE_PER_M_TOKENS)}")
+    return value
+
+
+def _cache_stages() -> frozenset[str]:
+    names = frozenset(
+        s.strip() for s in os.environ.get("PROMPT_CACHE_STAGES", "").split(",") if s.strip()
+    )
+    if not names <= set(_STAGES):
+        raise RuntimeError(f"PROMPT_CACHE_STAGES must be a comma list from {_STAGES}")
+    return names
+
+
+PLANNER_MODEL = _stage_model("PLANNER_MODEL")
+CRITIC_MODEL = _stage_model("CRITIC_MODEL")
+PROMPT_CACHE_STAGES = _cache_stages()
 
 
 SECRET_ENV_VARS = (

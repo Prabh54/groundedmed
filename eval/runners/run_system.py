@@ -59,10 +59,13 @@ from backend.app.baseline.synthesizer import (
     USER_TEMPLATE,
 )
 from backend.app.config import (
+    CRITIC_MODEL,
     EMBEDDING_MODEL,
     EVIDENCE_GATE_DEV_RUN,
     EVIDENCE_GATE_THRESHOLD,
     LLM_MODEL,
+    PLANNER_MODEL,
+    PROMPT_CACHE_STAGES,
     REPO_ROOT,
     RERANK_MODEL,
     redact,
@@ -406,6 +409,13 @@ def summarize(rows: list[dict]) -> dict:
     answered_totals = [r["timings_ms"]["total"] for r in rows if r["gate_passed"]]
     llm_in = sum(u.get("input_tokens", 0) for r in rows for u in r["usage"])
     llm_out = sum(u.get("output_tokens", 0) for r in rows for u in r["usage"])
+    cache_read = sum(u.get("cache_read_input_tokens", 0) for r in rows for u in r["usage"])
+    cache_write = sum(u.get("cache_write_input_tokens", 0) for r in rows for u in r["usage"])
+    cost_by_model: dict[str, float] = {}
+    for r in rows:
+        for u in r["usage"]:
+            model = u.get("model", "unknown")
+            cost_by_model[model] = cost_by_model.get(model, 0.0) + u.get("cost_usd", 0.0)
     cost = sum(r["cost_usd"] for r in rows)
     reasons: dict[str, int] = {}
     for r in rows:
@@ -446,7 +456,13 @@ def summarize(rows: list[dict]) -> dict:
             "p50_when_llm_called": pct(answered_totals, 50),
             "measured_from": "developer machine, sequential, one reused DB connection",
         },
-        "llm_tokens": {"input": llm_in, "output_incl_thinking": llm_out},
+        "llm_tokens": {
+            "input": llm_in,
+            "output_incl_thinking": llm_out,
+            "cache_read_input": cache_read,
+            "cache_write_input": cache_write,
+        },
+        "cost_usd_by_model": {m: round(c, 4) for m, c in sorted(cost_by_model.items())},
         "cost_usd": {"total": round(cost, 4), "per_query": round(cost / len(rows), 5)},
     }
 
@@ -522,6 +538,11 @@ def main(argv: list[str] | None = None) -> None:
                 agent_critic.USER_TEMPLATE.encode()
             ).hexdigest(),
             "critic_effort": agent_critic.CRITIC_EFFORT,
+            # M11 (ADR-046): per-stage routing and prompt caching; defaults reproduce v1.1.0
+            "planner_model": PLANNER_MODEL,
+            "synthesizer_model": LLM_MODEL,
+            "critic_model": CRITIC_MODEL,
+            "prompt_cache_stages": sorted(PROMPT_CACHE_STAGES),
             # ADR-044: the agent's synthesizer effort (first pass and retry) and the retry turn
             "agent_synthesizer_effort": agent_reviser.AGENT_SYNTHESIZER_EFFORT,
             "retry_prompt": agent_reviser.RETRY_VERSION,

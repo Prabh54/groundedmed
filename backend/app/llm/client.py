@@ -43,9 +43,21 @@ def anthropic_client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=env("ANTHROPIC_API_KEY"), max_retries=2, timeout=90)
 
 
-def llm_cost(model: str, input_tokens: int, output_tokens: int) -> float:
+def llm_cost(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cache_read_tokens: int = 0,
+    cache_write_tokens: int = 0,
+) -> float:
+    """`input_tokens` is the uncached remainder; cache reads and writes bill at their own rates."""
     price = LLM_PRICE_PER_M_TOKENS[model]
-    return (input_tokens * price["input"] + output_tokens * price["output"]) / 1e6
+    return (
+        input_tokens * price["input"]
+        + output_tokens * price["output"]
+        + cache_read_tokens * price["cache_read"]
+        + cache_write_tokens * price["cache_write"]
+    ) / 1e6
 
 
 def strict_schema(model: type[BaseModel]) -> dict[str, Any]:
@@ -79,6 +91,7 @@ def structured_call[T: BaseModel](
     effort: Effort,
     max_tokens: int = 16000,
     model: str = LLM_MODEL,
+    cache: bool = False,
 ) -> tuple[T, LLMUsage, float]:
     """Return (parsed output, usage, elapsed ms). Every failure raises LLMError (ARCHITECTURE §13).
 
@@ -90,7 +103,11 @@ def structured_call[T: BaseModel](
         response = client.messages.create(
             model=model,
             max_tokens=max_tokens,
-            system=system,
+            system=(
+                [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+                if cache
+                else system
+            ),
             messages=[{"role": "user", "content": user}],
             output_config={
                 "effort": effort,
@@ -103,11 +120,21 @@ def structured_call[T: BaseModel](
         raise LLMError(message, elapsed_ms=elapsed_ms) from None
     elapsed_ms = (time.perf_counter() - start) * 1000
 
+    cache_read = getattr(response.usage, "cache_read_input_tokens", None) or 0
+    cache_write = getattr(response.usage, "cache_creation_input_tokens", None) or 0
     usage = LLMUsage(
         model=model,
         input_tokens=response.usage.input_tokens,
         output_tokens=response.usage.output_tokens,
-        cost_usd=llm_cost(model, response.usage.input_tokens, response.usage.output_tokens),
+        cost_usd=llm_cost(
+            model,
+            response.usage.input_tokens,
+            response.usage.output_tokens,
+            cache_read,
+            cache_write,
+        ),
+        cache_read_input_tokens=cache_read,
+        cache_write_input_tokens=cache_write,
     )
     if response.stop_reason == "refusal":
         category = getattr(response.stop_details, "category", None)

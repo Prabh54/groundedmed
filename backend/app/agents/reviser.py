@@ -18,6 +18,7 @@ import unicodedata
 import anthropic
 
 from backend.app.baseline.synthesizer import SYSTEM_PROMPT, render_evidence
+from backend.app.config import PROMPT_CACHE_STAGES
 from backend.app.llm.client import Effort, structured_call
 from backend.app.models.agent import CriticResult
 from backend.app.models.answer import DraftAnswer, LLMUsage
@@ -108,4 +109,5 @@ def revise(
         user=render_retry_message(question, draft, results, answer_supported, evidence),
         schema=DraftAnswer,
         effort=AGENT_SYNTHESIZER_EFFORT,
+        cache="synthesizer" in PROMPT_CACHE_STAGES,
     )

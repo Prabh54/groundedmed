@@ -96,7 +96,12 @@ def test_check_uses_the_small_model_at_low_effort_and_counts_its_cost():
     assert sent["output_config"]["effort"] == "low"
     assert sent["output_config"]["format"]["schema"]["required"] == ["personal_advice"]
     assert "tools" not in sent  # no call is ever given tools
-    assert LLM_PRICE_PER_M_TOKENS[ADVICE_MODEL] == {"input": 0.10, "output": 0.50}
+    assert LLM_PRICE_PER_M_TOKENS[ADVICE_MODEL] == {
+        "input": 0.10,
+        "output": 0.50,
+        "cache_read": 0.01,  # M11: cache prices added, input and output unchanged
+        "cache_write": 0.125,
+    }
     assert usage.model == ADVICE_MODEL and usage.cost_usd == pytest.approx(SCREEN_COST)
 
 
