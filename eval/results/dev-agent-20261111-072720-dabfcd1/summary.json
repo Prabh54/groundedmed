@@ -1,0 +1,75 @@
+{
+  "run_id": "dev-agent-20261111-072720-dabfcd1",
+  "system": "agent",
+  "split": "dev",
+  "n_questions": 100,
+  "accuracy": 0.76,
+  "coverage": 0.96,
+  "answered_only_accuracy": 0.7916666666666666,
+  "majority_class_reference": 0.55,
+  "verdict_counts": {
+    "insufficient_evidence": 4,
+    "maybe": 11,
+    "no": 34,
+    "yes": 51
+  },
+  "gold_counts": {
+    "maybe": 11,
+    "no": 34,
+    "yes": 55
+  },
+  "abstain_reasons": {
+    "weak_evidence": 3,
+    "model_abstained": 1
+  },
+  "hit_at_1": 0.97,
+  "hit_at_5": 1.0,
+  "citations_removed": {
+    "uncited": 0,
+    "invalid": 0,
+    "limitations": 0,
+    "answers_downgraded": 0
+  },
+  "errors": 0,
+  "rerank_skipped": 0,
+  "latency_ms": {
+    "p50": 12644.7,
+    "p95": 16497.63,
+    "p50_when_llm_called": 12696.4,
+    "measured_from": "developer machine, sequential, one reused DB connection"
+  },
+  "llm_tokens": {
+    "input": 852362,
+    "output_incl_thinking": 119636
+  },
+  "cost_usd": {
+    "total": 2.9628,
+    "per_query": 0.02963
+  },
+  "agent": {
+    "planner_added_evidence": {
+      "mean": 0.43,
+      "share_questions_gt0": 0.3,
+      "questions_gt0": 30,
+      "gold_found_only_via_subqueries": 0
+    },
+    "mean_candidates": 36.51,
+    "critic": {
+      "answers_checked": 97,
+      "items_checked": 457,
+      "items_removed": 47,
+      "answers_with_removals": 36,
+      "answer_supported_false": 4,
+      "answers_abstained_by_critic": 0
+    },
+    "stage_latency_p50_ms": {
+      "planner": 2660.2,
+      "retriever": 1215.2,
+      "synthesizer": 4346.2,
+      "critic": 4203.6
+    }
+  },
+  "complete": true,
+  "owner_approval": "Go ahead with T1 as planned. Cap scheme OK: run 1 soft stop $3.60, run 2 gets $6.50 minus run 1's actual cost (run 1 cost $3.0499, so run 2 cap $3.45), $6.50 total max. Console 2026-11-11: org $29.37 of $55, eval workspace $24.64 of $45.",
+  "estimated_cost_usd": 3.5
+}
